@@ -9,6 +9,7 @@ import QuestionsPage from './pages/QuestionsPage';
 import VideosPage from './pages/VideosPage';
 import SubjectsPage from './pages/SubjectsPage';
 import SchedulesPage from './pages/SchedulesPage';
+import QuizzesPage from './pages/QuizzesPage';
 import QuizPage from './pages/QuizPage';
 import QuizAttemptsPage from './pages/QuizAttemptsPage';
 import QuizAttemptDetailPage from './pages/QuizAttemptDetailPage';
@@ -28,6 +29,7 @@ function App() {
           <Route path="/admin/videos" element={<VideosPage />} />
           <Route path="/admin/subjects" element={<SubjectsPage />} />
           <Route path="/admin/schedules" element={<SchedulesPage />} />
+          <Route path="/admin/quizzes" element={<QuizzesPage />} />
           <Route path="/admin/quiz" element={<QuizPage />} />
           <Route path="/admin/quiz/attempts" element={<QuizAttemptsPage />} />
           <Route path="/admin/quiz/attempts/:attemptId" element={<QuizAttemptDetailPage />} />

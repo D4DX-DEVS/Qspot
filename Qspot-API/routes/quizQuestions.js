@@ -39,14 +39,42 @@ const buildPayload = (payload) => {
         normalized[field] = value;
     }
 
+    if (payload.quizId !== undefined && payload.quizId !== null && payload.quizId !== '') {
+        if (!mongoose.Types.ObjectId.isValid(payload.quizId)) {
+            return { error: 'quizId must be a valid id' };
+        }
+        normalized.quizId = payload.quizId;
+    }
+
     return { data: normalized };
 };
 
-// GET /api/quiz-questions - List all quiz questions
+// GET /api/quiz-questions - List quiz questions, paginated. Returns only the
+// fields needed for a listing view (not options/correct_answer) — fetch
+// GET /api/quiz-questions/:id for full detail.
 router.get('/', authenticateToken, async (req, res) => {
     try {
-        const questions = await QuizQuestion.find().sort({ createdAt: -1 });
-        res.json(questions);
+        const filter = {};
+        if (req.query.quizId !== undefined) {
+            if (!mongoose.Types.ObjectId.isValid(req.query.quizId)) {
+                return res.status(400).json({ message: 'Invalid quizId' });
+            }
+            filter.quizId = req.query.quizId;
+        }
+
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+
+        const [items, total] = await Promise.all([
+            QuizQuestion.find(filter)
+                .select('type question_en question_ml difficulty quizId createdAt')
+                .sort({ createdAt: -1 })
+                .skip((page - 1) * limit)
+                .limit(limit),
+            QuizQuestion.countDocuments(filter)
+        ]);
+
+        res.json({ items, total, page, limit });
     } catch (error) {
         console.error('Error fetching quiz questions:', error);
         res.status(500).json({ message: 'Internal server error' });

@@ -1,6 +1,11 @@
 const mongoose = require("mongoose");
 
 const quizConfigSchema = new mongoose.Schema({
+    title: {
+        type: String,
+        trim: true,
+        default: null
+    },
     startDate: {
         type: Date,
         required: true
@@ -22,19 +27,24 @@ const quizConfigSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
         required: true
+    },
+    overallTimeLimit: {
+        type: Number,
+        default: null
+    },
+    perQuestionTimeLimit: {
+        type: Number,
+        default: null
+    },
+    optionsCount: {
+        type: Number,
+        default: null
     }
 }, {
     timestamps: true
 });
 
 quizConfigSchema.pre("save", async function (next) {
-    if (this.isNew) {
-        const existingConfig = await mongoose.model("quizConfig").findOne();
-        if (existingConfig) {
-            return next(new Error("Only one quiz configuration is allowed in the system. Please update or delete the existing configuration first."));
-        }
-    }
-
     if (!this.startDate || !this.endDate) {
         return next(new Error("startDate and endDate are required."));
     }

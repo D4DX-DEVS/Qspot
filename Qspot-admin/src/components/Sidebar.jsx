@@ -43,17 +43,16 @@ const Sidebar = ({ currentPage, onNavigate }) => {
       path: '/admin/questions'
     },
     {
-      id: 'quiz',
-      label: 'Quiz',
+      id: 'quizzes',
+      label: 'Quizzes',
       icon: FaClipboardList,
-      path: '/admin/quiz'
+      path: '/admin/quizzes'
     },
     {
       id: 'quizAttempts',
       label: 'Quiz Attempts',
       icon: FaClipboardList,
-      path: '/admin/quiz/attempts',
-      parent: 'quiz'
+      path: '/admin/quiz/attempts'
     },
     {
       id: 'schedules',

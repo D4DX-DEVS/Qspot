@@ -6,6 +6,11 @@ const quizAttemptSchema = new mongoose.Schema({
         ref: "user",
         required: true
     },
+    quizId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "quizConfig",
+        default: null
+    },
     language: {
         type: String,
         enum: ["Malayalam", "English"],

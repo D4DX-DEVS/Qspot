@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   FiClock,
   FiCalendar,
@@ -15,7 +16,8 @@ import {
   FiChevronRight,
   FiBookOpen,
   FiSearch,
-  FiLayers
+  FiLayers,
+  FiArrowLeft
 } from 'react-icons/fi';
 import Sidebar from '../components/Sidebar';
 import ConfirmDialog from '../components/dialogs/ConfirmDialog';
@@ -60,15 +62,21 @@ const formatDateTime = (isoString) => {
   return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
 };
 
-const DEFAULT_QUESTION_FORM = {
-  type: '',
+const QUESTION_TYPE_OPTIONS = ['Multiple Choice', 'True / False'];
+const DIFFICULTY_OPTIONS = ['Easy', 'Medium', 'Hard'];
+
+const isTrueFalseType = (type) => /true/i.test(type || '');
+
+const createBlankOption = () => ({ en: '', ml: '' });
+
+const createDefaultQuestionForm = () => ({
+  type: QUESTION_TYPE_OPTIONS[0],
+  difficulty: DIFFICULTY_OPTIONS[0],
   question_en: '',
   question_ml: '',
-  options_en: '',
-  options_ml: '',
-  correct_answer: '',
-  difficulty: ''
-};
+  options: [createBlankOption(), createBlankOption()],
+  correctIndex: null
+});
 
 const parseOptionsList = (value) => {
   if (!value) return [];
@@ -82,8 +90,39 @@ const parseOptionsList = (value) => {
   }
   return value
     .split(/\r?\n|,/)
-    .map((item) => item.trim())
+    .map((item) => item.trim().replace(/^"(.*)"$/, '$1'))
     .filter(Boolean);
+};
+
+// Converts a stored quiz question (flat option strings) into the editable
+// per-option form shape used by the Create/Edit Question form.
+const questionToFormShape = (question) => {
+  const optionsEnList = parseOptionsList(question.options_en);
+  const optionsMlList = parseOptionsList(question.options_ml);
+  const count = Math.max(optionsEnList.length, optionsMlList.length, 2);
+  const options = Array.from({ length: count }, (_, index) => ({
+    en: optionsEnList[index] || '',
+    ml: optionsMlList[index] || ''
+  }));
+
+  let correctIndex = optionsEnList.findIndex(
+    (option) => option.trim().toLowerCase() === (question.correct_answer || '').trim().toLowerCase()
+  );
+  if (correctIndex === -1) {
+    const asIndex = Number(question.correct_answer);
+    if (Number.isInteger(asIndex) && asIndex >= 0 && asIndex < options.length) {
+      correctIndex = asIndex;
+    }
+  }
+
+  return {
+    type: isTrueFalseType(question.type) ? 'True / False' : 'Multiple Choice',
+    difficulty: question.difficulty || DIFFICULTY_OPTIONS[0],
+    question_en: question.question_en || '',
+    question_ml: question.question_ml || '',
+    options,
+    correctIndex: correctIndex === -1 ? null : correctIndex
+  };
 };
 
 const formatPreview = (value, limit = 160) => {
@@ -138,6 +177,11 @@ const getPeriodDisplayFromValue = (timeValue) => {
 const QuizPage = () => {
   const baseURL = import.meta.env.VITE_API_BASE_URL;
   const token = useMemo(() => localStorage.getItem('adminToken'), []);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const quizId = searchParams.get('quizId');
+  const [scopedQuiz, setScopedQuiz] = useState(null);
+  const [scopedQuizError, setScopedQuizError] = useState('');
   const [configLoading, setConfigLoading] = useState(true);
   const [configError, setConfigError] = useState('');
   const [configMessage, setConfigMessage] = useState('');
@@ -156,11 +200,16 @@ const QuizPage = () => {
   const [questionsLoading, setQuestionsLoading] = useState(true);
   const [questionsError, setQuestionsError] = useState('');
   const [questions, setQuestions] = useState([]);
+  const [questionPage, setQuestionPage] = useState(1);
+  const [questionTotal, setQuestionTotal] = useState(0);
+  const questionPageSize = 20;
+  const questionTotalPages = Math.max(1, Math.ceil(questionTotal / questionPageSize));
+  const [detailLoading, setDetailLoading] = useState(false);
   const [questionSearch, setQuestionSearch] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [showQuestionEditor, setShowQuestionEditor] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
-  const [questionForm, setQuestionForm] = useState(DEFAULT_QUESTION_FORM);
+  const [questionForm, setQuestionForm] = useState(createDefaultQuestionForm);
   const [questionSaving, setQuestionSaving] = useState(false);
   const [questionMessage, setQuestionMessage] = useState('');
   const [questionFormError, setQuestionFormError] = useState('');
@@ -182,9 +231,36 @@ const QuizPage = () => {
       return;
     }
 
-    fetchConfig();
-    fetchQuestions();
-  }, [baseURL]);
+    if (quizId) {
+      fetchScopedQuiz();
+      setConfigLoading(false);
+    } else {
+      fetchConfig();
+    }
+    setQuestionPage(1);
+    fetchQuestions(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseURL, quizId]);
+
+  useEffect(() => {
+    if (!baseURL) return;
+    fetchQuestions(questionPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questionPage]);
+
+  const fetchScopedQuiz = async () => {
+    if (!baseURL || !token || !quizId) return;
+    try {
+      setScopedQuizError('');
+      const response = await axios.get(`${baseURL}/quiz-definitions/${quizId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setScopedQuiz(response.data);
+    } catch (error) {
+      console.error('Error fetching quiz:', error);
+      setScopedQuizError(error.response?.data?.message || 'Failed to load quiz');
+    }
+  };
 
   useEffect(() => {
     if (!configMessage) return;
@@ -284,17 +360,21 @@ useEffect(() => {
     }
   };
 
-  const fetchQuestions = async () => {
+  const fetchQuestions = async (targetPage = questionPage) => {
     if (!baseURL || !token) return;
     try {
       setQuestionsLoading(true);
       setQuestionsError('');
+      const params = { page: targetPage, limit: questionPageSize };
+      if (quizId) params.quizId = quizId;
       const response = await axios.get(`${baseURL}/quiz-questions`, {
         headers: {
           Authorization: `Bearer ${token}`
-        }
+        },
+        params
       });
-      setQuestions(Array.isArray(response.data) ? response.data : []);
+      setQuestions(Array.isArray(response.data?.items) ? response.data.items : []);
+      setQuestionTotal(response.data?.total || 0);
     } catch (error) {
       console.error('Error fetching quiz questions:', error);
       const message = error.response?.data?.message || 'Failed to load quiz questions';
@@ -377,20 +457,65 @@ useEffect(() => {
     }));
   };
 
+  const handleQuestionTypeChange = (nextType) => {
+    setQuestionForm((prev) => {
+      if (isTrueFalseType(nextType)) {
+        // True/False is fixed: the English labels are locked, only the
+        // Malayalam translation is editable. Preserve any Malayalam text
+        // already entered if the form already had exactly a True/False pair.
+        const alreadyTrueFalse =
+          prev.options.length === 2 &&
+          prev.options[0].en.trim().toLowerCase() === 'true' &&
+          prev.options[1].en.trim().toLowerCase() === 'false';
+        const options = alreadyTrueFalse
+          ? prev.options
+          : [
+              { en: 'True', ml: '' },
+              { en: 'False', ml: '' }
+            ];
+        return { ...prev, type: nextType, options, correctIndex: prev.correctIndex };
+      }
+      // Switching to Multiple Choice: start with a clean set of editable options.
+      return {
+        ...prev,
+        type: nextType,
+        options: [createBlankOption(), createBlankOption()],
+        correctIndex: null
+      };
+    });
+  };
+
+  const handleOptionTextChange = (index, lang, value) => {
+    setQuestionForm((prev) => ({
+      ...prev,
+      options: prev.options.map((option, i) => (i === index ? { ...option, [lang]: value } : option))
+    }));
+  };
+
+  const handleAddOption = () => {
+    setQuestionForm((prev) => ({ ...prev, options: [...prev.options, createBlankOption()] }));
+  };
+
+  const handleRemoveOption = (index) => {
+    setQuestionForm((prev) => {
+      const options = prev.options.filter((_, i) => i !== index);
+      let correctIndex = prev.correctIndex;
+      if (correctIndex === index) correctIndex = null;
+      else if (correctIndex !== null && correctIndex > index) correctIndex -= 1;
+      return { ...prev, options, correctIndex };
+    });
+  };
+
+  const handleCorrectAnswerChange = (index) => {
+    setQuestionForm((prev) => ({ ...prev, correctIndex: index }));
+  };
+
   const openQuestionEditor = (question = null) => {
     if (question) {
-      setQuestionForm({
-        type: question.type || '',
-        question_en: question.question_en || '',
-        question_ml: question.question_ml || '',
-        options_en: question.options_en || '',
-        options_ml: question.options_ml || '',
-        correct_answer: question.correct_answer || '',
-        difficulty: question.difficulty || ''
-      });
+      setQuestionForm(questionToFormShape(question));
       setEditingQuestion(question);
     } else {
-      setQuestionForm(DEFAULT_QUESTION_FORM);
+      setQuestionForm(createDefaultQuestionForm());
       setEditingQuestion(null);
     }
     setQuestionFormError('');
@@ -402,26 +527,58 @@ useEffect(() => {
     setQuestionFormError('');
     setQuestionSaving(false);
     setEditingQuestion(null);
-    setQuestionForm(DEFAULT_QUESTION_FORM);
+    setQuestionForm(createDefaultQuestionForm());
   };
 
   const handleSaveQuestion = async (event) => {
     event.preventDefault();
     if (!baseURL || !token) return;
 
-    const payload = {
-      type: questionForm.type.trim(),
-      question_en: questionForm.question_en.trim(),
-      question_ml: questionForm.question_ml.trim(),
-      options_en: questionForm.options_en.trim(),
-      options_ml: questionForm.options_ml.trim(),
-      correct_answer: questionForm.correct_answer.trim(),
-      difficulty: questionForm.difficulty.trim()
-    };
-
-    if (Object.values(payload).some((value) => !value)) {
-      setQuestionFormError('All fields are required.');
+    const questionEn = questionForm.question_en.trim();
+    const questionMl = questionForm.question_ml.trim();
+    if (!questionEn || !questionMl) {
+      setQuestionFormError('Please enter the question in both English and Malayalam.');
       return;
+    }
+
+    const trimmedOptions = questionForm.options.map((option) => ({
+      en: option.en.trim(),
+      ml: option.ml.trim()
+    }));
+
+    if (trimmedOptions.length < 2) {
+      setQuestionFormError('Add at least two answer choices.');
+      return;
+    }
+    if (trimmedOptions.some((option) => !option.en || !option.ml)) {
+      setQuestionFormError('Every option needs both an English and a Malayalam answer.');
+      return;
+    }
+    const seen = new Set();
+    for (const option of trimmedOptions) {
+      const key = option.en.toLowerCase();
+      if (seen.has(key)) {
+        setQuestionFormError('Each option must be different from the others.');
+        return;
+      }
+      seen.add(key);
+    }
+    if (questionForm.correctIndex === null || !trimmedOptions[questionForm.correctIndex]) {
+      setQuestionFormError('Select the correct answer.');
+      return;
+    }
+
+    const payload = {
+      type: questionForm.type,
+      difficulty: questionForm.difficulty,
+      question_en: questionEn,
+      question_ml: questionMl,
+      options_en: JSON.stringify(trimmedOptions.map((option) => option.en)),
+      options_ml: JSON.stringify(trimmedOptions.map((option) => option.ml)),
+      correct_answer: trimmedOptions[questionForm.correctIndex].en
+    };
+    if (quizId) {
+      payload.quizId = quizId;
     }
 
     try {
@@ -443,7 +600,7 @@ useEffect(() => {
       );
       setShowQuestionEditor(false);
       setEditingQuestion(null);
-      setQuestionForm(DEFAULT_QUESTION_FORM);
+      setQuestionForm(createDefaultQuestionForm());
       fetchQuestions();
     } catch (error) {
       console.error('Error saving quiz question:', error);
@@ -463,7 +620,7 @@ useEffect(() => {
         }
       });
       setQuestionMessage('Quiz question deleted successfully');
-      setQuestions((prev) => prev.filter((question) => question._id !== questionId));
+      fetchQuestions(questionPage);
     } catch (error) {
       console.error('Error deleting quiz question:', error);
       const message = error.response?.data?.message || 'Failed to delete quiz question';
@@ -471,8 +628,22 @@ useEffect(() => {
     }
   };
 
-  const openQuestionDetail = (question) => {
+  // Listing rows only carry summary fields; fetch the full record (options,
+  // correct answer) only when the admin actually opens a question's detail.
+  const openQuestionDetail = async (question) => {
+    if (!baseURL || !token) return;
     setActiveQuestionDetail(question);
+    setDetailLoading(true);
+    try {
+      const response = await axios.get(`${baseURL}/quiz-questions/${question._id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setActiveQuestionDetail(response.data);
+    } catch (error) {
+      console.error('Error fetching question detail:', error);
+    } finally {
+      setDetailLoading(false);
+    }
   };
 
   const closeQuestionDetail = () => {
@@ -527,7 +698,7 @@ useEffect(() => {
 
   return (
     <div className="flex min-h-screen bg-black">
-      <Sidebar currentPage="quiz" onNavigate={handleNavigate} />
+      <Sidebar currentPage="quizzes" onNavigate={handleNavigate} />
 
       <div className="flex-1 flex flex-col ml-64">
         <main className="flex-1 p-6 md:p-8 flex flex-col items-center gap-10">
@@ -602,6 +773,29 @@ useEffect(() => {
               </div>
 
                <div className="w-full max-w-2xl mx-auto">
+                {quizId ? (
+                  <section className="relative overflow-hidden rounded-[24px] border border-white/12 bg-gradient-to-br from-[#12060f]/78 via-[#1a0815]/65 to-[#10050c]/78 shadow-[0_12px_38px_-18px_rgba(112,24,69,0.55)] backdrop-blur-xl p-4 flex flex-col gap-3">
+                    <button
+                      type="button"
+                      onClick={() => navigate('/admin/quizzes')}
+                      className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/60 hover:text-[#EFB078] transition w-fit"
+                    >
+                      <FiArrowLeft size={14} /> Back to Quizzes
+                    </button>
+                    {scopedQuizError ? (
+                      <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                        {scopedQuizError}
+                      </div>
+                    ) : (
+                      <>
+                        <h1 className="text-2xl font-semibold text-white">
+                          {scopedQuiz?.title || 'Loading…'}
+                        </h1>
+                        <p className="text-xs text-gray-400 uppercase tracking-[0.25em]">Managing questions for this quiz</p>
+                      </>
+                    )}
+                  </section>
+                ) : (
                 <section className="relative overflow-hidden rounded-[24px] border border-white/12 bg-gradient-to-br from-[#12060f]/78 via-[#1a0815]/65 to-[#10050c]/78 shadow-[0_12px_38px_-18px_rgba(112,24,69,0.55)] backdrop-blur-xl p-4 min-h-[360px] flex flex-col h-full">
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
                     <div className="space-y-1">
@@ -701,6 +895,7 @@ useEffect(() => {
                     </div>
                   )}
                 </section>
+                )}
               </div>
             </div>
           </div>
@@ -766,6 +961,28 @@ useEffect(() => {
                       </button>
                     );
                 })}
+              </div>
+            )}
+
+            {!questionsLoading && questionTotalPages > 1 && (
+              <div className="mt-4 flex items-center justify-center gap-3 text-xs text-white/60">
+                <button
+                  onClick={() => setQuestionPage((p) => Math.max(1, p - 1))}
+                  disabled={questionPage === 1}
+                  className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 disabled:opacity-40"
+                >
+                  Prev
+                </button>
+                <span>
+                  Page {questionPage} of {questionTotalPages}
+                </span>
+                <button
+                  onClick={() => setQuestionPage((p) => Math.min(questionTotalPages, p + 1))}
+                  disabled={questionPage === questionTotalPages}
+                  className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 disabled:opacity-40"
+                >
+                  Next
+                </button>
               </div>
             )}
           </div>
@@ -976,8 +1193,8 @@ useEffect(() => {
                   <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-white/50">
                     Question Detail
                   </p>
-                  <h3 className="mt-1 text-2xl font-semibold text-white">
-                    {activeQuestionDetail.type || 'General'}
+                  <h3 className="mt-1 text-lg font-semibold text-white line-clamp-1">
+                    {formatPreview(activeQuestionDetail.question_en, 60) || 'Question'}
                   </h3>
                 </div>
               </div>
@@ -1015,14 +1232,11 @@ useEffect(() => {
               </div>
             </div>
             <div className="max-h-[75vh] overflow-y-auto px-6 py-6 space-y-6">
-              <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.3em] text-white/60">
-                <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/30 px-3 py-1 text-[10px] font-semibold">
-                  <FiLayers /> {activeQuestionDetail.type || 'General'}
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[10px] font-semibold">
-                  {activeQuestionDetail.difficulty || 'NA'}
-                </span>
-              </div>
+              {detailLoading && (
+                <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+                  <div className="h-full w-1/3 animate-pulse rounded-full bg-[#EFB078]/70" />
+                </div>
+              )}
               <div className="rounded-2xl border border-white/12 bg-black/25 p-5 shadow-[0_12px_36px_rgba(0,0,0,0.35)]">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/55 mb-3">
                   Question (English)
@@ -1059,18 +1273,12 @@ useEffect(() => {
                   );
                 })}
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 text-sm text-white/80">
+              <div className="text-sm text-white/80">
                 <div className="rounded-2xl border border-white/12 bg-black/30 p-4">
                   <span className="text-white/40 text-[11px] uppercase tracking-[0.3em] block mb-2">
                     Correct Answer
                   </span>
                   <p className="text-white font-semibold">{activeQuestionDetail.correct_answer}</p>
-                </div>
-                <div className="rounded-2xl border border-white/12 bg-black/30 p-4">
-                  <span className="text-white/40 text-[11px] uppercase tracking-[0.3em] block mb-2">
-                    Difficulty
-                  </span>
-                  <p className="text-white font-semibold">{activeQuestionDetail.difficulty || 'NA'}</p>
                 </div>
               </div>
             </div>
@@ -1101,17 +1309,17 @@ useEffect(() => {
       )}
 
       {showQuestionEditor && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center px-4 py-10">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center px-4 py-6 sm:py-10">
           <div
             className="absolute inset-0 bg-black/70 backdrop-blur-md"
             onClick={closeQuestionEditor}
             aria-hidden="true"
           />
           <section
-            className="relative z-[160] w-full max-w-4xl overflow-hidden rounded-[32px] border border-white/12 bg-gradient-to-br from-[#0a050d]/95 via-[#160717]/85 to-[#0a040d]/95 p-6 shadow-[0_26px_64px_-18px_rgba(112,24,69,0.55)]"
+            className="relative z-[160] flex w-full max-w-3xl max-h-[92vh] flex-col overflow-hidden rounded-[32px] border border-white/12 bg-gradient-to-br from-[#0a050d]/95 via-[#160717]/85 to-[#0a040d]/95 shadow-[0_26px_64px_-18px_rgba(112,24,69,0.55)]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-6">
+            <div className="flex shrink-0 items-start justify-between gap-6 border-b border-white/10 px-5 py-5 sm:px-6">
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/12 bg-black/50 shadow-[0_14px_36px_rgba(136,32,82,0.45)]">
                   <img src={brandIcon} alt="QSpot icon" className="h-7 w-7 object-contain" />
@@ -1128,36 +1336,45 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={closeQuestionEditor}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/70 hover:border-white/30 hover:text-white transition"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/70 hover:border-white/30 hover:text-white transition"
                 aria-label="Close question editor"
               >
                 <FiX size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveQuestion} className="mt-6 space-y-5">
+            <form onSubmit={handleSaveQuestion} className="flex min-h-0 flex-1 flex-col">
+              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-6">
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60 flex flex-col gap-2">
-                  Type *
-                  <input
-                    type="text"
+                  Question Type *
+                  <select
                     value={questionForm.type}
-                    onChange={(event) => handleQuestionFieldChange('type', event.target.value)}
-                    className="w-full rounded-2xl border border-white/15 bg-transparent px-4 py-3 text-white placeholder:text-white/40 focus:border-[#EFB078] focus:outline-none"
-                    placeholder="MCQ, True/False, etc."
+                    onChange={(event) => handleQuestionTypeChange(event.target.value)}
+                    className="w-full rounded-2xl border border-white/15 bg-[#0d0711] px-4 py-3 text-white focus:border-[#EFB078] focus:outline-none"
                     required
-                  />
+                  >
+                    {QUESTION_TYPE_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60 flex flex-col gap-2">
                   Difficulty *
-                  <input
-                    type="text"
+                  <select
                     value={questionForm.difficulty}
                     onChange={(event) => handleQuestionFieldChange('difficulty', event.target.value)}
-                    className="w-full rounded-2xl border border-white/15 bg-transparent px-4 py-3 text-white placeholder:text-white/40 focus:border-[#EFB078] focus:outline-none"
-                    placeholder="Easy, Medium, Hard"
+                    className="w-full rounded-2xl border border-white/15 bg-[#0d0711] px-4 py-3 text-white focus:border-[#EFB078] focus:outline-none"
                     required
-                  />
+                  >
+                    {DIFFICULTY_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
                 </label>
               </div>
 
@@ -1167,7 +1384,7 @@ useEffect(() => {
                   <textarea
                     value={questionForm.question_en}
                     onChange={(event) => handleQuestionFieldChange('question_en', event.target.value)}
-                    className="h-28 w-full rounded-2xl border border-white/15 bg-transparent px-4 py-3 text-white placeholder:text-white/40 focus:border-[#EFB078] focus:outline-none"
+                    className="h-28 w-full resize-none rounded-2xl border border-white/15 bg-transparent px-4 py-3 text-white placeholder:text-white/40 focus:border-[#EFB078] focus:outline-none"
                     required
                   />
                 </label>
@@ -1176,52 +1393,99 @@ useEffect(() => {
                   <textarea
                     value={questionForm.question_ml}
                     onChange={(event) => handleQuestionFieldChange('question_ml', event.target.value)}
-                    className="h-28 w-full rounded-2xl border border-white/15 bg-transparent px-4 py-3 text-white placeholder:text-white/40 focus:border-[#EFB078] focus:outline-none"
+                    className="h-28 w-full resize-none rounded-2xl border border-white/15 bg-transparent px-4 py-3 text-white placeholder:text-white/40 focus:border-[#EFB078] focus:outline-none"
                     required
                   />
                 </label>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60 flex flex-col gap-2">
-                  Options (English) *
-                  <textarea
-                    value={questionForm.options_en}
-                    onChange={(event) => handleQuestionFieldChange('options_en', event.target.value)}
-                    className="h-32 w-full rounded-2xl border border-white/15 bg-transparent px-4 py-3 text-white placeholder:text-white/40 focus:border-[#EFB078] focus:outline-none"
-                    placeholder='One per line or JSON array e.g. ["A","B"]'
-                    required
-                  />
-                </label>
-                <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60 flex flex-col gap-2">
-                  Options (Malayalam) *
-                  <textarea
-                    value={questionForm.options_ml}
-                    onChange={(event) => handleQuestionFieldChange('options_ml', event.target.value)}
-                    className="h-32 w-full rounded-2xl border border-white/15 bg-transparent px-4 py-3 text-white placeholder:text-white/40 focus:border-[#EFB078] focus:outline-none"
-                    required
-                  />
-                </label>
-              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">Answer Options</p>
+                    <p className="mt-0.5 text-xs text-white/40">
+                      {isTrueFalseType(questionForm.type)
+                        ? 'Select which one is correct, and provide the Malayalam translation.'
+                        : 'Add each answer choice below, then select the correct one.'}
+                    </p>
+                  </div>
+                  {!isTrueFalseType(questionForm.type) && (
+                    <button
+                      type="button"
+                      onClick={handleAddOption}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-white/12 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 transition hover:border-[#EFB078]/40 hover:text-[#EFB078]"
+                    >
+                      <FiPlus size={13} /> Add Option
+                    </button>
+                  )}
+                </div>
 
-              <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60 flex flex-col gap-2">
-                Correct Answer *
-                <input
-                  type="text"
-                  value={questionForm.correct_answer}
-                  onChange={(event) => handleQuestionFieldChange('correct_answer', event.target.value)}
-                  className="w-full rounded-2xl border border-white/15 bg-transparent px-4 py-3 text-white placeholder:text-white/40 focus:border-[#EFB078] focus:outline-none"
-                  required
-                />
-              </label>
+                <div className="space-y-3">
+                  {questionForm.options.map((option, index) => (
+                    <div
+                      key={index}
+                      className="rounded-2xl border border-white/12 bg-black/20 p-3 sm:p-4"
+                    >
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <label className="flex items-center gap-2 text-xs font-semibold text-white/80">
+                          <input
+                            type="radio"
+                            name="correct-answer"
+                            checked={questionForm.correctIndex === index}
+                            onChange={() => handleCorrectAnswerChange(index)}
+                            className="h-4 w-4 accent-[#EFB078]"
+                          />
+                          Option {index + 1} {questionForm.correctIndex === index && (
+                            <span className="text-[#EFB078]">(Correct)</span>
+                          )}
+                        </label>
+                        {!isTrueFalseType(questionForm.type) && questionForm.options.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveOption(index)}
+                            aria-label={`Remove option ${index + 1}`}
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-red-400/25 bg-red-500/5 text-red-300 transition hover:border-red-300/50 hover:text-red-200"
+                          >
+                            <FiTrash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <label className="flex flex-col gap-1.5 text-[11px] font-medium text-white/50">
+                          English
+                          <input
+                            type="text"
+                            value={option.en}
+                            disabled={isTrueFalseType(questionForm.type)}
+                            onChange={(event) => handleOptionTextChange(index, 'en', event.target.value)}
+                            className="w-full rounded-xl border border-white/12 bg-transparent px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-[#EFB078] focus:outline-none disabled:text-white/60"
+                            placeholder="Answer choice"
+                          />
+                        </label>
+                        <label className="flex flex-col gap-1.5 text-[11px] font-medium text-white/50">
+                          Malayalam
+                          <input
+                            type="text"
+                            value={option.ml}
+                            onChange={(event) => handleOptionTextChange(index, 'ml', event.target.value)}
+                            className="w-full rounded-xl border border-white/12 bg-transparent px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-[#EFB078] focus:outline-none"
+                            placeholder="Answer choice"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               {questionFormError && (
                 <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
                   {questionFormError}
                 </div>
               )}
+              </div>
 
-              <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 border-t border-white/10 px-5 py-4 sm:px-6">
                 <button
                   type="button"
                   onClick={closeQuestionEditor}

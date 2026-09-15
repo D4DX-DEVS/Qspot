@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const quizQuestionsSchema = new mongoose.Schema({
+    quizId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "quizConfig",
+        default: null
+    },
     type: {
         type: String,
         required: true,

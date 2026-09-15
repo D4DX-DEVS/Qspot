@@ -1,14 +1,27 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Quiz = require('../models/quiz');
 const QuizConfig = require('../models/quizConfig');
 const { authenticateToken, authenticateUser } = require('../middlewares/auth');
+
+// The one pre-existing quiz configuration document has no real "title"
+// (currently stored as null). Every quiz created through the new multi-quiz
+// API is required to have a non-empty title, so matching "missing OR null"
+// deterministically finds only that original legacy document, regardless of
+// how many new quiz documents get added later.
+const LEGACY_CONFIG_FILTER = {
+    $or: [
+        { title: { $exists: false } },
+        { title: null }
+    ]
+};
 
 const router = express.Router();
 
 // GET /api/quizzes/config - Get quiz configuration only (public)
 router.get('/config', async (req, res) => {
     try {
-        const config = await QuizConfig.findOne()
+        const config = await QuizConfig.findOne(LEGACY_CONFIG_FILTER)
             .select('startDate endDate numberOfQuestions questionsRandomization isEnable createdAt updatedAt')
             .sort({ createdAt: -1 });
         if (!config) {
@@ -42,7 +55,7 @@ router.post('/config', authenticateToken, async (req, res) => {
             return res.status(400).json({ message: 'isEnable is required' });
         }
 
-        const existingConfig = await QuizConfig.findOne();
+        const existingConfig = await QuizConfig.findOne(LEGACY_CONFIG_FILTER);
         const isUpdate = !!existingConfig;
 
         const updateData = {
@@ -56,7 +69,7 @@ router.post('/config', authenticateToken, async (req, res) => {
         };
 
         const config = await QuizConfig.findOneAndUpdate(
-            {},
+            LEGACY_CONFIG_FILTER,
             updateData,
             {
                 new: true,
@@ -88,7 +101,7 @@ router.put('/config', authenticateToken, async (req, res) => {
     try {
         const { startDate, endDate, numberOfQuestions, questionsRandomization, isEnable } = req.body;
 
-        const existingConfig = await QuizConfig.findOne();
+        const existingConfig = await QuizConfig.findOne(LEGACY_CONFIG_FILTER);
 
         if (!existingConfig) {
             return res.status(404).json({ message: 'Quiz configuration not found. Use POST to create a new configuration.' });
@@ -158,7 +171,7 @@ router.put('/config', authenticateToken, async (req, res) => {
 // DELETE /api/quizzes/config - Delete quiz configuration (admin only)
 router.delete('/config', authenticateToken, async (req, res) => {
     try {
-        const existingConfig = await QuizConfig.findOne();
+        const existingConfig = await QuizConfig.findOne(LEGACY_CONFIG_FILTER);
 
         if (!existingConfig) {
             return res.status(404).json({ message: 'Quiz configuration not found' });
@@ -179,11 +192,22 @@ router.delete('/config', authenticateToken, async (req, res) => {
 // POST /api/quizzes/attempt - User submits a quiz attempt (within time window)
 router.post('/attempt', authenticateUser, async (req, res) => {
     try {
-        const { language, questions, answers, score, percentage, totalDuration } = req.body;
+        const { language, questions, answers, score, percentage, totalDuration, quizId } = req.body;
 
-        const config = await QuizConfig.findOne();
-        if (!config) {
-            return res.status(404).json({ message: 'No quiz configuration found' });
+        let config;
+        if (quizId) {
+            if (!mongoose.Types.ObjectId.isValid(quizId)) {
+                return res.status(400).json({ message: 'Invalid quizId' });
+            }
+            config = await QuizConfig.findById(quizId);
+            if (!config) {
+                return res.status(404).json({ message: 'Quiz not found' });
+            }
+        } else {
+            config = await QuizConfig.findOne(LEGACY_CONFIG_FILTER);
+            if (!config) {
+                return res.status(404).json({ message: 'No quiz configuration found' });
+            }
         }
 
         const now = new Date();
@@ -239,13 +263,14 @@ router.post('/attempt', authenticateUser, async (req, res) => {
             return res.status(400).json({ message: 'totalDuration is required' });
         }
 
-        const existingAttempt = await Quiz.findOne({ userId: req.user.id });
+        const existingAttempt = await Quiz.findOne({ userId: req.user.id, quizId: quizId || null });
         if (existingAttempt) {
             return res.status(400).json({ message: 'You have already submitted a quiz attempt' });
         }
 
         const attempt = await Quiz.create({
             userId: req.user.id,
+            quizId: quizId || null,
             language,
             questions,
             answers,
@@ -329,22 +354,42 @@ router.get('/attempt/:attemptId', authenticateToken, async (req, res) => {
 // GET /api/quizzes/stats - Admin: result statistics summary
 router.get('/stats', authenticateToken, async (req, res) => {
     try {
-        const config = await QuizConfig.findOne()
+        const config = await QuizConfig.findOne(LEGACY_CONFIG_FILTER)
             .sort({ createdAt: -1 });
 
-        const attempts = await Quiz.find()
-            .populate({
-                path: 'userId',
-                select: 'name'
-            })
-            .sort({ createdAt: -1 });
+        const { minScore, maxScore, from, to } = req.query;
+        const filter = {};
+        if (minScore !== undefined || maxScore !== undefined) {
+            filter.score = {};
+            if (minScore !== undefined) filter.score.$gte = Number(minScore);
+            if (maxScore !== undefined) filter.score.$lte = Number(maxScore);
+        }
+        if (from !== undefined || to !== undefined) {
+            filter.createdAt = {};
+            if (from !== undefined) filter.createdAt.$gte = new Date(from);
+            if (to !== undefined) filter.createdAt.$lte = new Date(to);
+        }
 
-        const attendees = attempts.map((attempt) => {
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+
+        // Ranking: higher score wins; when scores tie, less time taken wins.
+        const [attempts, total] = await Promise.all([
+            Quiz.find(filter)
+                .populate({ path: 'userId', select: 'name' })
+                .sort({ score: -1, totalDuration: 1 })
+                .skip((page - 1) * limit)
+                .limit(limit),
+            Quiz.countDocuments(filter)
+        ]);
+
+        const attendees = attempts.map((attempt, index) => {
             const totalDuration = Number(attempt.totalDuration) || 0;
             const userId = attempt.userId?._id || attempt.userId;
             const userName = attempt.userId?.name || (typeof attempt.userId === 'object' && attempt.userId?.name) || 'Unknown';
 
             return {
+                rank: (page - 1) * limit + index + 1,
                 attemptId: attempt._id,
                 userId: userId,
                 name: userName,
@@ -354,12 +399,11 @@ router.get('/stats', authenticateToken, async (req, res) => {
             };
         });
 
-        const uniqueUserIds = new Set(attendees.map(a => String(a.userId)));
-
         const response = {
-            totalUsersAttended: uniqueUserIds.size,
-            attemptsCount: attempts.length,
-            attendees
+            attendees,
+            total,
+            page,
+            limit
         };
 
         if (config) {
