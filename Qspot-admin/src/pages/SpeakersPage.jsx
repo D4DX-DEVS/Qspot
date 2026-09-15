@@ -165,7 +165,7 @@ const SpeakersPage = () => {
       <Sidebar currentPage="speakers" onNavigate={handleNavigate} />
       
       <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-4 sm:p-6">
           <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Speakers Management</h2>
@@ -207,7 +207,7 @@ const SpeakersPage = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-3 gap-2.5 sm:gap-5 md:grid-cols-3 xl:grid-cols-4">
               {speakers.length === 0 ? (
                 <div className="col-span-full text-center py-12">
                   <p className="text-gray-400">No speakers found</p>
@@ -226,9 +226,9 @@ const SpeakersPage = () => {
                   <div 
                     key={speaker._id} 
                     onClick={() => handleCardClick(speaker._id)}
-                    className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#11060d]/70 via-[#1c0b18]/50 to-[#12060f]/70 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl hover:border-[#701845]/40 hover:shadow-[0_12px_40px_rgba(112,24,69,0.35)] transition-all cursor-pointer hover:scale-[1.02]"
+                    className="relative overflow-hidden rounded-xl sm:rounded-3xl border border-white/10 bg-gradient-to-br from-[#11060d]/70 via-[#1c0b18]/50 to-[#12060f]/70 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl hover:border-[#701845]/40 hover:shadow-[0_12px_40px_rgba(112,24,69,0.35)] transition-all cursor-pointer hover:scale-[1.02]"
                   >
-                    <div className="relative h-[220px] sm:h-[260px]">
+                    <div className="relative aspect-[3/4] sm:aspect-auto sm:h-[260px]">
                       <img
                         src={speaker.image}
                         alt={speaker.name}
@@ -238,17 +238,17 @@ const SpeakersPage = () => {
                         }}
                       />
                       {speaker.order !== undefined && speaker.order !== '' && (
-                        <span className="absolute right-3 top-3 inline-flex items-center rounded-full bg-black/55 px-3 py-1 text-xs font-semibold text-[#EFB078] border border-white/20 shadow-[0_2px_10px_rgba(0,0,0,0.4)]" title="Order">
+                        <span className="absolute right-1.5 top-1.5 inline-flex items-center rounded-full bg-black/55 px-1.5 py-0.5 text-[10px] sm:right-3 sm:top-3 sm:px-3 sm:py-1 sm:text-xs font-semibold text-[#EFB078] border border-white/20 shadow-[0_2px_10px_rgba(0,0,0,0.4)]" title="Order">
                           #{String(speaker.order)}
                         </span>
                       )}
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0b0610]/90 via-[#120a1b]/70 to-transparent px-4 py-3">
-                        <div className="flex items-start justify-between gap-3">
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0b0610]/90 via-[#120a1b]/70 to-transparent px-2 py-2 sm:px-4 sm:py-3">
+                        <div className="flex items-start justify-between gap-1.5 sm:gap-3">
                           <div className="min-w-0">
-                            <h3 className="text-lg font-semibold text-white truncate">
+                            <h3 className="text-[11px] sm:text-lg font-semibold text-white truncate">
                               {speaker.name}
                             </h3>
-                            <p className="mt-1 text-sm text-white/75 truncate">
+                            <p className="mt-0.5 sm:mt-1 text-[9px] sm:text-sm text-white/75 truncate">
                               {speaker.designation || 'No designation'}
                             </p>
                           </div>

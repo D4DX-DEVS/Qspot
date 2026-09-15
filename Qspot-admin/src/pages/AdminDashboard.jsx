@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FiEdit2, FiTrash2, FiSearch, FiChevronLeft, FiChevronRight, FiUsers, FiFilter, FiX } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiSearch, FiChevronLeft, FiChevronRight, FiUsers, FiFilter, FiX, FiEye } from 'react-icons/fi';
 import Sidebar from '../components/Sidebar';
 import ConfirmDialog from '../components/dialogs/ConfirmDialog';
 import brandIcon from '../assets/Icon.png';
@@ -287,23 +287,23 @@ const AdminDashboard = () => {
               ) : (
                 <>
                   <div className="overflow-x-auto">
-                    <table className="min-w-[720px] w-full divide-y divide-white/5">
+                    <table className="w-full min-w-0 sm:min-w-[720px] divide-y divide-white/5">
                       <thead className="bg-gradient-to-r from-[#11060d]/60 to-[#1c0b18]/40 backdrop-blur-sm">
                         <tr>
-                          <th 
-                            className="px-6 py-4 text-left text-xs font-semibold text-slate-200 uppercase tracking-wider"
+                          <th
+                            className="px-4 sm:px-6 py-4 text-left text-xs font-semibold text-slate-200 uppercase tracking-wider"
                           >
-                            User
+                            Name
                           </th>
-                          <th className="px-6 py-4 text-left text-xs font-semibold text-slate-200 uppercase tracking-wider">
+                          <th className="hidden sm:table-cell px-6 py-4 text-left text-xs font-semibold text-slate-200 uppercase tracking-wider">
                             Contact
                           </th>
-                          <th 
-                            className="px-6 py-4 text-left text-xs font-semibold text-slate-200 uppercase tracking-wider"
+                          <th
+                            className="hidden sm:table-cell px-6 py-4 text-left text-xs font-semibold text-slate-200 uppercase tracking-wider"
                           >
                             Class
                           </th>
-                          <th className="px-6 py-4 text-left text-xs font-semibold text-slate-200 uppercase tracking-wider">
+                          <th className="px-4 sm:px-6 py-4 text-left text-xs font-semibold text-slate-200 uppercase tracking-wider">
                             Actions
                           </th>
                         </tr>
@@ -314,8 +314,8 @@ const AdminDashboard = () => {
                             key={user._id || index} 
                             className="hover:bg-white/5 transition-colors"
                           >
-                            <td 
-                              className="px-6 py-4 whitespace-nowrap cursor-pointer"
+                            <td
+                              className="px-4 sm:px-6 py-4 whitespace-nowrap cursor-pointer"
                               onClick={() => handleUserClick(user._id)}
                             >
                               <div className="flex items-center">
@@ -326,15 +326,15 @@ const AdminDashboard = () => {
                                     </span>
                                   </div>
                                 </div>
-                                <div className="ml-4">
-                                  <div className="text-sm font-medium text-white">
+                                <div className="ml-3 sm:ml-4 min-w-0">
+                                  <div className="text-sm font-medium text-white truncate">
                                     {user.name || 'No Name'}
                                   </div>
                                 </div>
                               </div>
                             </td>
-                            <td 
-                              className="px-6 py-4 whitespace-nowrap cursor-pointer"
+                            <td
+                              className="hidden sm:table-cell px-6 py-4 whitespace-nowrap cursor-pointer"
                               onClick={() => handleUserClick(user._id)}
                             >
                               {user.email && (
@@ -346,23 +346,35 @@ const AdminDashboard = () => {
                                 {user.phone || 'No phone'}
                               </div>
                             </td>
-                            <td 
-                              className="px-6 py-4 whitespace-nowrap cursor-pointer"
+                            <td
+                              className="hidden sm:table-cell px-6 py-4 whitespace-nowrap cursor-pointer"
                               onClick={() => handleUserClick(user._id)}
                             >
                               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-[#701845]/30 to-[#EFB078]/20 text-[#EFB078] border border-[#EFB078]/30 shadow-[0_2px_8px_rgba(239,176,120,0.15)]">
                                 {user.class || 'Not specified'}
                               </span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-              <div className="flex items-center gap-2">
+                            <td className="px-2 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex items-center gap-1 sm:gap-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUserClick(user._id);
+                                  }}
+                                  className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center text-[#EFB078] hover:text-white transition-all rounded-xl hover:bg-gradient-to-br hover:from-[#701845]/30 hover:to-[#EFB078]/20 border border-transparent hover:border-[#EFB078]/30 sm:hidden"
+                                  title="View user details"
+                                  aria-label="View user details"
+                                >
+                                  <FiEye size={16} />
+                                </button>
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleEditUser(user);
                                   }}
-                                  className="flex h-9 w-9 items-center justify-center text-[#EFB078] hover:text-white transition-all rounded-xl hover:bg-gradient-to-br hover:from-[#701845]/30 hover:to-[#EFB078]/20 border border-transparent hover:border-[#EFB078]/30"
+                                  className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center text-[#EFB078] hover:text-white transition-all rounded-xl hover:bg-gradient-to-br hover:from-[#701845]/30 hover:to-[#EFB078]/20 border border-transparent hover:border-[#EFB078]/30"
                                   title="Edit user"
+                                  aria-label="Edit user"
                                 >
                                   <FiEdit2 size={16} />
                                 </button>
@@ -371,8 +383,9 @@ const AdminDashboard = () => {
                                     e.stopPropagation();
                                     setDeleteConfirm(user);
                                   }}
-                                  className="flex h-9 w-9 items-center justify-center text-red-400 hover:text-white transition-all rounded-xl hover:bg-gradient-to-br hover:from-red-900/40 hover:to-red-600/30 border border-transparent hover:border-red-400/40"
+                                  className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center text-red-400 hover:text-white transition-all rounded-xl hover:bg-gradient-to-br hover:from-red-900/40 hover:to-red-600/30 border border-transparent hover:border-red-400/40"
                                   title="Delete user"
+                                  aria-label="Delete user"
                                 >
                                   <FiTrash2 size={16} />
                                 </button>

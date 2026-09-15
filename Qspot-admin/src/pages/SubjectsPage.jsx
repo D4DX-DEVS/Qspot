@@ -5,6 +5,54 @@ import Sidebar from '../components/Sidebar';
 import ConfirmDialog from '../components/dialogs/ConfirmDialog';
 import brandIcon from '../assets/Icon.png';
 
+// Subject Card Component
+// Renders one subject as: IMAGE SECTION (photo + number badge) -> CONTENT SECTION (name).
+// Sized entirely by its parent grid column (w-full, no fixed width) so it fills 1/2/3 columns correctly.
+const SubjectCard = ({ subject, onClick }) => {
+  const hasOrder = subject.order !== undefined && subject.order !== null && subject.order !== '';
+
+  return (
+    <div
+      onClick={() => onClick(subject._id)}
+      className="group relative flex w-full min-w-0 flex-col overflow-hidden rounded-xl sm:rounded-3xl border border-white/10 bg-gradient-to-br from-[#11060d]/70 via-[#1c0b18]/50 to-[#12060f]/70 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl hover:border-[#701845]/40 hover:shadow-[0_12px_40px_rgba(112,24,69,0.35)] transition-all cursor-pointer"
+    >
+      {/* IMAGE SECTION */}
+      <div className="relative aspect-square w-full shrink-0 overflow-hidden bg-white sm:aspect-auto sm:h-[280px] lg:h-[260px] xl:h-[300px]">
+        <img
+          src={subject.image}
+          alt={subject.name}
+          className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.04]"
+          onError={(e) => {
+            e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjMzc0MTUxIi8+CjxwYXRoIGQ9Ik0xMiA2VjE4TTYgMTJIMTgiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+';
+          }}
+        />
+        <div
+          className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/10"
+          aria-hidden="true"
+        />
+        {hasOrder && (
+          <span
+            className="absolute right-1.5 top-1.5 inline-flex items-center rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] sm:right-3 sm:top-3 sm:px-3 sm:py-1 sm:text-xs font-semibold text-[#EFB078] border border-white/20 shadow-[0_2px_10px_rgba(0,0,0,0.4)]"
+            title="Order"
+          >
+            #{String(subject.order)}
+          </span>
+        )}
+      </div>
+
+      {/* CONTENT SECTION */}
+      <div className="flex flex-1 items-center bg-gradient-to-b from-[#12070f]/60 to-[#0b0610]/80 px-2 py-2 sm:px-5 sm:py-4">
+        <h3
+          className="line-clamp-2 break-words text-[11px] font-semibold leading-snug text-white sm:text-base lg:text-lg"
+          title={subject.name}
+        >
+          {subject.name}
+        </h3>
+      </div>
+    </div>
+  );
+};
+
 const SubjectsPage = () => {
   const [subjects, setSubjects] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -184,7 +232,7 @@ const SubjectsPage = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
+            <div className="w-full grid grid-cols-3 gap-2.5 sm:gap-5 lg:grid-cols-3 lg:gap-6">
               {subjects.length === 0 ? (
                 <div className="col-span-full text-center py-12">
                   <p className="text-gray-400">No subjects found</p>
@@ -197,39 +245,7 @@ const SubjectsPage = () => {
                     return subject.name?.toLowerCase().includes(term);
                   })
                   .map((subject) => (
-                    <div
-                      key={subject._id}
-                      onClick={() => handleCardClick(subject._id)}
-                      className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#11060d]/70 via-[#1c0b18]/50 to-[#12060f]/70 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl hover:border-[#701845]/40 hover:shadow-[0_12px_40px_rgba(112,24,69,0.35)] transition-all cursor-pointer"
-                    >
-                      <div className="relative h-[240px] shrink-0 overflow-hidden bg-white sm:h-[220px] lg:h-[200px] xl:h-[190px]">
-                        <img
-                          src={subject.image}
-                          alt={subject.name}
-                          className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.04]"
-                          onError={(e) => {
-                            e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjMzc0MTUxIi8+CjxwYXRoIGQ9Ik0xMiA2VjE4TTYgMTJIMTgiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+';
-                          }}
-                        />
-                        <div
-                          className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/10"
-                          aria-hidden="true"
-                        />
-                        {subject.order !== undefined && subject.order !== null && subject.order !== '' && (
-                          <span className="absolute right-3 top-3 inline-flex items-center rounded-full bg-black/60 px-3 py-1 text-xs font-semibold text-[#EFB078] border border-white/20 shadow-[0_2px_10px_rgba(0,0,0,0.4)]" title="Order">
-                            #{String(subject.order)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex flex-1 items-center bg-gradient-to-b from-[#12070f]/60 to-[#0b0610]/80 px-4 py-3.5">
-                        <h3
-                          className="line-clamp-2 break-words text-base font-semibold leading-snug text-white"
-                          title={subject.name}
-                        >
-                          {subject.name}
-                        </h3>
-                      </div>
-                    </div>
+                    <SubjectCard key={subject._id} subject={subject} onClick={handleCardClick} />
                   ))
               )}
             </div>
