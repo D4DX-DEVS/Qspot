@@ -58,18 +58,18 @@ const AdminLogin = () => {
                 //  "
             />
 
-            <div className="relative z-10 w-full max-w-6xl flex items-center justify-between gap-12">
+            <div className="relative z-10 flex w-full max-w-6xl flex-col items-center justify-between gap-8 md:flex-row md:gap-12">
                 {/* Logo Section - Left Side */}
-                <div className="flex-1 flex justify-start">
+                <div className="flex flex-1 justify-center md:justify-start">
                     <img
                         src={logo}
                         alt="QSPOT Logo"
-                        className="h-auto w-auto -ml-28"
+                        className="h-auto w-40 max-w-full sm:w-56 md:w-auto md:-ml-28"
                     />
                 </div>
 
                 {/* Form Section - Right Side */}
-                <div className="flex-1 max-w-sm">
+                <div className="w-full max-w-sm flex-1 px-2 sm:px-0">
                     <form className="space-y-6" onSubmit={handleSubmit}>
                         <div>
                             <div className="mt-1">

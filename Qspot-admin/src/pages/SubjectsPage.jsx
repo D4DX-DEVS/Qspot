@@ -139,32 +139,32 @@ const SubjectsPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-black">
+    <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="subjects" onNavigate={handleNavigate} />
       
-      <div className="flex-1 flex flex-col ml-64">
-        <main className="flex-1 p-6">
+      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
+        <main className="flex-1 p-4 sm:p-6">
           <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h2 className="text-3xl font-bold text-white mb-2">Subjects Management</h2>
+              <h2 className="text-[26px] font-bold text-white mb-1.5 sm:text-3xl">Subjects Management</h2>
               {/* <p className="text-gray-400">Manage educational subjects and categories</p> */}
             </div>
             <div className="flex w-full flex-col gap-3 lg:w-auto lg:flex-row lg:items-center lg:gap-4">
               <div className="relative w-full max-w-md">
-                <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#f3c5a0]/70" size={18} />
+                <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#f3c5a0]/70" size={20} />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search subjects by name..."
-                  className="w-full rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/60 via-[#1c0b18]/40 to-[#12060f]/60 px-12 py-3 text-sm text-white placeholder-[#f3c5a0]/55 backdrop-blur-xl transition-all focus:border-[#701845]/50 focus:outline-none focus:ring-2 focus:ring-[#701845]/30"
+                  className="w-full rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/60 via-[#1c0b18]/40 to-[#12060f]/60 px-12 py-3.5 text-base text-white placeholder-[#f3c5a0]/55 backdrop-blur-xl transition-all focus:border-[#701845]/50 focus:outline-none focus:ring-2 focus:ring-[#701845]/30"
                 />
               </div>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="inline-flex min-w-[155px] items-center justify-center space-x-2 rounded-2xl border-0 bg-gradient-to-r from-[#701845]/90 via-[#9E4B63]/80 to-[#EFB078]/85 px-6 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(112,24,69,0.3)] transition-all hover:from-[#5a1538] hover:to-[#d49a6a] hover:shadow-[0_12px_28px_rgba(112,24,69,0.4)] focus:outline-none"
+                className="inline-flex w-full min-w-[140px] items-center justify-center space-x-2 rounded-2xl border-0 bg-gradient-to-r from-[#701845]/90 via-[#9E4B63]/80 to-[#EFB078]/85 px-5 py-3.5 text-base font-semibold text-white shadow-[0_8px_20px_rgba(112,24,69,0.3)] transition-all hover:from-[#5a1538] hover:to-[#d49a6a] hover:shadow-[0_12px_28px_rgba(112,24,69,0.4)] focus:outline-none lg:w-auto"
               >
-                <FiPlus size={16} />
+                <FiPlus size={18} />
                 <span>Add Subject</span>
               </button>
             </div>
@@ -184,7 +184,7 @@ const SubjectsPage = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
               {subjects.length === 0 ? (
                 <div className="col-span-full text-center py-12">
                   <p className="text-gray-400">No subjects found</p>
@@ -200,27 +200,34 @@ const SubjectsPage = () => {
                     <div
                       key={subject._id}
                       onClick={() => handleCardClick(subject._id)}
-                      className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#11060d]/70 via-[#1c0b18]/50 to-[#12060f]/70 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl hover:border-[#701845]/40 hover:shadow-[0_12px_40px_rgba(112,24,69,0.35)] transition-all cursor-pointer hover:scale-[1.02]"
+                      className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#11060d]/70 via-[#1c0b18]/50 to-[#12060f]/70 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl hover:border-[#701845]/40 hover:shadow-[0_12px_40px_rgba(112,24,69,0.35)] transition-all cursor-pointer"
                     >
-                      <div className="relative h-[300px]">
+                      <div className="relative h-[240px] shrink-0 overflow-hidden bg-white sm:h-[220px] lg:h-[200px] xl:h-[190px]">
                         <img
                           src={subject.image}
                           alt={subject.name}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.04]"
                           onError={(e) => {
                             e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjMzc0MTUxIi8+CjxwYXRoIGQ9Ik0xMiA2VjE4TTYgMTJIMTgiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+';
                           }}
                         />
+                        <div
+                          className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/10"
+                          aria-hidden="true"
+                        />
                         {subject.order !== undefined && subject.order !== null && subject.order !== '' && (
-                          <span className="absolute right-3 top-3 inline-flex items-center rounded-full bg-black/55 px-3 py-1 text-xs font-semibold text-[#EFB078] border border-white/20 shadow-[0_2px_10px_rgba(0,0,0,0.4)]" title="Order">
+                          <span className="absolute right-3 top-3 inline-flex items-center rounded-full bg-black/60 px-3 py-1 text-xs font-semibold text-[#EFB078] border border-white/20 shadow-[0_2px_10px_rgba(0,0,0,0.4)]" title="Order">
                             #{String(subject.order)}
                           </span>
                         )}
-                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0b0610]/90 via-[#120a1b]/70 to-transparent px-4 py-3">
-                          <h3 className="text-lg font-semibold text-white truncate">
-                            {subject.name}
-                          </h3>
-                        </div>
+                      </div>
+                      <div className="flex flex-1 items-center bg-gradient-to-b from-[#12070f]/60 to-[#0b0610]/80 px-4 py-3.5">
+                        <h3
+                          className="line-clamp-2 break-words text-base font-semibold leading-snug text-white"
+                          title={subject.name}
+                        >
+                          {subject.name}
+                        </h3>
                       </div>
                     </div>
                   ))
@@ -305,12 +312,12 @@ const SubjectDetailModal = ({ subject, loading, onClose, onEdit, onDelete }) => 
               <img src={brandIcon} alt="QSpot" className="h-7 w-7 object-contain" />
             </div>
             <div>
-              <p className="text-[15px] font-semibold uppercase tracking-[0.2em] text-[#f3c5a0]/60">Subject Overview</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#f3c5a0]/60">Subject Overview</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="rounded-xl border border-white/10 bg-white/5 p-2 text-white/75 transition-all duration-200 hover:border-white/25 hover:bg-white/10 hover:text-white backdrop-blur-sm"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/75 transition-all duration-200 hover:border-white/25 hover:bg-white/10 hover:text-white backdrop-blur-sm"
           >
             <FiX size={18} />
           </button>
@@ -340,13 +347,13 @@ const SubjectDetailModal = ({ subject, loading, onClose, onEdit, onDelete }) => 
                 <div className="space-y-3">
                   <div className="rounded-xl border border-white/10 bg-gradient-to-br from-[#11060d]/50 via-[#1c0b18]/30 to-[#12060f]/50 backdrop-blur-xl p-4 shadow-[0_8px_24px_rgba(0,0,0,0.2)]">
                     <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/45">Name</label>
-                    <p className="mt-1.5 text-base font-semibold text-white">{subject.name || 'N/A'}</p>
+                    <p className="mt-1.5 text-sm font-semibold text-white">{subject.name || 'N/A'}</p>
                   </div>
 
                   {subject.order !== undefined && subject.order !== null && subject.order !== '' && (
                     <div className="rounded-xl border border-white/10 bg-gradient-to-br from-[#11060d]/50 via-[#1c0b18]/30 to-[#12060f]/50 backdrop-blur-xl p-4 shadow-[0_8px_24px_rgba(0,0,0,0.2)]">
                       <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/45">Order</label>
-                      <p className="mt-1.5 text-base font-semibold text-white">#{String(subject.order)}</p>
+                      <p className="mt-1.5 text-sm font-semibold text-white">#{String(subject.order)}</p>
                     </div>
                   )}
                 </div>
@@ -354,16 +361,16 @@ const SubjectDetailModal = ({ subject, loading, onClose, onEdit, onDelete }) => 
                 <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10">
                   <button
                     onClick={onEdit}
-                    className="flex items-center gap-2 rounded-xl border border-white/10 bg-gradient-to-r from-[#701845]/30 to-[#EFB078]/20 px-4 py-2 text-sm font-semibold text-[#EFB078] transition-all duration-200 hover:border-[#EFB078]/30 hover:from-[#701845]/40 hover:to-[#EFB078]/30 hover:text-white backdrop-blur-sm shadow-[0_4px_16px_rgba(112,24,69,0.25)]"
+                    className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-gradient-to-r from-[#701845]/30 to-[#EFB078]/20 px-3.5 py-1.5 text-[13px] font-semibold text-[#EFB078] transition-all duration-200 hover:border-[#EFB078]/30 hover:from-[#701845]/40 hover:to-[#EFB078]/30 hover:text-white backdrop-blur-sm shadow-[0_4px_16px_rgba(112,24,69,0.25)]"
                   >
-                    <FiEdit2 size={15} />
+                    <FiEdit2 size={14} />
                     <span>Edit</span>
                   </button>
                   <button
                     onClick={onDelete}
-                    className="flex items-center gap-2 rounded-xl border border-white/10 bg-gradient-to-r from-red-900/30 to-red-600/20 px-4 py-2 text-sm font-semibold text-red-400 transition-all duration-200 hover:border-red-400/30 hover:from-red-900/40 hover:to-red-600/30 hover:text-white backdrop-blur-sm shadow-[0_4px_16px_rgba(185,28,28,0.25)]"
+                    className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-gradient-to-r from-red-900/30 to-red-600/20 px-3.5 py-1.5 text-[13px] font-semibold text-red-400 transition-all duration-200 hover:border-red-400/30 hover:from-red-900/40 hover:to-red-600/30 hover:text-white backdrop-blur-sm shadow-[0_4px_16px_rgba(185,28,28,0.25)]"
                   >
-                    <FiTrash2 size={15} />
+                    <FiTrash2 size={14} />
                     <span>Delete</span>
                   </button>
                 </div>
@@ -421,8 +428,8 @@ const CreateSubjectModal = ({ onClose, onSave }) => {
           <div className="flex items-start justify-between gap-6 pl-18">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f3c5a0]/70">New Entry</p>
-              <h3 className="mt-2 text-2xl font-semibold tracking-wide text-white">Add New Subject</h3>
-              <p className="mt-2 text-sm text-white/70">Fill in subject details and upload an image.</p>
+              <h3 className="mt-2 text-xl font-semibold tracking-wide text-white">Add New Subject</h3>
+              <p className="mt-1.5 text-[13px] text-white/70">Fill in subject details and upload an image.</p>
             </div>
             <span className="mt-2 inline-flex h-2 w-2 shrink-0 rounded-full bg-gradient-to-r from-[#701845] to-[#EFB078]" />
           </div>
@@ -528,8 +535,8 @@ const EditSubjectModal = ({ subject, onClose, onSave }) => {
           <div className="flex items-start justify-between gap-6 pl-18">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f3c5a0]/70">Update</p>
-              <h3 className="mt-2 text-2xl font-semibold tracking-wide text-white">Edit Subject</h3>
-              <p className="mt-2 text-sm text-white/70">Modify subject details or upload a new image.</p>
+              <h3 className="mt-2 text-xl font-semibold tracking-wide text-white">Edit Subject</h3>
+              <p className="mt-1.5 text-[13px] text-white/70">Modify subject details or upload a new image.</p>
             </div>
             <span className="mt-2 inline-flex h-2 w-2 shrink-0 rounded-full bg-gradient-to-r from-[#701845] to-[#EFB078]" />
           </div>

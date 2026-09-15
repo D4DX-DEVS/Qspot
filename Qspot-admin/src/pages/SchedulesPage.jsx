@@ -182,10 +182,10 @@ const SchedulesPage = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-black">
+    <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="schedules" onNavigate={handleNavigate} />
       
-      <div className="flex-1 flex flex-col ml-64">
+      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-4">
           {/* Header Section */}
           <div className="mb-4">
@@ -196,28 +196,28 @@ const SchedulesPage = () => {
               </div>
               
               {/* Statistics Cards */}
-              <div className="flex gap-3">
-                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/80 via-[#1c0b18]/60 to-[#12060f]/80 px-4 py-3 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl min-w-[120px]">
+              <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-3">
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/80 via-[#1c0b18]/60 to-[#12060f]/80 px-2.5 py-2.5 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl sm:px-4 sm:py-3 sm:min-w-[120px]">
                   <div className="flex items-center gap-2">
-                    <FiCalendar className="text-[#EFB078]" size={16} />
+                    <FiCalendar className="shrink-0 text-[#EFB078]" size={16} />
                     <div>
                       <p className="text-lg font-bold text-white">{totalSchedules}</p>
                       <p className="text-xs text-gray-400">Total</p>
                     </div>
                   </div>
                 </div>
-                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/80 via-[#1c0b18]/60 to-[#12060f]/80 px-4 py-3 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl min-w-[120px]">
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/80 via-[#1c0b18]/60 to-[#12060f]/80 px-2.5 py-2.5 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl sm:px-4 sm:py-3 sm:min-w-[120px]">
                   <div className="flex items-center gap-2">
-                    <FiClock className="text-[#EFB078]" size={16} />
+                    <FiClock className="shrink-0 text-[#EFB078]" size={16} />
                     <div>
                       <p className="text-lg font-bold text-white">{upcomingSchedules}</p>
                       <p className="text-xs text-gray-400">Upcoming</p>
                     </div>
                   </div>
                 </div>
-                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/80 via-[#1c0b18]/60 to-[#12060f]/80 px-4 py-3 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl min-w-[120px]">
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/80 via-[#1c0b18]/60 to-[#12060f]/80 px-2.5 py-2.5 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl sm:px-4 sm:py-3 sm:min-w-[120px]">
                   <div className="flex items-center gap-2">
-                    <FiUser className="text-[#EFB078]" size={16} />
+                    <FiUser className="shrink-0 text-[#EFB078]" size={16} />
                     <div>
                       <p className="text-lg font-bold text-white">{pastSchedules}</p>
                       <p className="text-xs text-gray-400">Completed</p>
@@ -241,14 +241,14 @@ const SchedulesPage = () => {
               </div>
 
               <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-center lg:gap-3">
-                <div className="flex items-center gap-1 rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/60 via-[#1c0b18]/40 to-[#12060f]/60 p-1.5 backdrop-blur-xl overflow-hidden">
+                <div className="flex items-center gap-1 overflow-x-auto rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/60 via-[#1c0b18]/40 to-[#12060f]/60 p-1.5 backdrop-blur-xl qspot-no-scrollbar">
                   {statusOptions.map((option) => {
                     const isActive = statusFilter === option.value;
                     return (
                       <button
                         key={option.value}
                         onClick={() => setStatusFilter(option.value)}
-                        className={`flex items-center gap-1.5 rounded-2xl px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition-all ${
+                        className={`flex shrink-0 items-center gap-1.5 rounded-2xl px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition-all ${
                           isActive
                             ? 'bg-gradient-to-r from-[#701845]/80 via-[#9E4B63]/70 to-[#EFB078]/70 text-white shadow-[0_10px_26px_rgba(112,24,69,0.35)]'
                             : 'text-white/55 hover:text-white'
@@ -275,7 +275,7 @@ const SchedulesPage = () => {
 
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#701845]/90 via-[#9E4B63]/80 to-[#EFB078]/85 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(112,24,69,0.3)] transition-all hover:from-[#5a1538] hover:to-[#d49a6a]"
+                  className="inline-flex w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-gradient-to-r from-[#701845]/90 via-[#9E4B63]/80 to-[#EFB078]/85 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(112,24,69,0.3)] transition-all hover:from-[#5a1538] hover:to-[#d49a6a] sm:w-auto"
                   type="button"
                 >
                   <FiPlus size={14} />
@@ -405,7 +405,7 @@ const SchedulesPage = () => {
                             <div className="flex items-center gap-1.5">
                               <button
                                 onClick={() => handleEditSchedule(schedule)}
-                                className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white/70 transition-colors hover:border-[#EFB078]/45 hover:text-white"
+                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white/70 transition-colors hover:border-[#EFB078]/45 hover:text-white"
                                 title="Edit schedule"
                                 aria-label="Edit schedule"
                               >
@@ -413,7 +413,7 @@ const SchedulesPage = () => {
                               </button>
                               <button
                                 onClick={() => setDeleteConfirm(schedule)}
-                                className="flex h-8 w-8 items-center justify-center rounded-xl border border-red-500/35 bg-red-500/15 text-red-200 transition-colors hover:border-red-400/60 hover:bg-red-500/25 hover:text-white"
+                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-500/35 bg-red-500/15 text-red-200 transition-colors hover:border-red-400/60 hover:bg-red-500/25 hover:text-white"
                                 title="Delete schedule"
                                 aria-label="Delete schedule"
                               >
@@ -429,19 +429,19 @@ const SchedulesPage = () => {
                   {/* Pagination */}
                   {totalPages > 1 && (
                     <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/60 via-[#1c0b18]/40 to-[#12060f]/60 backdrop-blur-xl p-4 mt-4">
-                      <div className="flex items-center justify-between">
-                        <div className="text-xs text-gray-400">
+                      <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+                        <div className="text-center text-xs text-gray-400 sm:text-left">
                           Showing {startIndex + 1} to {Math.min(endIndex, filteredSchedules.length)} of {filteredSchedules.length} schedules
                         </div>
-                        <div className="flex items-center space-x-1">
+                        <div className="flex flex-wrap items-center justify-center gap-1">
                           <button
                             onClick={() => handlePageChange(currentPage - 1)}
                             disabled={currentPage === 1}
-                            className="p-1.5 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           >
                             <FiChevronLeft size={14} />
                           </button>
-                          
+
                           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
                             // Show first page, last page, current page, and pages around current page
                             if (
@@ -453,7 +453,7 @@ const SchedulesPage = () => {
                                 <button
                                   key={page}
                                   onClick={() => handlePageChange(page)}
-                                  className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                  className={`flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg px-2 text-xs font-medium transition-colors ${
                                     currentPage === page
                                       ? 'bg-indigo-600 text-white'
                                       : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -470,11 +470,11 @@ const SchedulesPage = () => {
                             }
                             return null;
                           })}
-                          
+
                           <button
                             onClick={() => handlePageChange(currentPage + 1)}
                             disabled={currentPage === totalPages}
-                            className="p-1.5 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           >
                             <FiChevronRight size={14} />
                           </button>
@@ -579,21 +579,21 @@ const CreateScheduleModal = ({ speakers, onClose, onSave }) => {
     'mt-2 block w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/40 backdrop-blur-sm transition-all duration-200 focus:border-[#EFB078]/60 focus:outline-none focus:ring-0';
 
   return (
-    <div className="fixed inset-0 z-[120] flex h-full w-full items-center justify-center overflow-y-auto bg-black/70 px-4 py-10 backdrop-blur-md">
-      <div className="relative w-full max-w-xl overflow-visible rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/92 via-[#190d23]/85 to-[#10060f]/92 shadow-[0_28px_80px_-28px_rgba(12,6,20,0.92)]">
+    <div className="fixed inset-0 z-[120] flex h-full w-full items-center justify-center overflow-y-auto bg-black/70 px-3 py-6 backdrop-blur-md sm:px-4 sm:py-10">
+      <div className="relative max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/92 via-[#190d23]/85 to-[#10060f]/92 shadow-[0_28px_80px_-28px_rgba(12,6,20,0.92)]">
         <div
           className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_top_right,rgba(136,32,82,0.55),transparent_65%)]"
           aria-hidden="true"
         />
 
-        <div className="relative px-8 pt-9 pb-8">
-          <div className="absolute left-8 top-6 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/12 bg-black/60 shadow-[0_14px_36px_rgba(136,32,82,0.45)]">
-            <img src={brandIcon} alt="QSpot icon" className="h-7 w-7 object-contain" />
+        <div className="relative px-5 pt-8 pb-6 sm:px-8 sm:pt-9 sm:pb-8">
+          <div className="absolute left-5 top-5 flex h-10 w-10 items-center justify-center rounded-2xl border border-white/12 bg-black/60 shadow-[0_14px_36px_rgba(136,32,82,0.45)] sm:left-8 sm:top-6 sm:h-12 sm:w-12">
+            <img src={brandIcon} alt="QSpot icon" className="h-6 w-6 object-contain sm:h-7 sm:w-7" />
           </div>
 
-          <div className="flex flex-col gap-2 pl-20">
+          <div className="flex flex-col gap-2 pl-14 sm:pl-20">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f3c5a0]/70">Schedule</p>
-            <h3 className="text-2xl font-semibold tracking-wide text-white">Add New Schedule</h3>
+            <h3 className="text-xl font-semibold tracking-wide text-white sm:text-2xl">Add New Schedule</h3>
             <p className="text-sm text-white/70">
               Fill in the schedule details and assign a faculty.
             </p>
@@ -744,21 +744,21 @@ const EditScheduleModal = ({ schedule, speakers, onClose, onSave }) => {
     'mt-2 block w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/40 backdrop-blur-sm transition-all duration-200 focus:border-[#EFB078]/60 focus:outline-none focus:ring-0';
 
   return (
-    <div className="fixed inset-0 z-[120] flex h-full w-full items-center justify-center overflow-y-auto bg-black/70 px-4 py-10 backdrop-blur-md">
-      <div className="relative w-full max-w-xl overflow-visible rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/92 via-[#190d23]/85 to-[#10060f]/92 shadow-[0_28px_80px_-28px_rgba(12,6,20,0.92)]">
+    <div className="fixed inset-0 z-[120] flex h-full w-full items-center justify-center overflow-y-auto bg-black/70 px-3 py-6 backdrop-blur-md sm:px-4 sm:py-10">
+      <div className="relative max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/92 via-[#190d23]/85 to-[#10060f]/92 shadow-[0_28px_80px_-28px_rgba(12,6,20,0.92)]">
         <div
           className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_top_right,rgba(136,32,82,0.55),transparent_65%)]"
           aria-hidden="true"
         />
 
-        <div className="relative px-8 pt-9 pb-8">
-          <div className="absolute left-8 top-6 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/12 bg-black/60 shadow-[0_14px_36px_rgba(136,32,82,0.45)]">
-            <img src={brandIcon} alt="QSpot icon" className="h-7 w-7 object-contain" />
+        <div className="relative px-5 pt-8 pb-6 sm:px-8 sm:pt-9 sm:pb-8">
+          <div className="absolute left-5 top-5 flex h-10 w-10 items-center justify-center rounded-2xl border border-white/12 bg-black/60 shadow-[0_14px_36px_rgba(136,32,82,0.45)] sm:left-8 sm:top-6 sm:h-12 sm:w-12">
+            <img src={brandIcon} alt="QSpot icon" className="h-6 w-6 object-contain sm:h-7 sm:w-7" />
           </div>
 
-          <div className="flex flex-col gap-2 pl-20">
+          <div className="flex flex-col gap-2 pl-14 sm:pl-20">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f3c5a0]/70">Schedule</p>
-            <h3 className="text-2xl font-semibold tracking-wide text-white">Edit Schedule</h3>
+            <h3 className="text-xl font-semibold tracking-wide text-white sm:text-2xl">Edit Schedule</h3>
             <p className="text-sm text-white/70">
               Update schedule details and confirm the assigned faculty.
             </p>
@@ -1090,7 +1090,7 @@ const ScheduleDatePicker = ({ value, onChange }) => {
                 onClick={() =>
                   setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
                 }
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition-all hover:border-[#EFB078]/30 hover:text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition-all hover:border-[#EFB078]/30 hover:text-white"
               >
                 <FiChevronLeft size={14} />
               </button>
@@ -1102,7 +1102,7 @@ const ScheduleDatePicker = ({ value, onChange }) => {
                 onClick={() =>
                   setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
                 }
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition-all hover:border-[#EFB078]/30 hover:text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition-all hover:border-[#EFB078]/30 hover:text-white"
               >
                 <FiChevronRight size={14} />
               </button>

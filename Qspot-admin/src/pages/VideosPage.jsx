@@ -484,7 +484,7 @@ const VideoDatePicker = ({ value, onChange }) => {
             <button
               type="button"
               onClick={() => goToMonth(-1)}
-              className="rounded-lg border border-white/10 bg-white/5 p-1.5 text-white/70 transition hover:text-white"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 transition hover:text-white"
             >
               <FiChevronLeft size={14} />
             </button>
@@ -494,7 +494,7 @@ const VideoDatePicker = ({ value, onChange }) => {
             <button
               type="button"
               onClick={() => goToMonth(1)}
-              className="rounded-lg border border-white/10 bg-white/5 p-1.5 text-white/70 transition hover:text-white"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 transition hover:text-white"
             >
               <FiChevronRight size={14} />
             </button>
@@ -611,13 +611,13 @@ const VideoCard = ({ video, onEdit, onDelete }) => {
                 : 'items-center justify-start'
             }`}
           >
-            <div className={`flex items-center gap-2 opacity-0 transition-all duration-200 group-hover:opacity-100 ${isPortrait ? 'md:ml-auto' : ''}`}>
+            <div className={`flex items-center gap-2 opacity-100 transition-all duration-200 md:opacity-0 md:group-hover:opacity-100 ${isPortrait ? 'md:ml-auto' : ''}`}>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onEdit();
                 }}
-                className="flex items-center gap-1 rounded-xl bg-white/10 px-2.5 py-1.5 text-[10px] font-semibold text-white transition-all hover:bg-white/20"
+                className="flex min-h-[36px] items-center gap-1 rounded-xl bg-white/10 px-2.5 py-1.5 text-[10px] font-semibold text-white transition-all hover:bg-white/20"
                 title="Edit video"
               >
                 <FiEdit2 size={12} />
@@ -628,7 +628,7 @@ const VideoCard = ({ video, onEdit, onDelete }) => {
                   e.stopPropagation();
                   onDelete();
                 }}
-                className="flex items-center gap-1 rounded-xl bg-red-500/20 px-2.5 py-1.5 text-[10px] font-semibold text-red-200 transition-all hover:bg-red-500/30"
+                className="flex min-h-[36px] items-center gap-1 rounded-xl bg-red-500/20 px-2.5 py-1.5 text-[10px] font-semibold text-red-200 transition-all hover:bg-red-500/30"
                 title="Delete video"
               >
                 <FiTrash2 size={12} />
@@ -825,20 +825,20 @@ const VideosPage = () => {
   }).length;
 
   return (
-    <div className="flex min-h-screen bg-black">
+    <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="videos" onNavigate={handleNavigate} />
       
-      <div className="flex-1 flex flex-col ml-64">
-        <main className="flex-1 p-8">
+      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
           {/* Header Section */}
           <div className="mb-8">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-semibold text-white">Videos Management</h2>
                 <p className="text-sm text-gray-400">Manage educational videos and content across subjects.</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <div className="relative overflow-hidden rounded-2xl border border-white/12 bg-gradient-to-br from-[#140718]/88 via-[#1b0b20]/75 to-[#0b040d]/90 px-5 py-4 shadow-[0_18px_46px_-24px_rgba(112,24,69,0.5)] backdrop-blur-xl min-w-[180px]">
+                <div className="relative flex-1 overflow-hidden rounded-2xl border border-white/12 bg-gradient-to-br from-[#140718]/88 via-[#1b0b20]/75 to-[#0b040d]/90 px-5 py-4 shadow-[0_18px_46px_-24px_rgba(112,24,69,0.5)] backdrop-blur-xl min-w-[140px] sm:flex-none sm:min-w-[180px]">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 bg-gradient-to-br from-[#701845]/80 via-[#9E4B63]/65 to-[#EFB078]/55 text-white shadow-[0_14px_32px_rgba(112,24,69,0.45)]">
                       <FiPlay size={16} />
@@ -851,7 +851,7 @@ const VideosPage = () => {
                     </div>
                   </div>
                 </div>
-                <div className="relative overflow-hidden rounded-2xl border border-white/12 bg-gradient-to-br from-[#102319]/88 via-[#11291e]/75 to-[#05140c]/90 px-5 py-4 shadow-[0_18px_46px_-24px_rgba(12,142,96,0.5)] backdrop-blur-xl min-w-[180px]">
+                <div className="relative flex-1 overflow-hidden rounded-2xl border border-white/12 bg-gradient-to-br from-[#102319]/88 via-[#11291e]/75 to-[#05140c]/90 px-5 py-4 shadow-[0_18px_46px_-24px_rgba(12,142,96,0.5)] backdrop-blur-xl min-w-[140px] sm:flex-none sm:min-w-[180px]">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 bg-gradient-to-br from-[#0f7d57]/80 via-[#1fb584]/65 to-[#4ad6a8]/55 text-white shadow-[0_14px_32px_rgba(15,125,87,0.45)]">
                       <FiCalendar size={16} />
@@ -950,19 +950,19 @@ const VideosPage = () => {
                   {/* Pagination */}
                   {totalPages > 1 && (
                     <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/60 via-[#1c0b18]/40 to-[#12060f]/60 backdrop-blur-xl p-4 mt-4">
-                      <div className="flex items-center justify-between">
-                        <div className="text-xs text-gray-400">
+                      <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+                        <div className="text-xs text-gray-400 text-center sm:text-left">
                           Showing {startIndex + 1} to {Math.min(endIndex, filteredVideos.length)} of {filteredVideos.length} videos
                         </div>
-                        <div className="flex items-center space-x-1">
+                        <div className="flex max-w-full items-center gap-1 overflow-x-auto qspot-no-scrollbar">
                           <button
                             onClick={() => handlePageChange(currentPage - 1)}
                             disabled={currentPage === 1}
-                            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60 transition-all hover:border-[#EFB078]/40 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60 transition-all hover:border-[#EFB078]/40 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             <FiChevronLeft size={14} />
                           </button>
-                          
+
                           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
                             // Show first page, last page, current page, and pages around current page
                             if (
@@ -974,7 +974,7 @@ const VideosPage = () => {
                                 <button
                                   key={page}
                                   onClick={() => handlePageChange(page)}
-                                  className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold tracking-[0.16em] transition-all ${
+                                  className={`shrink-0 px-2.5 py-1.5 min-w-[36px] min-h-[36px] rounded-xl text-xs font-semibold tracking-[0.16em] transition-all ${
                                     currentPage === page
                                       ? 'bg-gradient-to-r from-[#701845]/85 via-[#9E4B63]/75 to-[#EFB078]/70 text-white shadow-[0_8px_24px_rgba(112,24,69,0.35)]'
                                       : 'border border-white/10 bg-white/5 text-white/70 hover:border-[#EFB078]/40 hover:text-white'
@@ -995,7 +995,7 @@ const VideosPage = () => {
                           <button
                             onClick={() => handlePageChange(currentPage + 1)}
                             disabled={currentPage === totalPages}
-                            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60 transition-all hover:border-[#EFB078]/40 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60 transition-all hover:border-[#EFB078]/40 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             <FiChevronRight size={14} />
                           </button>
@@ -1097,7 +1097,7 @@ const CreateVideoModal = ({ subjects, onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 z-[120] flex h-full w-full items-center justify-center bg-black/70 px-3 py-10 backdrop-blur-md sm:px-4">
-      <div className="relative w-full max-w-md overflow-visible rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/92 via-[#190d23]/85 to-[#10060f]/92 shadow-[0_20px_56px_-26px_rgba(12,6,20,0.85)]">
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/92 via-[#190d23]/85 to-[#10060f]/92 shadow-[0_20px_56px_-26px_rgba(12,6,20,0.85)]">
         <div
           className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_top_right,rgba(136,32,82,0.55),transparent_65%)]"
           aria-hidden="true"
@@ -1242,7 +1242,7 @@ const EditVideoModal = ({ video, subjects, onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 z-[120] flex h-full w-full items-center justify-center bg-black/70 px-3 py-10 backdrop-blur-md sm:px-4">
-      <div className="relative w-full max-w-md overflow-visible rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/92 via-[#190d23]/85 to-[#10060f]/92 shadow-[0_20px_56px_-26px_rgba(12,6,20,0.85)]">
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/92 via-[#190d23]/85 to-[#10060f]/92 shadow-[0_20px_56px_-26px_rgba(12,6,20,0.85)]">
         <div
           className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_top_right,rgba(136,32,82,0.55),transparent_65%)]"
           aria-hidden="true"

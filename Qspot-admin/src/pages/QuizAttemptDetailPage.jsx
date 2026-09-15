@@ -61,22 +61,22 @@ const QuizAttemptDetailPage = () => {
   }, [attemptId, baseURL, token]);
 
   return (
-    <div className="flex min-h-screen bg-black text-white">
+    <div className="flex min-h-screen overflow-x-hidden bg-black text-white">
       <Sidebar currentPage="quizAttempts" onNavigate={handleNavigate} />
-      <main className="ml-64 w-full bg-transparent px-4 py-5">
+      <main className="w-full bg-transparent px-3 py-5 pb-28 sm:px-4 md:ml-64 md:pb-5">
         {/* Header - styled to match other project */}
         <header className="bg-transparent backdrop-blur-sm shadow-lg rounded-xl border border-white/5">
-          <div className="max-w-4xl mx-auto px-4">
-            <div className="flex justify-between items-center py-3">
-              <div className="flex items-center gap-4">
+          <div className="max-w-4xl mx-auto px-3 sm:px-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 py-3">
+              <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                 <img
                   src={brandIcon}
                   alt="QSpot"
-                  className="w-10 h-10 object-contain rounded-lg border border-white/10 bg-white/5 p-1"
+                  className="h-9 w-9 shrink-0 object-contain rounded-lg border border-white/10 bg-white/5 p-1 sm:h-10 sm:w-10"
                 />
-                <div>
+                <div className="min-w-0">
                   <h1
-                    className="text-2xl md:text-3xl font-semibold text-white tracking-wide"
+                    className="truncate text-lg font-semibold text-white tracking-wide sm:text-2xl md:text-3xl"
                     style={{ fontFamily: "'Poppins', 'Segoe UI', 'Roboto', sans-serif", letterSpacing: '0.02em' }}
                   >
                     Quiz Result Details
@@ -88,7 +88,7 @@ const QuizAttemptDetailPage = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/admin/quiz/attempts')}
-                  className="bg-gradient-to-r from-gray-700 to-gray-800 text-white p-1.5 rounded-md font-medium hover:from-gray-800 hover:to-gray-900 transition-all duration-200 shadow-md inline-flex items-center gap-2"
+                  className="bg-gradient-to-r from-gray-700 to-gray-800 text-white p-2 rounded-md font-medium hover:from-gray-800 hover:to-gray-900 transition-all duration-200 shadow-md inline-flex items-center gap-2"
                 >
                   <FiArrowLeft className="text-sm" />
                 </button>
@@ -126,16 +126,16 @@ const QuizAttemptDetailPage = () => {
           <section className="max-w-4xl mx-auto mt-4 space-y-4">
             {/* User Information Card */}
             <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl shadow-xl border border-gray-700/50 overflow-hidden">
-              <div className="px-5 py-3 border-b border-gray-700/70">
+              <div className="px-3 sm:px-5 py-3 border-b border-gray-700/70">
                 <div className="flex items-center justify-between">
                   <h2 className="text-base font-bold text-white">User Information</h2>
                 </div>
               </div>
-              <div className="px-5 py-4">
+              <div className="px-3 sm:px-5 py-4">
                 <div className="mb-2.5 p-3.5 bg-gradient-to-r from-violet-900/20 to-purple-900/20 rounded-lg border border-violet-700/30">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-1">
                     <label className="text-xs font-medium text-gray-400">Full Name</label>
-                    <p className="text-lg font-bold text-white leading-tight">{attempt.user?.name || 'Unknown'}</p>
+                    <p className="break-words text-lg font-bold text-white leading-tight">{attempt.user?.name || 'Unknown'}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
@@ -163,11 +163,11 @@ const QuizAttemptDetailPage = () => {
 
             {/* Result Summary Card */}
             <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl shadow-xl border border-gray-700/50 overflow-hidden">
-              <div className="px-5 py-3 border-b border-gray-700/70">
+              <div className="px-3 sm:px-5 py-3 border-b border-gray-700/70">
                 <h2 className="text-base font-bold text-white">Quiz Result Summary</h2>
                 <p className="text-[11px] text-gray-300 mt-0.5">Performance metrics and statistics</p>
               </div>
-              <div className="px-5 py-4">
+              <div className="px-3 sm:px-5 py-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="text-center">
                     <label className="block text-[11px] font-medium text-gray-400 mb-0.5">Score</label>
@@ -191,14 +191,14 @@ const QuizAttemptDetailPage = () => {
 
             {/* Questions & Answers */}
             <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl shadow-xl border border-gray-700/50 overflow-hidden">
-              <div className="px-5 py-3 border-b border-gray-700/70">
+              <div className="px-3 sm:px-5 py-3 border-b border-gray-700/70">
                 <div className="flex items-center gap-2 text-[13px] font-semibold text-white">
                   <FiActivity className="text-sm text-[#EFB078]" />
                   Questions &amp; Answers
                 </div>
                 <p className="text-[11px] text-gray-300 mt-0.5">Detailed analysis of each question</p>
               </div>
-              <div className="px-5 py-4">
+              <div className="px-3 sm:px-5 py-4">
                 <div className="max-h-[480px] space-y-2.5 overflow-y-auto pr-1 text-[12px] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2">
                   {attempt.questions?.map((question, index) => {
                     const answer = attempt.answers?.[index];

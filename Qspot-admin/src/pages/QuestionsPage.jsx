@@ -322,10 +322,10 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
   const pendingCount = questions.filter(q => !q.isAnswered).length;
 
   return (
-    <div className="flex min-h-screen bg-black">
+    <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="questions" onNavigate={handleNavigate} />
       
-      <div className="flex-1 flex flex-col ml-64">
+      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-4">
           {/* Header Section */}
           <div className="mb-4">
@@ -336,10 +336,10 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
               </div>
               
               {/* Statistics Cards */}
-              <div className="flex gap-3">
-                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/80 via-[#1c0b18]/60 to-[#12060f]/80 px-4 py-3 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl min-w-[120px]">
+              <div className="flex flex-wrap gap-3">
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/80 via-[#1c0b18]/60 to-[#12060f]/80 px-4 py-3 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl min-w-[100px] flex-1 sm:flex-none sm:min-w-[120px]">
                   <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#701845]/40 to-[#EFB078]/30 border border-white/10">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#701845]/40 to-[#EFB078]/30 border border-white/10">
                       <FiHelpCircle className="text-[#EFB078]" size={16} />
                     </div>
                     <div>
@@ -348,9 +348,9 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
                     </div>
                   </div>
                 </div>
-                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/80 via-[#1c0b18]/60 to-[#12060f]/80 px-4 py-3 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl min-w-[120px]">
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/80 via-[#1c0b18]/60 to-[#12060f]/80 px-4 py-3 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl min-w-[100px] flex-1 sm:flex-none sm:min-w-[120px]">
                   <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#701845]/40 to-[#EFB078]/30 border border-white/10">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#701845]/40 to-[#EFB078]/30 border border-white/10">
                       <FiCheckCircle className="text-[#EFB078]" size={16} />
                     </div>
                     <div>
@@ -359,9 +359,9 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
                     </div>
                   </div>
                 </div>
-                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/80 via-[#1c0b18]/60 to-[#12060f]/80 px-4 py-3 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl min-w-[120px]">
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/80 via-[#1c0b18]/60 to-[#12060f]/80 px-4 py-3 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl min-w-[100px] flex-1 sm:flex-none sm:min-w-[120px]">
                   <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#701845]/40 to-[#EFB078]/30 border border-white/10">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#701845]/40 to-[#EFB078]/30 border border-white/10">
                       <FiClock className="text-[#EFB078]" size={16} />
                     </div>
                     <div>
@@ -604,14 +604,14 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
                   </div>
 
                   {expandedQuestionId && (
-                    <div className="fixed inset-0 z-[120] flex items-start justify-center px-4 py-10 sm:px-6 lg:px-8">
+                    <div className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
                       <div
                         className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity"
                         onClick={resetExpandedState}
                       />
-                      <div className="relative w-full max-w-4xl overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#11060d]/85 via-[#1c0b18]/65 to-[#12060f]/85 shadow-[0_24px_68px_rgba(112,24,69,0.5)] backdrop-blur-2xl">
+                      <div className="relative w-full max-w-4xl mx-auto overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#11060d]/85 via-[#1c0b18]/65 to-[#12060f]/85 shadow-[0_24px_68px_rgba(112,24,69,0.5)] backdrop-blur-2xl">
                         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(136,32,82,0.45),transparent_62%)]" />
-                        <div className="relative p-6 space-y-6">
+                        <div className="relative max-h-[85vh] overflow-y-auto p-4 space-y-6 sm:p-6">
                           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                              <div className="space-y-3">
                                <div className="flex items-center gap-3">
@@ -776,11 +776,11 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
 
                   {totalPages > 1 && (
                     <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/60 via-[#1c0b18]/40 to-[#12060f]/60 backdrop-blur-sm p-4">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="text-xs text-gray-400">
                           Showing {startIndex + 1} to {Math.min(endIndex, filteredQuestions.length)} of {filteredQuestions.length} questions
                         </div>
-                        <div className="flex items-center space-x-1">
+                        <div className="flex flex-wrap items-center gap-1">
                           <button
                             onClick={() => handlePageChange(currentPage - 1)}
                             disabled={currentPage === 1}
@@ -837,23 +837,23 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
         </main>
       </div>
       {isAdmin && isEditingAnswer && expandedQuestion && (
-        <div className="fixed inset-0 z-[160] flex items-center justify-center bg-black/10 px-4 py-10 backdrop-blur-md">
-          <div className="relative w-full max-w-3xl overflow-hidden rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/80 via-[#190d23]/65 to-[#10060f]/80 shadow-[0_26px_70px_-24px_rgba(12,6,20,0.75)]">
+        <div className="fixed inset-0 z-[160] flex items-center justify-center overflow-y-auto bg-black/10 px-4 py-6 backdrop-blur-md sm:py-10">
+          <div className="relative w-full max-w-3xl mx-auto overflow-hidden rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/80 via-[#190d23]/65 to-[#10060f]/80 shadow-[0_26px_70px_-24px_rgba(12,6,20,0.75)]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(136,32,82,0.45),transparent_65%)]" />
-              <div className="relative max-h-[90vh] overflow-y-auto px-8 py-8 space-y-6">
-                <div className="flex items-start justify-between gap-6">
+              <div className="relative max-h-[90vh] overflow-y-auto px-4 py-6 space-y-6 sm:px-8 sm:py-8">
+                <div className="flex items-start justify-between gap-3 sm:gap-6">
                  <div className="flex items-start gap-3">
-                   <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 bg-black/45 p-2 shadow-[0_10px_22px_rgba(112,24,69,0.45)]">
+                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-black/45 p-2 shadow-[0_10px_22px_rgba(112,24,69,0.45)]">
                      <img src={brandIcon} alt="QSpot icon" className="h-full w-full object-contain" />
                    </div>
                    <div>
                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f3c5a0]/70">
                        {expandedQuestion.answer ? 'Update Answer' : 'New Answer'}
                      </p>
-                     <h3 className="mt-2 text-2xl font-semibold tracking-wide text-white">
+                     <h3 className="mt-2 text-xl font-semibold tracking-wide text-white sm:text-2xl">
                        {expandedQuestion.answer ? 'Edit the existing response' : 'Compose an answer'}
                      </h3>
-                     <p className="mt-2 text-sm text-white/65">
+                     <p className="mt-2 text-sm text-white/65 break-words">
                        Provide a clear response for <span className="font-semibold text-white">{expandedQuestion.user?.name || 'the user'}</span>'s question.
                      </p>
                    </div>
@@ -861,13 +861,13 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
                 <button
                   type="button"
                   onClick={handleCancelEditAnswer}
-                  className="rounded-xl border border-white/12 bg-white/10 p-2 text-white/75 transition-all hover:border-white/25 hover:bg-white/20 hover:text-white"
+                  className="shrink-0 rounded-xl border border-white/12 bg-white/10 p-2 text-white/75 transition-all hover:border-white/25 hover:bg-white/20 hover:text-white"
                 >
                   <FiX size={18} />
                 </button>
               </div>
 
-              <div className="rounded-2xl border border-white/12 bg-black/25 p-6 shadow-[0_14px_36px_rgba(0,0,0,0.28)] backdrop-blur-sm">
+              <div className="rounded-2xl border border-white/12 bg-black/25 p-4 shadow-[0_14px_36px_rgba(0,0,0,0.28)] backdrop-blur-sm sm:p-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/55">Question</p>
                 <p className="mt-2 text-sm text-white/85 whitespace-pre-line">
                   {expandedQuestion.description || 'Question text unavailable.'}

@@ -163,12 +163,12 @@ const QuizAttemptsPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#0b0614] text-white">
+    <div className="flex min-h-screen overflow-x-hidden bg-[#0b0614] text-white">
       <Sidebar currentPage="quizAttempts" onNavigate={handleNavigate} />
 
-      <main className="ml-64 w-full bg-[#0f0a1d] px-6 py-8">
-        <header className="mb-8 flex flex-col justify-between gap-4 rounded-2xl border border-white/5 bg-white/5/20 px-6 py-5 shadow-[0_20px_60px_rgba(10,7,18,0.55)] backdrop-blur">
-          <div className="flex w-full flex-wrap items-center gap-4">
+      <main className="w-full bg-[#0f0a1d] px-4 py-8 pb-28 sm:px-6 md:ml-64 md:pb-8">
+        <header className="mb-8 flex flex-col justify-between gap-4 rounded-2xl border border-white/5 bg-white/5/20 px-4 py-5 shadow-[0_20px_60px_rgba(10,7,18,0.55)] backdrop-blur sm:px-6">
+          <div className="flex w-full flex-col flex-wrap items-start gap-4 sm:flex-row sm:items-center">
             <div>
               {quizId && (
                 <button
@@ -180,14 +180,14 @@ const QuizAttemptsPage = () => {
                 </button>
               )}
               <p className="text-xs uppercase tracking-[0.35em] text-white/60">Analytics</p>
-              <h1 className="text-2xl font-semibold text-white">
+              <h1 className="text-xl font-semibold text-white sm:text-2xl">
                 {quizId ? `${scopedQuiz?.title || 'Quiz'} — Results` : 'Quiz Attempts'}
               </h1>
               <p className="text-sm text-white/70">
                 Review participant submissions and inspect per-question performance.
               </p>
             </div>
-            <div className="ml-auto flex items-center gap-3">
+            <div className="flex w-full items-center gap-3 sm:ml-auto sm:w-auto">
               <button
                 onClick={fetchAttempts}
                 className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:border-[#EFB078]/60 hover:bg-[#701845]/30"
@@ -209,14 +209,14 @@ const QuizAttemptsPage = () => {
           </div>
         )}
 
-        <section className="rounded-2xl border border-white/5 bg-gradient-to-b from-[#12091f]/90 to-[#0b0714]/95 p-5 shadow-[0_25px_60px_rgba(5,3,10,0.55)]">
+        <section className="rounded-2xl border border-white/5 bg-gradient-to-b from-[#12091f]/90 to-[#0b0714]/95 p-4 shadow-[0_25px_60px_rgba(5,3,10,0.55)] sm:p-5">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <label className="flex items-center gap-2 text-xs font-semibold text-white/70">
+              <label className="flex flex-col gap-2 text-xs font-semibold text-white/70 sm:flex-row sm:items-center">
                 Quiz
                 <select
                   value={quizId || ''}
                   onChange={(event) => handleQuizFilterChange(event.target.value)}
-                  className="rounded-xl border border-white/10 bg-[#0d0711] px-3 py-2 text-sm text-white focus:border-[#EFB078] focus:outline-none"
+                  className="w-full rounded-xl border border-white/10 bg-[#0d0711] px-3 py-2.5 text-sm text-white focus:border-[#EFB078] focus:outline-none sm:w-auto sm:py-2"
                 >
                   <option value="" style={{ backgroundColor: '#0d0711', color: '#ffffff' }}>
                     All Quizzes
@@ -232,17 +232,17 @@ const QuizAttemptsPage = () => {
                   ))}
                 </select>
               </label>
-              <div className="relative flex-1">
+              <div className="relative w-full sm:flex-1">
                 <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
                 <input
                   type="text"
                   placeholder="Search by user name or ID"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 py-2 pl-10 pr-3 text-sm text-white placeholder:text-white/40 focus:border-[#EFB078] focus:outline-none"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-white/40 focus:border-[#EFB078] focus:outline-none sm:py-2"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                 />
               </div>
-              <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
+              <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70 sm:w-auto">
                 <FiActivity className="text-base text-[#EFB078]" />
                 Live data
               </div>
@@ -295,8 +295,8 @@ const QuizAttemptsPage = () => {
             )}
 
             <div className="overflow-hidden rounded-2xl border border-white/5">
-              <div className="max-h-[520px] overflow-y-auto [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2">
-                <table className="min-w-full divide-y divide-white/5 text-sm">
+              <div className="max-h-[520px] overflow-x-auto overflow-y-auto [scrollbar-width:thin] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2">
+                <table className="w-full min-w-[640px] divide-y divide-white/5 text-sm">
                   <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-white/60">
                     <tr>
                       <th className="px-3 py-2 font-semibold">Rank</th>
@@ -362,7 +362,7 @@ const QuizAttemptsPage = () => {
                                   setDeleteTarget(attempt);
                                 }}
                                 title="Delete attempt"
-                                className="flex items-center justify-center text-red-300 transition hover:text-red-200"
+                                className="flex h-9 w-9 items-center justify-center rounded-lg text-red-300 transition hover:bg-red-500/10 hover:text-red-200"
                                 aria-label="Delete attempt"
                               >
                                 <FiTrash2 size={15} />

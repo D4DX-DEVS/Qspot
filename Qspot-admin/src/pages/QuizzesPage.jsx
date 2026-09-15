@@ -209,10 +209,10 @@ const QuizzesPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-black">
+    <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="quizzes" onNavigate={handleNavigate} />
 
-      <div className="flex-1 flex flex-col ml-64">
+      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-6 md:p-8 flex flex-col gap-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="space-y-2">
@@ -251,10 +251,10 @@ const QuizzesPage = () => {
                     key={quiz._id}
                     className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/75 via-[#1c0b18]/55 to-[#12060f]/75 p-4 shadow-[0_10px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <img src={brandIcon} alt="" className="h-6 w-6 rounded object-contain" />
-                        <h3 className="text-base font-semibold text-white">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <img src={brandIcon} alt="" className="h-6 w-6 shrink-0 rounded object-contain" />
+                        <h3 className="text-base font-semibold text-white break-words">
                           {legacy ? 'Legacy Quiz' : quiz.title}
                         </h3>
                         {legacy && (
@@ -310,7 +310,7 @@ const QuizzesPage = () => {
                         onClick={() => openEditModal(quiz)}
                         aria-label="Edit quiz"
                         title="Edit quiz"
-                        className="ml-auto inline-flex h-7 w-7 items-center justify-center rounded-lg border border-white/12 bg-white/5 text-white/75 transition hover:border-[#EFB078]/40 hover:text-[#EFB078]"
+                        className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/12 bg-white/5 text-white/75 transition hover:border-[#EFB078]/40 hover:text-[#EFB078]"
                       >
                         <FiEdit2 size={13} />
                       </button>
@@ -319,7 +319,7 @@ const QuizzesPage = () => {
                           onClick={() => setDeleteTarget(quiz)}
                           aria-label="Delete quiz"
                           title="Delete quiz"
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-red-400/30 bg-red-500/10 text-red-300 transition hover:border-red-300/60 hover:text-red-200"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-400/30 bg-red-500/10 text-red-300 transition hover:border-red-300/60 hover:text-red-200"
                         >
                           <FiTrash2 size={13} />
                         </button>
@@ -373,7 +373,7 @@ const QuizzesPage = () => {
         <div className="fixed inset-0 z-[140] flex items-center justify-center px-4 py-8">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={closeModal} aria-hidden="true" />
           <section
-            className="relative z-[150] w-full max-w-2xl rounded-[32px] border border-white/10 bg-gradient-to-br from-[#0d0711]/90 via-[#160b19]/75 to-[#0e0611]/88 shadow-[0_26px_64px_-18px_rgba(112,24,69,0.55)] backdrop-blur-2xl p-5 sm:p-6"
+            className="relative z-[150] w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[32px] border border-white/10 bg-gradient-to-br from-[#0d0711]/90 via-[#160b19]/75 to-[#0e0611]/88 shadow-[0_26px_64px_-18px_rgba(112,24,69,0.55)] backdrop-blur-2xl p-5 sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">
@@ -383,7 +383,7 @@ const QuizzesPage = () => {
               <button
                 type="button"
                 onClick={closeModal}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/70 hover:border-white/30 hover:text-white transition"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/70 hover:border-white/30 hover:text-white transition"
               >
                 <FiX size={16} />
               </button>

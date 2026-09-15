@@ -210,22 +210,22 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-black">
+    <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="users" onNavigate={handleNavigate} />
       
-      <div className="flex-1 flex flex-col ml-64">
-        <main className="flex-1 p-6">
+      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
+        <main className="flex-1 p-4 sm:p-6">
           {/* Header Section */}
-          <div className="mb-8 space-y-6">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mb-6 sm:mb-8 space-y-6">
+            <div className="flex flex-col gap-4 sm:gap-6 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="text-3xl font-bold text-white mb-2">Users Management</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Users Management</h2>
                 {/* <p className="text-gray-400">Manage and view all registered users</p> */}
               </div>
 
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-6 w-full lg:w-auto">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6 w-full md:w-auto">
                 {/* Search Section */}
-                <div className="relative w-full max-w-xl lg:max-w-lg order-2 lg:order-1">
+                <div className="relative w-full sm:max-w-xl md:max-w-lg order-2 sm:order-1">
                   <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
                   <input
                     type="text"
@@ -237,7 +237,7 @@ const AdminDashboard = () => {
                 </div>
 
                 {/* Statistics Card */}
-                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/80 via-[#1c0b18]/60 to-[#12060f]/80 px-5 py-4 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl min-w-[200px] order-1 lg:order-2">
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/80 via-[#1c0b18]/60 to-[#12060f]/80 px-5 py-4 shadow-[0_8px_32px_rgba(112,24,69,0.25)] backdrop-blur-xl w-full sm:w-auto sm:min-w-[200px] order-1 sm:order-2">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#701845]/40 to-[#EFB078]/30 border border-white/10">
                       <FiUsers className="text-[#EFB078]" size={20} />
@@ -287,7 +287,7 @@ const AdminDashboard = () => {
               ) : (
                 <>
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-white/5">
+                    <table className="min-w-[720px] w-full divide-y divide-white/5">
                       <thead className="bg-gradient-to-r from-[#11060d]/60 to-[#1c0b18]/40 backdrop-blur-sm">
                         <tr>
                           <th 
@@ -355,13 +355,13 @@ const AdminDashboard = () => {
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <div className="flex space-x-2">
+              <div className="flex items-center gap-2">
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleEditUser(user);
                                   }}
-                                  className="text-[#EFB078] hover:text-white transition-all p-2 rounded-xl hover:bg-gradient-to-br hover:from-[#701845]/30 hover:to-[#EFB078]/20 border border-transparent hover:border-[#EFB078]/30"
+                                  className="flex h-9 w-9 items-center justify-center text-[#EFB078] hover:text-white transition-all rounded-xl hover:bg-gradient-to-br hover:from-[#701845]/30 hover:to-[#EFB078]/20 border border-transparent hover:border-[#EFB078]/30"
                                   title="Edit user"
                                 >
                                   <FiEdit2 size={16} />
@@ -371,7 +371,7 @@ const AdminDashboard = () => {
                                     e.stopPropagation();
                                     setDeleteConfirm(user);
                                   }}
-                                  className="text-red-400 hover:text-white transition-all p-2 rounded-xl hover:bg-gradient-to-br hover:from-red-900/40 hover:to-red-600/30 border border-transparent hover:border-red-400/40"
+                                  className="flex h-9 w-9 items-center justify-center text-red-400 hover:text-white transition-all rounded-xl hover:bg-gradient-to-br hover:from-red-900/40 hover:to-red-600/30 border border-transparent hover:border-red-400/40"
                                   title="Delete user"
                                 >
                                   <FiTrash2 size={16} />
@@ -386,20 +386,20 @@ const AdminDashboard = () => {
 
                   {/* Pagination */}
                   {totalPages > 1 && (
-                    <div className="bg-gradient-to-r from-[#11060d]/40 to-[#1c0b18]/30 px-6 py-4 border-t border-white/5 backdrop-blur-sm">
-                      <div className="flex items-center justify-between">
+                    <div className="bg-gradient-to-r from-[#11060d]/40 to-[#1c0b18]/30 px-4 sm:px-6 py-4 border-t border-white/5 backdrop-blur-sm">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="text-sm text-gray-400">
                           Showing {startIndex + 1} to {Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length} users
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center gap-2 overflow-x-auto">
                           <button
                             onClick={() => handlePageChange(currentPage - 1)}
                             disabled={currentPage === 1}
-                            className="p-2 rounded-xl bg-gradient-to-br from-[#11060d]/60 to-[#1c0b18]/40 border border-white/10 text-slate-300 hover:border-[#701845]/50 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all backdrop-blur-sm"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#11060d]/60 to-[#1c0b18]/40 border border-white/10 text-slate-300 hover:border-[#701845]/50 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all backdrop-blur-sm"
                           >
                             <FiChevronLeft size={16} />
                           </button>
-                          
+
                           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
                             // Show first page, last page, current page, and pages around current page
                             if (
@@ -411,7 +411,7 @@ const AdminDashboard = () => {
                                 <button
                                   key={page}
                                   onClick={() => handlePageChange(page)}
-                                  className={`px-3 py-2 rounded-xl text-sm font-semibold transition-all backdrop-blur-sm ${
+                                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-semibold transition-all backdrop-blur-sm ${
                                     currentPage === page
                                       ? 'bg-gradient-to-r from-[#701845]/90 to-[#EFB078]/80 text-white border border-transparent shadow-[0_4px_12px_rgba(112,24,69,0.3)]'
                                       : 'bg-gradient-to-br from-[#11060d]/60 to-[#1c0b18]/40 border border-white/10 text-slate-300 hover:border-[#701845]/50 hover:text-white'
@@ -432,7 +432,7 @@ const AdminDashboard = () => {
                           <button
                             onClick={() => handlePageChange(currentPage + 1)}
                             disabled={currentPage === totalPages}
-                            className="p-2 rounded-xl bg-gradient-to-br from-[#11060d]/60 to-[#1c0b18]/40 border border-white/10 text-slate-300 hover:border-[#701845]/50 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all backdrop-blur-sm"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#11060d]/60 to-[#1c0b18]/40 border border-white/10 text-slate-300 hover:border-[#701845]/50 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all backdrop-blur-sm"
                           >
                             <FiChevronRight size={16} />
                           </button>
@@ -502,32 +502,32 @@ const UserDetailModal = ({ user, loading, onClose, onEdit, onDelete }) => {
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
-      <div className="relative w-full max-w-3xl max-h-[95vh] overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#11060d]/70 via-[#1c0b18]/50 to-[#12060f]/70 shadow-[0_25px_70px_-25px_rgba(112,24,69,0.6)] backdrop-blur-xl">
+      <div className="relative w-full max-w-3xl mx-auto max-h-[90vh] overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#11060d]/70 via-[#1c0b18]/50 to-[#12060f]/70 shadow-[0_25px_70px_-25px_rgba(112,24,69,0.6)] backdrop-blur-xl">
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(136,32,82,0.45),transparent_60%)]"
           aria-hidden="true"
         />
 
         {/* Header with Icon and Close Button */}
-        <div className="relative flex items-center justify-between border-b border-white/10 px-6 py-4">
+        <div className="relative flex items-center justify-between border-b border-white/10 px-4 sm:px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/12 bg-black/40 shadow-[0_8px_24px_rgba(136,32,82,0.4)] backdrop-blur-sm">
-              <img src={brandIcon} alt="QSpot" className="h-7 w-7 object-contain" />
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl border border-white/12 bg-black/40 shadow-[0_8px_24px_rgba(136,32,82,0.4)] backdrop-blur-sm">
+              <img src={brandIcon} alt="QSpot" className="h-6 w-6 sm:h-7 sm:w-7 object-contain" />
             </div>
             <div>
-              <p className="text-[15px] font-semibold uppercase tracking-[0.2em] text-[#f3c5a0]/60">User Profile</p>
+              <p className="text-sm sm:text-[15px] font-semibold uppercase tracking-[0.2em] text-[#f3c5a0]/60">User Profile</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="rounded-xl border border-white/10 bg-white/5 p-2 text-white/75 transition-all duration-200 hover:border-white/25 hover:bg-white/10 hover:text-white backdrop-blur-sm"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/75 transition-all duration-200 hover:border-white/25 hover:bg-white/10 hover:text-white backdrop-blur-sm"
           >
             <FiX size={18} />
           </button>
         </div>
 
         {/* Content */}
-        <div className="relative px-6 py-5 overflow-y-auto max-h-[calc(95vh-80px)]">
+        <div className="relative px-4 sm:px-6 py-5 overflow-y-auto max-h-[calc(90vh-80px)]">
           {loading ? (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#EFB078]"></div>
@@ -577,17 +577,17 @@ const UserDetailModal = ({ user, loading, onClose, onEdit, onDelete }) => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-3 border-t border-white/10">
                   <button
                     onClick={onEdit}
-                    className="flex items-center gap-2 rounded-xl border border-white/10 bg-gradient-to-r from-[#701845]/30 to-[#EFB078]/20 px-4 py-2 text-sm font-semibold text-[#EFB078] transition-all duration-200 hover:border-[#EFB078]/30 hover:from-[#701845]/40 hover:to-[#EFB078]/30 hover:text-white backdrop-blur-sm shadow-[0_4px_16px_rgba(112,24,69,0.25)]"
+                    className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-gradient-to-r from-[#701845]/30 to-[#EFB078]/20 px-4 py-2.5 text-sm font-semibold text-[#EFB078] transition-all duration-200 hover:border-[#EFB078]/30 hover:from-[#701845]/40 hover:to-[#EFB078]/30 hover:text-white backdrop-blur-sm shadow-[0_4px_16px_rgba(112,24,69,0.25)]"
                   >
                     <FiEdit2 size={15} />
                     <span>Edit</span>
                   </button>
                   <button
                     onClick={onDelete}
-                    className="flex items-center gap-2 rounded-xl border border-white/10 bg-gradient-to-r from-red-900/30 to-red-600/20 px-4 py-2 text-sm font-semibold text-red-400 transition-all duration-200 hover:border-red-400/30 hover:from-red-900/40 hover:to-red-600/30 hover:text-white backdrop-blur-sm shadow-[0_4px_16px_rgba(185,28,28,0.25)]"
+                    className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-gradient-to-r from-red-900/30 to-red-600/20 px-4 py-2.5 text-sm font-semibold text-red-400 transition-all duration-200 hover:border-red-400/30 hover:from-red-900/40 hover:to-red-600/30 hover:text-white backdrop-blur-sm shadow-[0_4px_16px_rgba(185,28,28,0.25)]"
                   >
                     <FiTrash2 size={15} />
                     <span>Delete</span>
@@ -624,13 +624,13 @@ const EditUserModal = ({ user, onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 z-[120] flex h-full w-full items-center justify-center overflow-y-auto bg-black/70 px-4 py-10 backdrop-blur-md">
-      <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/95 via-[#190d23]/85 to-[#10060f]/95 shadow-[0_28px_80px_-28px_rgba(12,6,20,0.92)]">
+      <div className="relative w-full max-w-lg mx-auto max-h-[90vh] overflow-y-auto rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/95 via-[#190d23]/85 to-[#10060f]/95 shadow-[0_28px_80px_-28px_rgba(12,6,20,0.92)]">
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(136,32,82,0.55),transparent_65%)]"
           aria-hidden="true"
         />
 
-        <div className="relative px-8 pt-10 pb-8">
+        <div className="relative px-5 sm:px-8 pt-8 sm:pt-10 pb-8">
           <div className="flex items-start justify-between gap-6">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f3c5a0]/70">Profile</p>
@@ -687,7 +687,7 @@ const EditUserModal = ({ user, onClose, onSave }) => {
               />
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4">
               <button
                 type="button"
                 onClick={onClose}

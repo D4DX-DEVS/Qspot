@@ -145,21 +145,21 @@ const BannerPage = () => {
   }).length;
 
   return (
-    <div className="flex min-h-screen bg-black">
+    <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="banner" onNavigate={handleNavigate} />
       
-      <div className="flex-1 flex flex-col ml-64">
+      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-4">
           {/* Header Section */}
           <div className="mb-8">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-semibold text-white">Banner Management</h2>
                 <p className="text-sm text-gray-400">Manage website banners and promotional images</p>
               </div>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="inline-flex items-center gap-2 self-start rounded-2xl bg-gradient-to-r from-[#701845]/90 via-[#9E4B63]/80 to-[#EFB078]/85 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(112,24,69,0.3)] transition-all hover:from-[#5a1538] hover:to-[#d49a6a]"
+                className="inline-flex items-center justify-center gap-2 self-start sm:self-auto rounded-2xl bg-gradient-to-r from-[#701845]/90 via-[#9E4B63]/80 to-[#EFB078]/85 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(112,24,69,0.3)] transition-all hover:from-[#5a1538] hover:to-[#d49a6a]"
               >
                 <FiPlus size={14} />
                 <span>Add Banner</span>
@@ -236,7 +236,7 @@ const BannerPage = () => {
                             <div className="flex gap-1.5">
                               <button
                                 onClick={() => handleEditBanner(banner)}
-                                className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white/75 transition-all hover:border-[#EFB078]/40 hover:text-white"
+                                className="flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white/75 transition-all hover:border-[#EFB078]/40 hover:text-white"
                                 title="Edit banner"
                                 aria-label="Edit banner"
                               >
@@ -244,7 +244,7 @@ const BannerPage = () => {
                               </button>
                               <button
                                 onClick={() => setDeleteConfirm(banner)}
-                                className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white/75 transition-all hover:border-red-400/60 hover:text-red-200"
+                                className="flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white/75 transition-all hover:border-red-400/60 hover:text-red-200"
                                 title="Delete banner"
                                 aria-label="Delete banner"
                               >
@@ -260,19 +260,19 @@ const BannerPage = () => {
                   {/* Pagination */}
                   {totalPages > 1 && (
                     <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/60 via-[#1c0b18]/40 to-[#12060f]/60 backdrop-blur-xl p-4 mt-4">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div className="text-xs text-gray-400">
                           Showing {startIndex + 1} to {Math.min(endIndex, filteredBanners.length)} of {filteredBanners.length} banners
                         </div>
-                        <div className="flex items-center space-x-1">
+                        <div className="flex flex-wrap items-center gap-1">
                           <button
                             onClick={() => handlePageChange(currentPage - 1)}
                             disabled={currentPage === 1}
-                            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60 transition-all hover:border-[#EFB078]/40 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60 transition-all hover:border-[#EFB078]/40 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             <FiChevronLeft size={14} />
                           </button>
-                          
+
                           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
                             // Show first page, last page, current page, and pages around current page
                             if (
@@ -305,7 +305,7 @@ const BannerPage = () => {
                           <button
                             onClick={() => handlePageChange(currentPage + 1)}
                             disabled={currentPage === totalPages}
-                            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60 transition-all hover:border-[#EFB078]/40 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60 transition-all hover:border-[#EFB078]/40 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             <FiChevronRight size={14} />
                           </button>
@@ -390,14 +390,14 @@ const CreateBannerModal = ({ onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 z-[120] flex h-full w-full items-center justify-center overflow-y-auto bg-black/70 px-4 py-10 backdrop-blur-md">
-      <div className="relative w-full max-w-md overflow-visible rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/92 via-[#190d23]/85 to-[#10060f]/92 shadow-[0_24px_64px_-28px_rgba(12,6,20,0.9)]">
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto overflow-x-visible rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/92 via-[#190d23]/85 to-[#10060f]/92 shadow-[0_24px_64px_-28px_rgba(12,6,20,0.9)]">
         <div
           className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_top_right,rgba(136,32,82,0.55),transparent_65%)]"
           aria-hidden="true"
         />
 
-        <div className="relative px-7 pt-8 pb-7">
-          <div className="absolute left-7 top-6 flex h-10 w-10 items-center justify-center rounded-2xl border border-white/12 bg-black/60 shadow-[0_12px_30px_rgba(136,32,82,0.4)]">
+        <div className="relative px-5 sm:px-7 pt-8 pb-7">
+          <div className="absolute left-5 sm:left-7 top-6 flex h-10 w-10 items-center justify-center rounded-2xl border border-white/12 bg-black/60 shadow-[0_12px_30px_rgba(136,32,82,0.4)]">
             <img src={brandIcon} alt="QSpot icon" className="h-6 w-6 object-contain" />
           </div>
 
@@ -425,18 +425,18 @@ const CreateBannerModal = ({ onClose, onSave }) => {
               />
               <p className="mt-1 text-[10px] text-white/60">Recommended size: 1200x400px</p>
             </div>
-            <div className="flex items-center justify-end gap-2.5 pt-3">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75 transition-all duration-200 hover:border-white/20 hover:bg-white/10 hover:text-white"
+                className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 sm:py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75 transition-all duration-200 hover:border-white/20 hover:bg-white/10 hover:text-white"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="rounded-lg bg-gradient-to-r from-[#701845]/90 via-[#9E4B63]/80 to-[#EFB078]/85 px-4.5 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_16px_34px_rgba(136,32,82,0.45)] transition-all duration-200 hover:scale-[1.01] disabled:opacity-50 disabled:shadow-none"
+                className="rounded-lg bg-gradient-to-r from-[#701845]/90 via-[#9E4B63]/80 to-[#EFB078]/85 px-4.5 py-2.5 sm:py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_16px_34px_rgba(136,32,82,0.45)] transition-all duration-200 hover:scale-[1.01] disabled:opacity-50 disabled:shadow-none"
               >
                 {loading ? 'Creating...' : 'Create Banner'}
               </button>
@@ -482,14 +482,14 @@ const EditBannerModal = ({ banner, onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 z-[120] flex h-full w-full items-center justify-center overflow-y-auto bg-black/70 px-4 py-10 backdrop-blur-md">
-      <div className="relative w-full max-w-md overflow-visible rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/92 via-[#190d23]/85 to-[#10060f]/92 shadow-[0_24px_64px_-28px_rgba(12,6,20,0.9)]">
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto overflow-x-visible rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/92 via-[#190d23]/85 to-[#10060f]/92 shadow-[0_24px_64px_-28px_rgba(12,6,20,0.9)]">
         <div
           className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_top_right,rgba(136,32,82,0.55),transparent_65%)]"
           aria-hidden="true"
         />
 
-        <div className="relative px-7 pt-8 pb-7">
-          <div className="absolute left-7 top-6 flex h-10 w-10 items-center justify-center rounded-2xl border border-white/12 bg-black/60 shadow-[0_12px_30px_rgba(136,32,82,0.4)]">
+        <div className="relative px-5 sm:px-7 pt-8 pb-7">
+          <div className="absolute left-5 sm:left-7 top-6 flex h-10 w-10 items-center justify-center rounded-2xl border border-white/12 bg-black/60 shadow-[0_12px_30px_rgba(136,32,82,0.4)]">
             <img src={brandIcon} alt="QSpot icon" className="h-6 w-6 object-contain" />
           </div>
 
@@ -526,18 +526,18 @@ const EditBannerModal = ({ banner, onClose, onSave }) => {
               />
               <p className="mt-1 text-[10px] text-white/60">Leave empty to keep current image</p>
             </div>
-            <div className="flex items-center justify-end gap-2.5 pt-3">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75 transition-all duration-200 hover:border-white/20 hover:bg-white/10 hover:text-white"
+                className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 sm:py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75 transition-all duration-200 hover:border-white/20 hover:bg-white/10 hover:text-white"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="rounded-lg bg-gradient-to-r from-[#701845]/90 via-[#9E4B63]/80 to-[#EFB078]/85 px-4.5 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_16px_34px_rgba(136,32,82,0.45)] transition-all duration-200 hover:scale-[1.01] disabled:opacity-50 disabled:shadow-none"
+                className="rounded-lg bg-gradient-to-r from-[#701845]/90 via-[#9E4B63]/80 to-[#EFB078]/85 px-4.5 py-2.5 sm:py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_16px_34px_rgba(136,32,82,0.45)] transition-all duration-200 hover:scale-[1.01] disabled:opacity-50 disabled:shadow-none"
               >
                 {loading ? 'Updating...' : 'Update Banner'}
               </button>

@@ -697,10 +697,10 @@ useEffect(() => {
   const hasConfig = Boolean(startISO && endISO);
 
   return (
-    <div className="flex min-h-screen bg-black">
+    <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="quizzes" onNavigate={handleNavigate} />
 
-      <div className="flex-1 flex flex-col ml-64">
+      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-6 md:p-8 flex flex-col items-center gap-10">
           <div className="w-full px-2 md:px-0 flex flex-col gap-8">
             <div className="space-y-2">
@@ -1027,19 +1027,19 @@ useEffect(() => {
             aria-hidden="true"
           />
           <section
-            className="relative z-[150] w-full max-w-2xl rounded-[32px] border border-white/10 bg-gradient-to-br from-[#0d0711]/90 via-[#160b19]/75 to-[#0e0611]/88 shadow-[0_26px_64px_-18px_rgba(112,24,69,0.55)] backdrop-blur-2xl p-5 sm:p-6 overflow-visible"
+            className="relative z-[150] w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[32px] border border-white/10 bg-gradient-to-br from-[#0d0711]/90 via-[#160b19]/75 to-[#0e0611]/88 shadow-[0_26px_64px_-18px_rgba(112,24,69,0.55)] backdrop-blur-2xl p-5 sm:p-6"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-white/12 bg-black/60 shadow-[0_14px_32px_rgba(136,32,82,0.45)]">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="flex h-11 w-11 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-white/12 bg-black/60 shadow-[0_14px_32px_rgba(136,32,82,0.45)]">
                   <img src={brandIcon} alt="QSpot icon" className="h-7 w-7 object-contain" />
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/50">
                     Quiz Schedule
                   </p>
-                  <h2 className="mt-1 text-xl font-semibold text-white flex items-center gap-2">
+                  <h2 className="mt-1 text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
                     {hasConfig ? 'Edit Configuration' : 'Create Configuration'}
                   </h2>
                 </div>
@@ -1047,7 +1047,7 @@ useEffect(() => {
               <button
                 type="button"
                 onClick={() => setShowEditor(false)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/70 hover:border-white/30 hover:text-white transition"
+                className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/70 hover:border-white/30 hover:text-white transition"
                 aria-label="Close configuration form"
               >
                 <FiX size={16} />
@@ -1185,11 +1185,11 @@ useEffect(() => {
             onClick={closeQuestionDetail}
             aria-hidden="true"
           />
-          <section className="relative z-[160] w-full max-w-4xl overflow-hidden rounded-[32px] border border-white/12 bg-gradient-to-br from-[#0a050d]/95 via-[#160717]/85 to-[#0a040d]/95 shadow-[0_26px_64px_-18px_rgba(112,24,69,0.55)]">
-            <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-white/10">
-              <div className="flex items-center gap-3">
-                <img src={brandIcon} alt="Qspot logo" className="h-10 w-10 rounded-2xl border border-white/15 bg-black/40 p-1" />
-                <div>
+          <section className="relative z-[160] flex w-full max-w-4xl max-h-[90vh] flex-col overflow-hidden rounded-[32px] border border-white/12 bg-gradient-to-br from-[#0a050d]/95 via-[#160717]/85 to-[#0a040d]/95 shadow-[0_26px_64px_-18px_rgba(112,24,69,0.55)]">
+            <div className="flex shrink-0 items-start justify-between gap-3 sm:gap-4 px-4 py-4 sm:px-6 sm:py-5 border-b border-white/10">
+              <div className="flex items-center gap-3 min-w-0">
+                <img src={brandIcon} alt="Qspot logo" className="h-10 w-10 flex-shrink-0 rounded-2xl border border-white/15 bg-black/40 p-1" />
+                <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-white/50">
                     Question Detail
                   </p>
@@ -1198,14 +1198,14 @@ useEffect(() => {
                   </h3>
                 </div>
               </div>
-              <div className="flex items-center gap-1 text-white/70">
+              <div className="flex flex-shrink-0 items-center gap-1 text-white/70">
                 <button
                   type="button"
                   onClick={() => {
                     openQuestionEditor(activeQuestionDetail);
                     closeQuestionDetail();
                   }}
-                  className="p-2 hover:text-[#EFB078] transition"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-white/10 hover:text-[#EFB078] transition"
                   aria-label="Edit question"
                 >
                   <FiEdit2 size={18} />
@@ -1216,7 +1216,7 @@ useEffect(() => {
                     setQuestionDeleteTarget(activeQuestionDetail);
                     closeQuestionDetail();
                   }}
-                  className="p-2 hover:text-red-300 transition"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-white/10 hover:text-red-300 transition"
                   aria-label="Delete question"
                 >
                   <FiTrash2 size={18} />
@@ -1224,14 +1224,14 @@ useEffect(() => {
                 <button
                   type="button"
                   onClick={closeQuestionDetail}
-                  className="p-2 hover:text-white transition"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-white/10 hover:text-white transition"
                   aria-label="Close detail"
                 >
                   <FiX size={20} />
                 </button>
               </div>
             </div>
-            <div className="max-h-[75vh] overflow-y-auto px-6 py-6 space-y-6">
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 space-y-6">
               {detailLoading && (
                 <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
                   <div className="h-full w-1/3 animate-pulse rounded-full bg-[#EFB078]/70" />
@@ -1444,7 +1444,7 @@ useEffect(() => {
                             type="button"
                             onClick={() => handleRemoveOption(index)}
                             aria-label={`Remove option ${index + 1}`}
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-red-400/25 bg-red-500/5 text-red-300 transition hover:border-red-300/50 hover:text-red-200"
+                            className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-red-400/25 bg-red-500/5 text-red-300 transition hover:border-red-300/50 hover:text-red-200"
                           >
                             <FiTrash2 size={13} />
                           </button>
@@ -1592,7 +1592,7 @@ const QuizDatePicker = ({ value, onChange }) => {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-[180] mt-2 w-fit min-w-[260px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/95 via-[#1c0b18]/85 to-[#12060f]/95 shadow-[0_16px_48px_rgba(12,6,20,0.55)] backdrop-blur-xl">
+        <div className="absolute left-0 top-full z-[180] mt-2 w-[260px] max-w-[calc(100vw-3rem)] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/95 via-[#1c0b18]/85 to-[#12060f]/95 shadow-[0_16px_48px_rgba(12,6,20,0.55)] backdrop-blur-xl">
           <div className="space-y-3 p-4">
             <div className="flex items-center justify-between">
               <button
@@ -1745,8 +1745,8 @@ const QuizTimePicker = ({ value, onChange }) => {
       : 'bg-black/30 text-white/75 hover:bg-white/10 hover:text-white';
 
   return (
-    <div className="flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-1 text-sm text-white backdrop-blur-sm min-w-[220px] sm:min-w-[260px] flex-nowrap">
-      <div className="flex items-center gap-3 flex-1">
+    <div className="flex w-full min-w-0 items-center gap-2 sm:gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 sm:px-4 py-1 text-sm text-white backdrop-blur-sm flex-nowrap">
+      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
         <input
           type="text"
           inputMode="numeric"
@@ -1756,7 +1756,7 @@ const QuizTimePicker = ({ value, onChange }) => {
           placeholder="HH"
           onFocus={(event) => event.target.select()}
           onChange={handleHourInput}
-          className="w-14 rounded-xl border border-white/12 bg-black/40 px-3 py-1 text-center text-base font-semibold text-white placeholder:text-white/30 focus:border-[#EFB078]/60 focus:outline-none focus:ring-0"
+          className="w-11 sm:w-14 rounded-xl border border-white/12 bg-black/40 px-2 sm:px-3 py-1 text-center text-base font-semibold text-white placeholder:text-white/30 focus:border-[#EFB078]/60 focus:outline-none focus:ring-0"
         />
         <span className="text-white/60 text-base font-semibold">:</span>
         <input
@@ -1768,21 +1768,21 @@ const QuizTimePicker = ({ value, onChange }) => {
           placeholder="MM"
           onFocus={(event) => event.target.select()}
           onChange={handleMinuteInput}
-          className="w-14 rounded-xl border border-white/12 bg-black/40 px-3 py-1 text-center text-base font-semibold text-white placeholder:text-white/30 focus:border-[#EFB078]/60 focus:outline-none focus:ring-0"
+          className="w-11 sm:w-14 rounded-xl border border-white/12 bg-black/40 px-2 sm:px-3 py-1 text-center text-base font-semibold text-white placeholder:text-white/30 focus:border-[#EFB078]/60 focus:outline-none focus:ring-0"
         />
       </div>
-      <div className="flex items-center gap-2 flex-none">
+      <div className="flex items-center gap-1.5 sm:gap-2 flex-none">
         <button
           type="button"
           onClick={() => setPeriod('AM')}
-          className={`rounded-lg px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] transition-all ${buttonClasses(period === 'AM')}`}
+          className={`rounded-lg px-2 sm:px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] transition-all ${buttonClasses(period === 'AM')}`}
         >
           AM
         </button>
         <button
           type="button"
           onClick={() => setPeriod('PM')}
-          className={`rounded-lg px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] transition-all ${buttonClasses(period === 'PM')}`}
+          className={`rounded-lg px-2 sm:px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] transition-all ${buttonClasses(period === 'PM')}`}
         >
           PM
         </button>

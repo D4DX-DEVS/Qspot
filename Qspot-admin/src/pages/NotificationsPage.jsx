@@ -102,19 +102,19 @@ const NotificationsPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-black">
+    <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="notifications" onNavigate={handleNavigate} />
       
-      <div className="flex-1 flex flex-col ml-64">
+      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-6">
-          <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-2xl font-semibold text-white">Notifications Management</h2>
               <p className="text-sm text-gray-400">Manage announcements and app updates</p>
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#701845]/90 via-[#9E4B63]/80 to-[#EFB078]/85 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(112,24,69,0.3)] transition-all hover:from-[#5a1538] hover:to-[#d49a6a]"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#701845]/90 via-[#9E4B63]/80 to-[#EFB078]/85 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(112,24,69,0.3)] transition-all hover:from-[#5a1538] hover:to-[#d49a6a] w-full sm:w-auto"
             >
               <FiPlus size={14} />
               <span>Add Notification</span>
@@ -157,7 +157,7 @@ const NotificationsPage = () => {
                     <div className="flex gap-1.5">
                       <button
                         onClick={() => handleEditNotification(notification)}
-                        className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white/75 transition-all hover:border-[#EFB078]/40 hover:text-white"
+                        className="flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white/75 transition-all hover:border-[#EFB078]/40 hover:text-white"
                         title="Edit notification"
                         aria-label="Edit notification"
                       >
@@ -165,7 +165,7 @@ const NotificationsPage = () => {
                       </button>
                       <button
                         onClick={() => setDeleteConfirm(notification)}
-                        className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white/75 transition-all hover:border-red-400/60 hover:text-red-200"
+                        className="flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white/75 transition-all hover:border-red-400/60 hover:text-red-200"
                         title="Delete notification"
                         aria-label="Delete notification"
                       >
@@ -256,18 +256,18 @@ const CreateNotificationModal = ({ onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 z-[120] flex h-full w-full items-center justify-center overflow-y-auto bg-black/70 px-4 py-10 backdrop-blur-md">
-      <div className="relative w-full max-w-md overflow-visible rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/92 via-[#190d23]/85 to-[#10060f]/92 shadow-[0_24px_64px_-28px_rgba(12,6,20,0.9)]">
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/92 via-[#190d23]/85 to-[#10060f]/92 shadow-[0_24px_64px_-28px_rgba(12,6,20,0.9)]">
         <div
           className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_top_right,rgba(136,32,82,0.55),transparent_65%)]"
           aria-hidden="true"
         />
 
-        <div className="relative px-7 pt-8 pb-7">
-          <div className="absolute left-7 top-6 flex h-10 w-10 items-center justify-center rounded-2xl border border-white/12 bg-black/60 shadow-[0_12px_30px_rgba(136,32,82,0.4)]">
+        <div className="relative px-5 pt-7 pb-6 sm:px-7 sm:pt-8 sm:pb-7">
+          <div className="absolute left-5 top-5 flex h-10 w-10 items-center justify-center rounded-2xl border border-white/12 bg-black/60 shadow-[0_12px_30px_rgba(136,32,82,0.4)] sm:left-7 sm:top-6">
             <img src={brandIcon} alt="QSpot icon" className="h-6 w-6 object-contain" />
           </div>
 
-          <div className="flex flex-col gap-1.5 pl-16">
+          <div className="flex flex-col gap-1.5 pl-14 sm:pl-16">
             <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#f3c5a0]/70">
               Notification
             </p>
@@ -354,18 +354,18 @@ const EditNotificationModal = ({ notification, onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 z-[120] flex h-full w-full items-center justify-center overflow-y-auto bg-black/70 px-4 py-10 backdrop-blur-md">
-      <div className="relative w-full max-w-md overflow-visible rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/92 via-[#190d23]/85 to-[#10060f]/92 shadow-[0_24px_64px_-28px_rgba(12,6,20,0.9)]">
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/92 via-[#190d23]/85 to-[#10060f]/92 shadow-[0_24px_64px_-28px_rgba(12,6,20,0.9)]">
         <div
           className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_top_right,rgba(136,32,82,0.55),transparent_65%)]"
           aria-hidden="true"
         />
 
-        <div className="relative px-7 pt-8 pb-7">
-          <div className="absolute left-7 top-6 flex h-10 w-10 items-center justify-center rounded-2xl border border-white/12 bg-black/60 shadow-[0_12px_30px_rgba(136,32,82,0.4)]">
+        <div className="relative px-5 pt-7 pb-6 sm:px-7 sm:pt-8 sm:pb-7">
+          <div className="absolute left-5 top-5 flex h-10 w-10 items-center justify-center rounded-2xl border border-white/12 bg-black/60 shadow-[0_12px_30px_rgba(136,32,82,0.4)] sm:left-7 sm:top-6">
             <img src={brandIcon} alt="QSpot icon" className="h-6 w-6 object-contain" />
           </div>
 
-          <div className="flex flex-col gap-1.5 pl-16">
+          <div className="flex flex-col gap-1.5 pl-14 sm:pl-16">
             <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#f3c5a0]/70">
               Notification
             </p>
