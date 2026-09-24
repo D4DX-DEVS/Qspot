@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import brandIcon from '../../assets/Icon.png';
+import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 
 const ConfirmDialog = ({
   iconSrc,
@@ -20,14 +21,7 @@ const ConfirmDialog = ({
   const dialogIcon = iconSrc || brandIcon;
   const dialogIconAlt = iconAlt || 'QSpot icon';
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
+  useBodyScrollLock(true);
 
   return (
     <div

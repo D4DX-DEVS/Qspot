@@ -1,17 +1,13 @@
 const express = require('express');
 const Speaker = require('../models/speakers');
-const { authenticateToken } = require('../middlewares/auth');
+const Video = require('../models/videos');
+const Schedule = require('../models/schedule');
+const Question = require('../models/question');
+const { authenticateAdmin } = require('../middlewares/auth');
 const { upload, getCdnUrl, deleteFile } = require('../services/cdnStorageService');
 
 const router = express.Router();
 
-// Ensure upload middleware is properly initialized
-if (!upload || typeof upload.single !== 'function') {
-    console.error('Upload middleware not properly initialized');
-    process.exit(1);
-}
-
-// Create a wrapper for the upload middleware
 const uploadSingle = (req, res, next) => {
     return upload.single('image')(req, res, next);
 };
@@ -19,9 +15,7 @@ const uploadSingle = (req, res, next) => {
 // GET /api/speakers - Get all speakers (public)
 router.get('/', async (req, res) => {
     try {
-        const speakers = await Speaker.find()
-            .collation({ locale: 'en', numericOrdering: true })
-            .sort({ order: -1, createdAt: -1 });
+        const speakers = await Speaker.find().sort({ order: -1, createdAt: -1 });
         res.json(speakers);
     } catch (error) {
         console.error('Error fetching speakers:', error);
@@ -44,16 +38,14 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/speakers - Create new speaker with image upload (admin only)
-router.post('/', authenticateToken, uploadSingle, async (req, res) => {
+router.post('/', authenticateAdmin, uploadSingle, async (req, res) => {
     try {
-        const { name, designation, order } = req.body;
+        const { name, designation, order } = req.body || {};
 
-        // Check if required fields are provided
         if (!name) {
             return res.status(400).json({ message: 'Speaker name is required' });
         }
 
-        // Check if image file was uploaded
         if (!req.file) {
             return res.status(400).json({ message: 'Speaker image is required' });
         }
@@ -63,7 +55,7 @@ router.post('/', authenticateToken, uploadSingle, async (req, res) => {
             designation: designation || '',
             image: getCdnUrl(req.file.key),
             imageKey: req.file.key,
-            order: order !== undefined ? order : ''
+            order: order !== undefined && order !== '' ? Number(order) || 0 : 0
         });
 
         const savedSpeaker = await speaker.save();
@@ -78,25 +70,22 @@ router.post('/', authenticateToken, uploadSingle, async (req, res) => {
 });
 
 // PUT /api/speakers/:id - Update speaker with image upload (admin only)
-router.put('/:id', authenticateToken, uploadSingle, async (req, res) => {
+router.put('/:id', authenticateAdmin, uploadSingle, async (req, res) => {
     try {
-        const { name, designation, order } = req.body;
+        const { name, designation, order } = req.body || {};
         const oldSpeaker = await Speaker.findById(req.params.id);
 
         if (!oldSpeaker) {
             return res.status(404).json({ message: 'Speaker not found' });
         }
 
-        // Prepare update data
         const updateData = {
             name: name || oldSpeaker.name,
             designation: designation !== undefined ? designation : oldSpeaker.designation,
-            order: order !== undefined ? order : oldSpeaker.order
+            order: order !== undefined && order !== '' ? Number(order) || 0 : oldSpeaker.order
         };
 
-        // Check if new image file was uploaded
         if (req.file) {
-            // Delete old image from CDN if it exists
             if (oldSpeaker.imageKey) {
                 try {
                     await deleteFile(oldSpeaker.imageKey);
@@ -104,13 +93,10 @@ router.put('/:id', authenticateToken, uploadSingle, async (req, res) => {
                     console.warn('Could not delete old image from CDN:', error.message);
                 }
             }
-            
-            // Add new image data to update
             updateData.image = getCdnUrl(req.file.key);
             updateData.imageKey = req.file.key;
         }
 
-        // Update with new data (with or without new image)
         const speaker = await Speaker.findByIdAndUpdate(
             req.params.id,
             updateData,
@@ -128,7 +114,8 @@ router.put('/:id', authenticateToken, uploadSingle, async (req, res) => {
 });
 
 // DELETE /api/speakers/:id - Delete speaker and image from CDN (admin only)
-router.delete('/:id', authenticateToken, async (req, res) => {
+// 409 if the speaker is referenced by videos, schedules or questions.
+router.delete('/:id', authenticateAdmin, async (req, res) => {
     try {
         const speaker = await Speaker.findById(req.params.id);
 
@@ -136,7 +123,19 @@ router.delete('/:id', authenticateToken, async (req, res) => {
             return res.status(404).json({ message: 'Speaker not found' });
         }
 
-        // Delete image from CDN if it exists
+        const [videos, schedules, questions] = await Promise.all([
+            Video.countDocuments({ speaker: speaker._id }),
+            Schedule.countDocuments({ faculty: speaker._id }),
+            Question.countDocuments({ faculty: speaker._id })
+        ]);
+
+        if (videos > 0 || schedules > 0 || questions > 0) {
+            return res.status(409).json({
+                message: 'Cannot delete a speaker referenced by videos, schedules, or questions.',
+                counts: { videos, schedules, questions }
+            });
+        }
+
         if (speaker.imageKey) {
             try {
                 await deleteFile(speaker.imageKey);
@@ -145,12 +144,11 @@ router.delete('/:id', authenticateToken, async (req, res) => {
             }
         }
 
-        // Delete speaker from database
         await Speaker.findByIdAndDelete(req.params.id);
 
         res.json({
             message: 'Speaker deleted successfully',
-            speaker
+            id: speaker._id
         });
     } catch (error) {
         console.error('Error deleting speaker:', error);

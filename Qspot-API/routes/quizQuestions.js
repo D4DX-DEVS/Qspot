@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const QuizQuestion = require('../models/quizQuestions');
-const { authenticateToken } = require('../middlewares/auth');
+const { authenticateAdmin } = require('../middlewares/auth');
 
 const router = express.Router();
 
@@ -49,10 +49,8 @@ const buildPayload = (payload) => {
     return { data: normalized };
 };
 
-// GET /api/quiz-questions - List quiz questions, paginated. Returns only the
-// fields needed for a listing view (not options/correct_answer) — fetch
-// GET /api/quiz-questions/:id for full detail.
-router.get('/', authenticateToken, async (req, res) => {
+// GET /api/quiz-questions?quizId=&page&limit - admin only, full fields incl. correct_answer
+router.get('/', authenticateAdmin, async (req, res) => {
     try {
         const filter = {};
         if (req.query.quizId !== undefined) {
@@ -63,11 +61,10 @@ router.get('/', authenticateToken, async (req, res) => {
         }
 
         const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+        const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 20));
 
         const [items, total] = await Promise.all([
             QuizQuestion.find(filter)
-                .select('type question_en question_ml difficulty quizId createdAt')
                 .sort({ createdAt: -1 })
                 .skip((page - 1) * limit)
                 .limit(limit),
@@ -81,8 +78,8 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/quiz-questions/:id - Fetch a single quiz question
-router.get('/:id', authenticateToken, async (req, res) => {
+// GET /api/quiz-questions/:id - Fetch a single quiz question (admin only)
+router.get('/:id', authenticateAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -101,27 +98,27 @@ router.get('/:id', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/quiz-questions - Create a new quiz question
-router.post('/', authenticateToken, async (req, res) => {
+// POST /api/quiz-questions - Create a new quiz question (admin only)
+router.post('/', authenticateAdmin, async (req, res) => {
     try {
         const { data, error } = buildPayload(req.body || {});
         if (error) {
             return res.status(400).json({ message: error });
         }
+        if (!data.quizId) {
+            return res.status(400).json({ message: 'quizId is required' });
+        }
 
         const question = await QuizQuestion.create(data);
-        res.status(201).json({
-            message: 'Quiz question created successfully',
-            question
-        });
+        res.status(201).json({ message: 'Quiz question created successfully', question });
     } catch (error) {
         console.error('Error creating quiz question:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 });
 
-// PUT /api/quiz-questions/:id - Update an existing quiz question
-router.put('/:id', authenticateToken, async (req, res) => {
+// PUT /api/quiz-questions/:id - Update an existing quiz question (admin only)
+router.put('/:id', authenticateAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -143,18 +140,15 @@ router.put('/:id', authenticateToken, async (req, res) => {
             return res.status(404).json({ message: 'Quiz question not found' });
         }
 
-        res.json({
-            message: 'Quiz question updated successfully',
-            question: updated
-        });
+        res.json({ message: 'Quiz question updated successfully', question: updated });
     } catch (error) {
         console.error('Error updating quiz question:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 });
 
-// DELETE /api/quiz-questions/:id - Delete a quiz question
-router.delete('/:id', authenticateToken, async (req, res) => {
+// DELETE /api/quiz-questions/:id - Delete a quiz question (admin only)
+router.delete('/:id', authenticateAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -166,10 +160,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
             return res.status(404).json({ message: 'Quiz question not found' });
         }
 
-        res.json({
-            message: 'Quiz question deleted successfully',
-            questionId: id
-        });
+        res.json({ message: 'Quiz question deleted successfully', id });
     } catch (error) {
         console.error('Error deleting quiz question:', error);
         res.status(500).json({ message: 'Internal server error' });
@@ -177,4 +168,3 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 module.exports = router;
-

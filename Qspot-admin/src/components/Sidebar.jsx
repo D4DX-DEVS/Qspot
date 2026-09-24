@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   FaUsers,
   FaUserTie,
@@ -11,96 +11,71 @@ import {
   FaBook,
   FaClipboardList,
   FaEllipsisH,
-  FaTimes
+  FaTimes,
+  FaGraduationCap,
+  FaLayerGroup,
+  FaTasks,
+  FaChartLine
 } from 'react-icons/fa';
 import logo from '../assets/Logo 01.png';
 import ConfirmDialog from './dialogs/ConfirmDialog';
+import { clearToken } from '../api/client';
+
+// Grouped per the admin IA regroup: Content / Learners / Quizzes / App.
+// Each group renders as a labelled section on desktop; on mobile the first
+// group's primary items stay on the bottom bar and everything else moves
+// into the "More" sheet.
+const menuGroups = [
+  {
+    label: 'Content',
+    items: [
+      { id: 'curriculum', label: 'Curriculum', icon: FaLayerGroup, path: '/admin/curriculum' },
+      { id: 'courses', label: 'Courses', icon: FaGraduationCap, path: '/admin/courses' },
+      { id: 'subjects', label: 'Subjects', icon: FaBook, path: '/admin/subjects' },
+      { id: 'videos', label: 'Videos', icon: FaVideo, path: '/admin/videos' }
+    ]
+  },
+  {
+    label: 'Learners',
+    items: [
+      { id: 'assignments', label: 'Assignments', icon: FaTasks, path: '/admin/assignments' },
+      { id: 'analytics', label: 'Learning analytics', icon: FaChartLine, path: '/admin/analytics' },
+      { id: 'users', label: 'Users', icon: FaUsers, path: '/admin/dashboard' },
+      { id: 'speakers', label: 'Speakers', icon: FaUserTie, path: '/admin/speakers' },
+      { id: 'questions', label: 'Q&A', icon: FaQuestionCircle, path: '/admin/questions' },
+      { id: 'schedules', label: 'Schedules', icon: FaCalendarAlt, path: '/admin/schedules' }
+    ]
+  },
+  {
+    label: 'Quizzes',
+    items: [
+      { id: 'quizzes', label: 'Quizzes', icon: FaClipboardList, path: '/admin/quizzes' },
+      { id: 'quizAttempts', label: 'Attempts', icon: FaClipboardList, path: '/admin/quiz/attempts' }
+    ]
+  },
+  {
+    label: 'App',
+    items: [
+      { id: 'banner', label: 'Banner', icon: FaImage, path: '/admin/banner' },
+      { id: 'notifications', label: 'Notifications', icon: FaBell, path: '/admin/notifications' }
+    ]
+  }
+];
+
+const menuItems = menuGroups.flatMap((group) => group.items);
 
 const Sidebar = ({ currentPage, onNavigate }) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
-
-  const menuItems = [
-    {
-      id: 'users',
-      label: 'Users',
-      icon: FaUsers,
-      path: '/admin/dashboard'
-    },
-    {
-      id: 'speakers',
-      label: 'Speakers',
-      icon: FaUserTie,
-      path: '/admin/speakers'
-    },
-    {
-      id: 'subjects',
-      label: 'Subjects',
-      icon: FaBook,
-      path: '/admin/subjects'
-    },
-    {
-      id: 'questions',
-      label: 'Questions',
-      icon: FaQuestionCircle,
-      path: '/admin/questions'
-    },
-    {
-      id: 'quizzes',
-      label: 'Quizzes',
-      icon: FaClipboardList,
-      path: '/admin/quizzes'
-    },
-    {
-      id: 'quizAttempts',
-      label: 'Quiz Attempts',
-      icon: FaClipboardList,
-      path: '/admin/quiz/attempts'
-    },
-    {
-      id: 'schedules',
-      label: 'Schedules',
-      icon: FaCalendarAlt,
-      path: '/admin/schedules'
-    },
-    {
-      id: 'videos',
-      label: 'Videos',
-      icon: FaVideo,
-      path: '/admin/videos'
-    },
-    {
-      id: 'notifications',
-      label: 'Notifications',
-      icon: FaBell,
-      path: '/admin/notifications'
-    },
-    {
-      id: 'banner',
-      label: 'Banner',
-      icon: FaImage,
-      path: '/admin/banner'
-    }
-  ];
 
   // First 3 items stay on the mobile bottom bar; the rest live in the More sheet.
   const bottomNavItems = menuItems.slice(0, 3);
   const moreItems = menuItems.slice(3);
   const isMoreActive = moreItems.some((item) => item.id === currentPage);
 
-  const childLookup = useMemo(() => {
-    return menuItems.reduce((acc, item) => {
-      if (item.parent) {
-        acc[item.parent] = acc[item.parent] || [];
-        acc[item.parent].push(item.id);
-      }
-      return acc;
-    }, {});
-  }, [menuItems]);
-
   const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    window.location.href = '/admin/login';
+    clearToken();
+    onNavigate('/admin/login');
   };
 
   const handleNavigateClick = (path) => {
@@ -129,61 +104,50 @@ const Sidebar = ({ currentPage, onNavigate }) => {
 
           {/* Navigation Menu */}
           <nav className="relative flex-1 overflow-y-auto px-4 py-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <ul className="space-y-2">
-              {menuItems.map((item) => {
-                if (item.parent) {
-                  return (
-                    <li key={item.id} className="pl-8">
-                      <button
-                        onClick={() => handleNavigateClick(item.path)}
-                        className={`group flex w-full items-center gap-2 rounded-xl border border-white/5 px-3 py-2 text-left text-xs font-medium tracking-wide transition-all duration-200 ${
-                          currentPage === item.id
-                            ? 'bg-gradient-to-r from-[#701845]/45 to-[#EFB078]/30 text-white shadow-[0_12px_32px_rgba(112,24,69,0.25)]'
-                            : 'bg-white/5 text-slate-100/80 hover:border-[#701845]/45 hover:bg-gradient-to-r hover:from-[#701845]/20 hover:to-[#EFB078]/30 hover:text-white'
-                        }`}
-                      >
-                        <span className="flex h-6 w-6 items-center justify-center rounded-md border border-white/5 bg-white/5 text-xs">
-                          <item.icon />
-                        </span>
-                        <span className="flex-1">{item.label}</span>
-                      </button>
-                    </li>
-                  );
-                }
-                const childIds = childLookup[item.id] || [];
-                const isActive = currentPage === item.id || childIds.includes(currentPage);
-                return (
-                  <li key={item.id}>
-                    <button
-                      onClick={() => handleNavigateClick(item.path)}
-                      className={`group relative flex w-full items-center gap-2.5 rounded-xl border border-white/5 bg-white/5 px-3.5 py-2.5 text-left text-sm font-medium text-slate-100/80 transition-all duration-200 ${
-                        isActive
-                          ? 'text-white'
-                          : 'hover:-translate-y-[1px] hover:border-[#701845]/45 hover:bg-gradient-to-r hover:from-[#701845]/35 hover:via-[#9E4B63]/28 hover:to-[#EFB078]/30 hover:text-white hover:shadow-[0_14px_34px_rgba(112,24,69,0.28)]'
-                      }`}
-                    >
-                      <span
-                        className={`flex h-8 w-8 items-center justify-center rounded-lg border border-white/5 bg-white/5 text-base transition-all duration-200 ${
-                          isActive
-                            ? 'border-white/10 bg-white/15 text-white shadow-[0_6px_18px_rgba(239,176,120,0.32)]'
-                            : 'text-[#f3c5a0]/80 group-hover:border-[#EFB078]/45 group-hover:bg-gradient-to-r group-hover:from-[#701845]/40 group-hover:to-[#EFB078]/45 group-hover:text-white'
-                        }`}
-                      >
-                        <item.icon />
-                      </span>
-                      <span className="flex-1 tracking-wide">{item.label}</span>
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full transition-opacity duration-200 ${
-                          isActive
-                            ? 'bg-gradient-to-r from-[#701845] to-[#EFB078] opacity-100'
-                            : 'bg-[#EFB078]/70 opacity-0 group-hover:opacity-100'
-                        }`}
-                      />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="space-y-5">
+              {menuGroups.map((group) => (
+                <div key={group.label}>
+                  <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-white/35">
+                    {group.label}
+                  </p>
+                  <ul className="space-y-2">
+                    {group.items.map((item) => {
+                      const isActive = currentPage === item.id;
+                      return (
+                        <li key={item.id}>
+                          <button
+                            onClick={() => handleNavigateClick(item.path)}
+                            className={`group relative flex w-full items-center gap-2.5 rounded-xl border border-white/5 bg-white/5 px-3.5 py-2.5 text-left text-sm font-medium text-slate-100/80 transition-all duration-200 ${
+                              isActive
+                                ? 'text-white'
+                                : 'hover:-translate-y-[1px] hover:border-[#701845]/45 hover:bg-gradient-to-r hover:from-[#701845]/35 hover:via-[#9E4B63]/28 hover:to-[#EFB078]/30 hover:text-white hover:shadow-[0_14px_34px_rgba(112,24,69,0.28)]'
+                            }`}
+                          >
+                            <span
+                              className={`flex h-8 w-8 items-center justify-center rounded-lg border border-white/5 bg-white/5 text-base transition-all duration-200 ${
+                                isActive
+                                  ? 'border-white/10 bg-white/15 text-white shadow-[0_6px_18px_rgba(239,176,120,0.32)]'
+                                  : 'text-[#f3c5a0]/80 group-hover:border-[#EFB078]/45 group-hover:bg-gradient-to-r group-hover:from-[#701845]/40 group-hover:to-[#EFB078]/45 group-hover:text-white'
+                              }`}
+                            >
+                              <item.icon />
+                            </span>
+                            <span className="flex-1 tracking-wide">{item.label}</span>
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full transition-opacity duration-200 ${
+                                isActive
+                                  ? 'bg-gradient-to-r from-[#701845] to-[#EFB078] opacity-100'
+                                  : 'bg-[#EFB078]/70 opacity-0 group-hover:opacity-100'
+                              }`}
+                            />
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </div>
           </nav>
 
           {/* User Info & Logout */}

@@ -1,5 +1,8 @@
 const mongoose = require("mongoose");
 
+// A student's graded attempt at one quiz. Grading happens entirely on the
+// server (see routes/quizzes.js): the client only ever sends the questionId +
+// attemptedAnswer pairs, never a score.
 const quizAttemptSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -9,43 +12,33 @@ const quizAttemptSchema = new mongoose.Schema({
     quizId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "quizConfig",
-        default: null
+        required: true
     },
     language: {
         type: String,
         enum: ["Malayalam", "English"],
         default: "English",
     },
-    questions: [{
-        totalNumberOfQuestions: {
-            type: Number,
-            required: true
-        },
-        questionNumber: {
-            type: String,
-            required: true
-        },
-        question: {
-            type: String,
-            required: true
-        },
-        options: [{
-            type: String,
-            required: true
-        }],
-        correctAnswer: {
-            type: String,
-            required: true
-        }
-    }],
+    // The exact question ids served to this user for this attempt (from the
+    // quizSession), so the attempt can always be re-graded / audited.
+    questionIds: {
+        type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'QuizQuestion' }],
+        default: []
+    },
     answers: [{
+        _id: false,
+        questionId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'QuizQuestion',
+            required: true
+        },
         attemptedAnswer: {
-            type: String,
+            type: mongoose.Schema.Types.Mixed,
             default: null
         },
         isCorrect: {
-            type: String,
-            required: true
+            type: Boolean,
+            default: false
         },
         duration: {
             type: Number,
@@ -60,6 +53,10 @@ const quizAttemptSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    totalQuestions: {
+        type: Number,
+        default: 0
+    },
     percentage: {
         type: Number,
         default: 0,
@@ -68,6 +65,7 @@ const quizAttemptSchema = new mongoose.Schema({
     timestamps: true
 });
 
-quizAttemptSchema.index({ userId: 1, createdAt: -1 });
+quizAttemptSchema.index({ userId: 1, quizId: 1 }, { unique: true });
+quizAttemptSchema.index({ quizId: 1, score: -1, totalDuration: 1 });
 
 module.exports = mongoose.model("quiz", quizAttemptSchema);

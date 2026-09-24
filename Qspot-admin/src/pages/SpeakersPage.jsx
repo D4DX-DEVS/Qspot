@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { FiEdit2, FiTrash2, FiPlus, FiX, FiSearch } from 'react-icons/fi';
 import Sidebar from '../components/Sidebar';
 import ConfirmDialog from '../components/dialogs/ConfirmDialog';
+import ErrorState from '../components/ui/ErrorState';
+import Spinner from '../components/ui/Spinner';
+import usePageTitle from '../hooks/usePageTitle';
+import useBodyScrollLock from '../hooks/useBodyScrollLock';
+import apiClient from '../api/client';
+import { PLACEHOLDER_IMAGE } from '../constants/placeholder';
 import brandIcon from '../assets/Icon.png';
 
 const SpeakersPage = () => {
+  usePageTitle('Speakers');
+  const navigate = useNavigate();
   const [speakers, setSpeakers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -24,8 +32,8 @@ const SpeakersPage = () => {
   const fetchSpeakers = async () => {
     try {
       setLoading(true);
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      const response = await axios.get(`${baseURL}/speakers`);
+      setError('');
+      const response = await apiClient.get('/speakers');
       const data = Array.isArray(response.data) ? [...response.data] : [];
       data.sort((a, b) => {
         const aNum = Number(a?.order);
@@ -39,8 +47,7 @@ const SpeakersPage = () => {
       });
       setSpeakers(data);
     } catch (err) {
-      console.error('Error fetching speakers:', err);
-      setError('Failed to fetch speakers');
+      setError(err.message || 'Failed to fetch speakers');
     } finally {
       setLoading(false);
     }
@@ -48,101 +55,61 @@ const SpeakersPage = () => {
 
   const handleCreateSpeaker = async (formData) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      
       const formDataToSend = new FormData();
       formDataToSend.append('name', formData.name);
       formDataToSend.append('designation', formData.designation);
-      if (formData.order !== undefined && formData.order !== '') {
-        formDataToSend.append('order', String(formData.order));
-      }
+      formDataToSend.append('order', formData.order === '' ? '0' : String(formData.order));
       formDataToSend.append('image', formData.image);
-      
-      await axios.post(`${baseURL}/speakers`, formDataToSend, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
+      await apiClient.post('/speakers', formDataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
       setShowCreateModal(false);
       fetchSpeakers();
     } catch (err) {
-      console.error('Error creating speaker:', err);
-      alert('Failed to create speaker');
+      alert(err.message || 'Failed to create speaker');
     }
-  };
-
-  const handleEditSpeaker = (speaker) => {
-    setEditingSpeaker(speaker);
-    setShowEditModal(true);
   };
 
   const handleUpdateSpeaker = async (formData) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      
       const formDataToSend = new FormData();
       formDataToSend.append('name', formData.name);
       formDataToSend.append('designation', formData.designation);
-      if (formData.order !== undefined && formData.order !== '') {
-        formDataToSend.append('order', String(formData.order));
-      }
+      formDataToSend.append('order', formData.order === '' ? '0' : String(formData.order));
       if (formData.image) {
         formDataToSend.append('image', formData.image);
       }
-      
-      await axios.put(`${baseURL}/speakers/${editingSpeaker._id}`, formDataToSend, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
+      await apiClient.put(`/speakers/${editingSpeaker._id}`, formDataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
       setShowEditModal(false);
       setEditingSpeaker(null);
       fetchSpeakers();
     } catch (err) {
-      console.error('Error updating speaker:', err);
-      alert('Failed to update speaker');
+      alert(err.message || 'Failed to update speaker');
     }
   };
 
   const handleDeleteSpeaker = async (speakerId) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      
-      await axios.delete(`${baseURL}/speakers/${speakerId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
+      await apiClient.delete(`/speakers/${speakerId}`);
       setDeleteConfirm(null);
       fetchSpeakers();
     } catch (err) {
-      console.error('Error deleting speaker:', err);
-      alert('Failed to delete speaker');
+      // 409 (speaker has videos/schedules/questions) carries a counts message
+      // from the server (CONTRACT.md); apiClient already surfaces it here.
+      alert(err.message || 'Failed to delete speaker');
     }
-  };
-
-  const handleNavigate = (path) => {
-    window.location.href = path;
   };
 
   const handleCardClick = async (speakerId) => {
     try {
       setDetailLoading(true);
-      setSelectedSpeaker({ _id: speakerId }); // Show modal with loading state
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      const response = await axios.get(`${baseURL}/speakers/${speakerId}`);
+      setSelectedSpeaker({ _id: speakerId });
+      const response = await apiClient.get(`/speakers/${speakerId}`);
       setSelectedSpeaker(response.data);
     } catch (err) {
-      console.error('Error fetching speaker details:', err);
-      alert('Failed to load speaker details');
+      alert(err.message || 'Failed to load speaker details');
       setSelectedSpeaker(null);
     } finally {
       setDetailLoading(false);
@@ -162,7 +129,7 @@ const SpeakersPage = () => {
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-black">
-      <Sidebar currentPage="speakers" onNavigate={handleNavigate} />
+      <Sidebar currentPage="speakers" onNavigate={navigate} />
       
       <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-4 sm:p-6">
@@ -193,19 +160,9 @@ const SpeakersPage = () => {
           </div>
 
           {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-400"></div>
-            </div>
+            <Spinner />
           ) : error ? (
-            <div className="bg-red-900/20 border border-red-500/30 text-red-400 px-4 py-3 rounded-md">
-              {error}
-              <button 
-                onClick={fetchSpeakers}
-                className="ml-4 text-red-300 underline hover:text-red-200"
-              >
-                Retry
-              </button>
-            </div>
+            <ErrorState message={error} onRetry={fetchSpeakers} />
           ) : (
             <div className="grid grid-cols-3 gap-2.5 sm:gap-5 md:grid-cols-3 xl:grid-cols-4">
               {speakers.length === 0 ? (
@@ -234,7 +191,7 @@ const SpeakersPage = () => {
                         alt={speaker.name}
                         className="h-full w-full object-cover"
                         onError={(e) => {
-                          e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjMzc0MTUxIi8+CjxwYXRoIGQ9Ik0xMiA2VjE4TTYgMTJIMTgiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+';
+                          e.target.src = PLACEHOLDER_IMAGE;
                         }}
                       />
                       {speaker.order !== undefined && speaker.order !== '' && (
@@ -316,13 +273,7 @@ const SpeakersPage = () => {
 
 // Speaker Detail Modal Component
 const SpeakerDetailModal = ({ speaker, loading, onClose, onEdit, onDelete }) => {
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
+  useBodyScrollLock(true);
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
@@ -367,7 +318,7 @@ const SpeakerDetailModal = ({ speaker, loading, onClose, onEdit, onDelete }) => 
                     alt={speaker.name}
                     className="w-full h-auto object-cover"
                     onError={(e) => {
-                      e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjMzc0MTUxIi8+CjxwYXRoIGQ9Ik0xMiA2VjE4TTYgMTJIMTgiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+';
+                      e.target.src = PLACEHOLDER_IMAGE;
                     }}
                   />
                 </div>
@@ -447,13 +398,7 @@ const CreateSpeakerModal = ({ onClose, onSave }) => {
     }
   };
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
+  useBodyScrollLock(true);
 
   return (
     <div className="fixed inset-0 z-[120] flex h-full w-full items-center justify-center overflow-y-auto bg-black/70 px-4 py-10 backdrop-blur-md">
@@ -572,13 +517,7 @@ const EditSpeakerModal = ({ speaker, onClose, onSave }) => {
     }
   };
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
+  useBodyScrollLock(true);
 
   return (
     <div className="fixed inset-0 z-[120] flex h-full w-full items-center justify-center overflow-y-auto bg-black/70 px-4 py-10 backdrop-blur-md">

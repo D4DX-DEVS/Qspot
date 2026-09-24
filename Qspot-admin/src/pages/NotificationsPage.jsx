@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { FiEdit2, FiTrash2, FiPlus, FiCalendar } from 'react-icons/fi';
 import Sidebar from '../components/Sidebar';
 import ConfirmDialog from '../components/dialogs/ConfirmDialog';
+import ErrorState from '../components/ui/ErrorState';
+import Spinner from '../components/ui/Spinner';
+import usePageTitle from '../hooks/usePageTitle';
+import useBodyScrollLock from '../hooks/useBodyScrollLock';
+import apiClient from '../api/client';
 import brandIcon from '../assets/Icon.png';
 
 const NotificationsPage = () => {
+  usePageTitle('Notifications');
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -21,12 +28,11 @@ const NotificationsPage = () => {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      const response = await axios.get(`${baseURL}/notifications`);
+      setError('');
+      const response = await apiClient.get('/notifications');
       setNotifications(response.data || []);
     } catch (err) {
-      console.error('Error fetching notifications:', err);
-      setError('Failed to fetch notifications');
+      setError(err.message || 'Failed to fetch notifications');
     } finally {
       setLoading(false);
     }
@@ -34,21 +40,11 @@ const NotificationsPage = () => {
 
   const handleCreateNotification = async (formData) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      
-      await axios.post(`${baseURL}/notifications`, formData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
+      await apiClient.post('/notifications', formData);
       setShowCreateModal(false);
       fetchNotifications();
     } catch (err) {
-      console.error('Error creating notification:', err);
-      alert('Failed to create notification');
+      alert(err.message || 'Failed to create notification');
     }
   };
 
@@ -59,51 +55,28 @@ const NotificationsPage = () => {
 
   const handleUpdateNotification = async (formData) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      
-      await axios.put(`${baseURL}/notifications/${editingNotification._id}`, formData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
+      await apiClient.put(`/notifications/${editingNotification._id}`, formData);
       setShowEditModal(false);
       setEditingNotification(null);
       fetchNotifications();
     } catch (err) {
-      console.error('Error updating notification:', err);
-      alert('Failed to update notification');
+      alert(err.message || 'Failed to update notification');
     }
   };
 
   const handleDeleteNotification = async (notificationId) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      
-      await axios.delete(`${baseURL}/notifications/${notificationId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
+      await apiClient.delete(`/notifications/${notificationId}`);
       setDeleteConfirm(null);
       fetchNotifications();
     } catch (err) {
-      console.error('Error deleting notification:', err);
-      alert('Failed to delete notification');
+      alert(err.message || 'Failed to delete notification');
     }
-  };
-
-  const handleNavigate = (path) => {
-    window.location.href = path;
   };
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-black">
-      <Sidebar currentPage="notifications" onNavigate={handleNavigate} />
+      <Sidebar currentPage="notifications" onNavigate={navigate} />
       
       <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-6">
@@ -121,19 +94,9 @@ const NotificationsPage = () => {
             </button>
           </div>
           {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-400"></div>
-            </div>
+            <Spinner />
           ) : error ? (
-            <div className="bg-red-900/20 border border-red-500/30 text-red-400 px-4 py-3 rounded-md">
-              {error}
-              <button 
-                onClick={fetchNotifications}
-                className="ml-4 text-red-300 underline hover:text-red-200"
-              >
-                Retry
-              </button>
-            </div>
+            <ErrorState message={error} onRetry={fetchNotifications} />
           ) : notifications.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-400">No notifications found</p>
@@ -236,13 +199,7 @@ const CreateNotificationModal = ({ onClose, onSave }) => {
   });
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
+  useBodyScrollLock(true);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -334,13 +291,7 @@ const EditNotificationModal = ({ notification, onClose, onSave }) => {
   });
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
+  useBodyScrollLock(true);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

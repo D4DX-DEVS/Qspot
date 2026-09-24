@@ -1,14 +1,16 @@
 const express = require('express');
 const Schedule = require('../models/schedule');
 const Speaker = require('../models/speakers');
-const { authenticateToken } = require('../middlewares/auth');
+const { authenticateAdmin } = require('../middlewares/auth');
 
 const router = express.Router();
 
-// GET /api/schedules - Get all schedules (public)
+// GET /api/schedules?class= - Get all schedules, optionally filtered by class (public)
 router.get('/', async (req, res) => {
     try {
-        const schedules = await Schedule.find()
+        const filter = {};
+        if (req.query.class) filter.class = req.query.class;
+        const schedules = await Schedule.find(filter)
             .populate('faculty', 'name designation')
             .sort({ scheduleDate: 1, createdAt: -1 });
         res.json(schedules);
@@ -48,7 +50,7 @@ router.get('/faculty/:facultyId', async (req, res) => {
 });
 
 // POST /api/schedules - Create new schedule (admin only)
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateAdmin, async (req, res) => {
     try {
         const { class: className, scheduleDate, faculty, title } = req.body;
 
@@ -82,7 +84,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // PUT /api/schedules/:id - Update schedule (admin only)
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateAdmin, async (req, res) => {
     try {
         const { class: className, scheduleDate, faculty, title } = req.body;
         const old = await Schedule.findById(req.params.id);
@@ -116,13 +118,13 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // DELETE /api/schedules/:id - Delete schedule (admin only)
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateAdmin, async (req, res) => {
     try {
         const deleted = await Schedule.findByIdAndDelete(req.params.id);
         if (!deleted) {
             return res.status(404).json({ message: 'Schedule not found' });
         }
-        res.json({ message: 'Schedule deleted successfully', schedule: deleted });
+        res.json({ message: 'Schedule deleted successfully', id: deleted._id });
     } catch (error) {
         console.error('Error deleting schedule:', error);
         res.status(500).json({ message: 'Internal server error' });

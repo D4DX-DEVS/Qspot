@@ -1,9 +1,22 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import axios from 'axios';
-import { FiEdit2, FiTrash2, FiPlus, FiSearch, FiChevronLeft, FiChevronRight, FiPlay, FiCalendar, FiBookOpen, FiChevronDown } from 'react-icons/fi';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { FiEdit2, FiTrash2, FiPlus, FiSearch, FiPlay, FiCalendar, FiMessageSquare, FiEyeOff, FiBarChart2 } from 'react-icons/fi';
 import Sidebar from '../components/Sidebar';
 import ConfirmDialog from '../components/dialogs/ConfirmDialog';
+import ErrorState from '../components/ui/ErrorState';
+import Spinner from '../components/ui/Spinner';
+import EmptyState from '../components/ui/EmptyState';
+import Pagination from '../components/ui/Pagination';
+import DateTimePicker from '../components/ui/DateTimePicker';
+import Modal from '../components/ui/Modal';
+import { SubjectSelect, FacultySelect } from '../components/ui/EntitySelect';
+import usePageTitle from '../hooks/usePageTitle';
+import useBodyScrollLock from '../hooks/useBodyScrollLock';
+import apiClient from '../api/client';
+import { formatDuration } from '../utils/format';
 import brandIcon from '../assets/Icon.png';
+
+const VIDEO_FILE_ACCEPT = 'video/mp4,video/webm,video/quicktime,video/x-m4v,.mp4,.webm,.mov,.m4v';
 
 // Helper function to extract YouTube video ID
 const getYouTubeVideoId = (url) => {
@@ -39,29 +52,6 @@ const getYouTubeVideoId = (url) => {
   
   console.warn('Could not extract YouTube video ID from:', url);
   return null;
-};
-
-// Helper function to generate YouTube thumbnail URL with quality fallback
-const getYouTubeThumbnail = (url) => {
-  const videoId = getYouTubeVideoId(url);
-  if (!videoId) return null;
-  
-  // Try maxresdefault first (best quality), then fallback to hqdefault (always available)
-  return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-};
-
-// Helper function to get fallback thumbnail (hqdefault is always available)
-const getYouTubeThumbnailFallback = (url) => {
-  const videoId = getYouTubeVideoId(url);
-  if (!videoId) return null;
-  return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-};
-
-// Helper function to get sddefault thumbnail (medium quality)
-const getYouTubeThumbnailSD = (url) => {
-  const videoId = getYouTubeVideoId(url);
-  if (!videoId) return null;
-  return `https://img.youtube.com/vi/${videoId}/sddefault.jpg`;
 };
 
 // Helper function to check if URL is a YouTube link
@@ -101,7 +91,7 @@ const YouTubeThumbnail = ({ url, className, alt = "YouTube thumbnail", onOrienta
     }
   }, [url]);
 
-  const handleError = (e) => {
+  const handleError = () => {
     const videoId = getYouTubeVideoId(url);
     if (!videoId) {
       console.error('No video ID found for URL:', url);
@@ -253,318 +243,7 @@ const VideoThumbnailPreview = ({ video, className = '', onOrientationChange }) =
   );
 };
 
-const ensureDropdownStyle = () => {
-  if (typeof document === 'undefined') return;
-  const styleId = 'qspot-dropdown-style';
-  if (document.getElementById(styleId)) return;
-  const style = document.createElement('style');
-  style.id = styleId;
-  style.innerHTML = `
-    .qspot-no-scrollbar {
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-    }
-    .qspot-no-scrollbar::-webkit-scrollbar {
-      display: none;
-      width: 0;
-      height: 0;
-    }
-  `;
-  document.head.appendChild(style);
-};
-
-const SubjectSelect = ({
-  subjects,
-  value,
-  onChange,
-  placeholder = 'Select a subject',
-  includeAllOption = false,
-  allLabel = 'All Subjects'
-}) => {
-  useEffect(() => {
-    ensureDropdownStyle();
-  }, []);
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
-  }, []);
-
-  const selectedSubject = useMemo(
-    () => (value ? subjects.find((subject) => subject._id === value) : undefined),
-    [subjects, value],
-  );
-
-  const displayLabel = selectedSubject
-    ? selectedSubject.name
-    : includeAllOption && !value
-    ? allLabel
-    : placeholder;
-
-  const isActive = Boolean(selectedSubject) || (includeAllOption && !value);
-
-  return (
-    <div ref={containerRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between rounded-2xl border border-white/12 bg-gradient-to-br from-[#11060d]/70 via-[#1c0b18]/55 to-[#12060f]/70 px-3 py-2.5 text-left text-[13px] text-white shadow-[0_6px_18px_rgba(112,24,69,0.25)] transition-all duration-200 hover:border-[#EFB078]/40 focus:outline-none focus-visible:border-[#EFB078]/60"
-      >
-        <span className={isActive ? 'text-white' : 'text-white/55'}>{displayLabel}</span>
-        <FiChevronDown
-          size={14}
-          className={`ml-3 shrink-0 transition-transform ${
-            open ? 'rotate-180 text-[#EFB078]' : 'text-white/60'
-          }`}
-        />
-      </button>
-
-      {open && (
-        <div className="absolute left-0 z-[180] mt-2 w-full min-w-[220px] overflow-hidden rounded-2xl border border-white/12 bg-gradient-to-br from-[#11060d]/95 via-[#1c0b18]/85 to-[#12060f]/95 shadow-[0_24px_58px_-24px_rgba(112,24,69,0.55)] backdrop-blur-xl sm:w-[260px]">
-          <div className="max-h-60 overflow-y-auto pr-1 qspot-no-scrollbar">
-            {includeAllOption && (
-              <button
-                type="button"
-                onClick={() => {
-                  onChange('');
-                  setOpen(false);
-                }}
-                className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-[13px] transition-all duration-150 ${
-                  !value
-                    ? 'bg-gradient-to-r from-[#701845]/70 to-[#EFB078]/35 text-white shadow-[0_12px_28px_rgba(112,24,69,0.35)]'
-                    : 'text-white/80 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                <span>{allLabel}</span>
-              </button>
-            )}
-            {subjects.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-white/65">No subjects available</div>
-            ) : (
-              subjects.map((subject) => {
-                const isSelected = subject._id === value;
-                return (
-                  <button
-                    key={subject._id}
-                    type="button"
-                    onClick={() => {
-                      onChange(subject._id);
-                      setOpen(false);
-                    }}
-                    className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-[13px] transition-all duration-150 ${
-                      isSelected
-                        ? 'bg-gradient-to-r from-[#701845]/70 to-[#EFB078]/35 text-white shadow-[0_12px_28px_rgba(112,24,69,0.35)]'
-                        : 'text-white/85 hover:bg-white/10 hover:text-white'
-                    }`}
-                  >
-                    <span>{subject.name}</span>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-
-const padNumber = (num) => String(num).padStart(2, '0');
-
-const formatDateLabel = (value) => {
-  if (!value) return 'mm/dd/yyyy';
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return 'mm/dd/yyyy';
-  return date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-};
-
-const VideoDatePicker = ({ value, onChange }) => {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef(null);
-  const selectedDate = value ? new Date(`${value}T00:00:00`) : null;
-  const [viewDate, setViewDate] = useState(() => selectedDate || new Date());
-
-  useEffect(() => {
-    if (value) {
-      const next = new Date(`${value}T00:00:00`);
-      if (!Number.isNaN(next.getTime())) {
-        setViewDate(next);
-      }
-    }
-  }, [value]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
-        setOpen(false);
-      }
-    };
-    if (open) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('touchstart', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
-  }, [open]);
-
-  const daysInMonth = useMemo(
-    () => new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate(),
-    [viewDate],
-  );
-
-  const firstDayOfMonth = useMemo(
-    () => new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay(),
-    [viewDate],
-  );
-
-  const isSameDate = (dateA, dateB) => {
-    if (!dateA || !dateB) return false;
-    return (
-      dateA.getFullYear() === dateB.getFullYear() &&
-      dateA.getMonth() === dateB.getMonth() &&
-      dateA.getDate() === dateB.getDate()
-    );
-  };
-
-  const handleDaySelect = (day) => {
-    const picked = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
-    const formatted = `${picked.getFullYear()}-${padNumber(picked.getMonth() + 1)}-${padNumber(
-      picked.getDate(),
-    )}`;
-    onChange(formatted);
-    setOpen(false);
-  };
-
-  const goToMonth = (offset) => {
-    setViewDate((prev) => {
-      const next = new Date(prev);
-      next.setMonth(prev.getMonth() + offset);
-      return next;
-    });
-  };
-
-  return (
-    <div ref={containerRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between rounded-2xl border border-white/12 bg-gradient-to-br from-[#11060d]/70 via-[#1c0b18]/55 to-[#12060f]/70 px-3 py-2.5 text-left text-[13px] text-white shadow-[0_6px_18px_rgba(112,24,69,0.25)] transition-all duration-200 hover:border-[#EFB078]/40 focus:outline-none focus-visible:border-[#EFB078]/60"
-      >
-        <span className={value ? 'text-white' : 'text-white/55'}>{formatDateLabel(value)}</span>
-        <FiChevronDown
-          size={14}
-          className={`ml-3 shrink-0 transition-transform ${
-            open ? 'rotate-180 text-[#EFB078]' : 'text-white/60'
-          }`}
-        />
-      </button>
-
-      {open && (
-        <div className="absolute left-0 bottom-full z-[180] mb-2 w-full min-w-[200px] overflow-hidden rounded-2xl border border-white/12 bg-gradient-to-br from-[#11060d]/95 via-[#1c0b18]/85 to-[#12060f]/95 p-3.5 shadow-[0_20px_48px_-20px_rgba(112,24,69,0.5)] backdrop-blur-xl sm:w-[240px]">
-          <div className="mb-2.5 flex items-center justify-between text-white/80">
-            <button
-              type="button"
-              onClick={() => goToMonth(-1)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 transition hover:text-white"
-            >
-              <FiChevronLeft size={14} />
-            </button>
-            <span className="text-sm font-semibold">
-              {viewDate.toLocaleString(undefined, { month: 'long', year: 'numeric' })}
-            </span>
-            <button
-              type="button"
-              onClick={() => goToMonth(1)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 transition hover:text-white"
-            >
-              <FiChevronRight size={14} />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-7 gap-0.5 text-center text-[10px] text-white/55">
-            {weekDays.map((day) => (
-              <span key={day} className="py-1 font-semibold uppercase tracking-[0.12em]">
-                {day}
-              </span>
-            ))}
-          </div>
-          <div className="mt-1 grid grid-cols-7 gap-0.5 text-center text-[13px] text-white/80">
-            {Array.from({ length: firstDayOfMonth }).map((_, index) => (
-              <span key={`blank-${index}`} />
-            ))}
-            {Array.from({ length: daysInMonth }).map((_, index) => {
-              const day = index + 1;
-              const date = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
-              const isSelected = selectedDate && isSameDate(date, selectedDate);
-              const isToday = isSameDate(date, new Date());
-              return (
-                <button
-                  key={day}
-                  type="button"
-                  onClick={() => handleDaySelect(day)}
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-                    isSelected
-                      ? 'bg-gradient-to-r from-[#701845]/75 to-[#EFB078]/55 text-white shadow-[0_8px_22px_rgba(112,24,69,0.3)]'
-                      : 'text-white/80 hover:bg-white/10 hover:text-white'
-                  } ${isToday && !isSelected ? 'ring-1 ring-[#EFB078]/35' : ''}`}
-                >
-                  {day}
-                </button>
-              );
-            })}
-          </div>
-          <div className="mt-3 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => {
-                const today = new Date();
-                const formatted = `${today.getFullYear()}-${padNumber(today.getMonth() + 1)}-${padNumber(
-                  today.getDate(),
-                )}`;
-                onChange(formatted);
-                setOpen(false);
-              }}
-              className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#EFB078] transition hover:text-white"
-            >
-              Today
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onChange('');
-                setOpen(false);
-              }}
-              className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60 transition hover:text-white"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const VideoCard = ({ video, onEdit, onDelete }) => {
+const VideoCard = ({ video, onEdit, onDelete, onOpenContent, onOpenStats }) => {
   const [orientation, setOrientation] = useState('landscape');
   const isPortrait = orientation === 'portrait';
 
@@ -577,7 +256,7 @@ const VideoCard = ({ video, onEdit, onDelete }) => {
           isPortrait ? 'flex-col md:flex-row md:items-start' : 'flex-col'
         }`}
       >
-        <div className={isPortrait ? 'w-24 md:w-28 lg:w-32 flex-shrink-0' : 'w-full'}>
+        <div className={isPortrait ? 'w-24 md:w-28 lg:w-32 flex-shrink-0' : 'w-full relative'}>
           <div className="rounded-xl bg-black/30 p-1.5">
             <VideoThumbnailPreview
               video={video}
@@ -585,6 +264,11 @@ const VideoCard = ({ video, onEdit, onDelete }) => {
               className=""
             />
           </div>
+          {video.isPublished === false && (
+            <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-200">
+              <FiEyeOff size={10} /> Draft
+            </span>
+          )}
         </div>
 
         <div
@@ -598,11 +282,19 @@ const VideoCard = ({ video, onEdit, onDelete }) => {
                 isPortrait ? 'line-clamp-6' : 'line-clamp-3'
               }`}
             >
+              {video.order ? `#${video.order} · ` : ''}
               {video.title}
             </h3>
-            <span className="inline-flex min-h-[28px] items-center justify-start gap-2 rounded-full border border-[#EFB078]/30 bg-gradient-to-r from-[#701845]/30 to-[#EFB078]/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#EFB078] shadow-[0_2px_8px_rgba(239,176,120,0.15)]">
-              {video.subject?.name || 'Subject Pending'}
-            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex min-h-[28px] items-center justify-start gap-2 rounded-full border border-[#EFB078]/30 bg-gradient-to-r from-[#701845]/30 to-[#EFB078]/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#EFB078] shadow-[0_2px_8px_rgba(239,176,120,0.15)]">
+                {video.subject?.name || 'Subject Pending'}
+              </span>
+              {video.durationSeconds > 0 && (
+                <span className="inline-flex items-center rounded-full bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-white/60">
+                  {formatDuration(video.durationSeconds)}
+                </span>
+              )}
+            </div>
           </div>
           <div
             className={`mt-auto flex gap-2 ${
@@ -612,6 +304,28 @@ const VideoCard = ({ video, onEdit, onDelete }) => {
             }`}
           >
             <div className={`flex items-center gap-2 opacity-100 transition-all duration-200 md:opacity-0 md:group-hover:opacity-100 ${isPortrait ? 'md:ml-auto' : ''}`}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenContent();
+                }}
+                className="flex min-h-[36px] items-center gap-1 rounded-xl bg-white/10 px-2.5 py-1.5 text-[10px] font-semibold text-white transition-all hover:bg-white/20"
+                title="Questions, learn note & downloads"
+              >
+                <FiMessageSquare size={12} />
+                Content
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenStats();
+                }}
+                className="flex min-h-[36px] items-center gap-1 rounded-xl bg-white/10 px-2.5 py-1.5 text-[10px] font-semibold text-white transition-all hover:bg-white/20"
+                title="Views, completion & quiz stats"
+              >
+                <FiBarChart2 size={12} />
+                Stats
+              </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -643,26 +357,40 @@ const VideoCard = ({ video, onEdit, onDelete }) => {
 };
 
 const VideosPage = () => {
+  usePageTitle('Videos');
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [videos, setVideos] = useState([]);
   const [filteredVideos, setFilteredVideos] = useState([]);
-  const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingVideo, setEditingVideo] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  
+  const [statsVideo, setStatsVideo] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsError, setStatsError] = useState('');
+
   // Pagination and search states
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
-  const [subjectFilter, setSubjectFilter] = useState('');
+  // Cross-link from Subjects ("Videos" button) preselects this via ?subject=
+  const [subjectFilter, setSubjectFilter] = useState(searchParams.get('subject') || '');
   const itemsPerPage = 12;
 
   useEffect(() => {
     fetchVideos();
-    fetchSubjects();
   }, []);
+
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    if (subjectFilter) next.set('subject', subjectFilter);
+    else next.delete('subject');
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subjectFilter]);
 
   // Filter and sort videos based on search term, subject filter, and sort options
   useEffect(() => {
@@ -685,8 +413,14 @@ const VideosPage = () => {
       );
     }
 
-    // Default sorting (newest first)
+    // Default sorting: subject, then order, then newest first (CONTRACT.md).
     filtered.sort((a, b) => {
+      const subjectA = a.subject?.name || '';
+      const subjectB = b.subject?.name || '';
+      if (subjectA !== subjectB) return subjectA.localeCompare(subjectB);
+      const orderA = Number(a.order) || 0;
+      const orderB = Number(b.order) || 0;
+      if (orderA !== orderB) return orderA - orderB;
       const dateA = new Date(a.createdAt || 0);
       const dateB = new Date(b.createdAt || 0);
       return dateB - dateA;
@@ -699,51 +433,61 @@ const VideosPage = () => {
   const fetchVideos = async () => {
     try {
       setLoading(true);
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      const response = await axios.get(`${baseURL}/videos`);
-      setVideos(response.data || []);
+      setError('');
+      const response = await apiClient.get('/videos');
+      const loadedVideos = response.data || [];
+      setVideos(loadedVideos);
+      const target = loadedVideos.find((video) => video._id === searchParams.get('video'));
+      if (target && searchParams.get('view') === 'edit') handleEditVideo(target);
+      if (target && searchParams.get('view') === 'stats') handleOpenStats(target);
     } catch (err) {
-      console.error('Error fetching videos:', err);
-      setError('Failed to fetch videos');
+      setError(err.message || 'Failed to fetch videos');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchSubjects = async () => {
-    try {
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      const response = await axios.get(`${baseURL}/subjects`);
-      setSubjects(response.data || []);
-    } catch (err) {
-      console.error('Error fetching subjects:', err);
+  // Builds the multipart/JSON payload shared by create and update. A picked
+  // file uploads as multipart (with a progress callback); otherwise JSON
+  // with the pasted URL, per CONTRACT.md's admin video POST/PUT.
+  const buildVideoPayload = (formData) => {
+    const fields = {
+      title: formData.title,
+      description: formData.description,
+      subject: formData.subject,
+      speaker: formData.speaker || '',
+      releaseDate: formData.releaseDate || '',
+      order: Number(formData.order) || 0,
+      isPublished: formData.isPublished,
+      practiceEnabled: formData.practiceEnabled,
+      practiceTimerMode: formData.practiceTimerMode,
+      practiceOverallTimeLimit: formData.practiceOverallTimeLimit ? Number(formData.practiceOverallTimeLimit) : null,
+      practicePerQuestionTimeLimit: formData.practicePerQuestionTimeLimit ? Number(formData.practicePerQuestionTimeLimit) : null,
+      practiceStartDate: formData.practiceStartDate || '',
+      practiceEndDate: formData.practiceEndDate || '',
+    };
+    if (formData.durationSeconds) fields.durationSeconds = Number(formData.durationSeconds) || 0;
+
+    if (formData.videoFile) {
+      const body = new FormData();
+      body.append('video', formData.videoFile);
+      Object.entries(fields).forEach(([key, value]) => body.append(key, String(value)));
+      return { payload: body, headers: { 'Content-Type': 'multipart/form-data' } };
     }
+    return { payload: { ...fields, video: formData.videoUrl }, headers: {} };
   };
 
-  const handleCreateVideo = async (formData) => {
+  const handleCreateVideo = async (formData, onProgress) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      
-      // Always send as JSON with video URL
-      await axios.post(`${baseURL}/videos`, {
-        title: formData.title,
-        description: formData.description,
-        subject: formData.subject,
-        releaseDate: formData.releaseDate,
-        video: formData.videoUrl
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      const { payload, headers } = buildVideoPayload(formData);
+      await apiClient.post('/videos', payload, {
+        headers,
+        onUploadProgress: onProgress,
       });
-      
       setShowCreateModal(false);
       fetchVideos();
     } catch (err) {
-      console.error('Error creating video:', err);
-      alert('Failed to create video');
+      alert(err.message || 'Failed to create video');
     }
   };
 
@@ -752,57 +496,50 @@ const VideosPage = () => {
     setShowEditModal(true);
   };
 
-  const handleUpdateVideo = async (formData) => {
+  const handleOpenContent = (video) => {
+    navigate(`/admin/video-questions?videoId=${video._id}`);
+  };
+
+  // GET /api/admin/videos/:id/stats -> { videoId, views, completed,
+  // avgWatchedSeconds, quiz:{attempts, avgPercentage} } (CONTRACT.md).
+  const handleOpenStats = async (video) => {
+    setStatsVideo(video);
+    setStats(null);
+    setStatsError('');
+    setStatsLoading(true);
     try {
-      const token = localStorage.getItem('adminToken');
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      
-      // Always send as JSON with video URL
-      const updateData = {
-        title: formData.title,
-        description: formData.description,
-        subject: formData.subject,
-        releaseDate: formData.releaseDate,
-        video: formData.videoUrl
-      };
-      
-      await axios.put(`${baseURL}/videos/${editingVideo._id}`, updateData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      const response = await apiClient.get(`/admin/videos/${video._id}/stats`);
+      setStats(response.data);
+    } catch (err) {
+      setStatsError(err.message || 'Failed to load video stats');
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  const handleUpdateVideo = async (formData, onProgress) => {
+    try {
+      const { payload, headers } = buildVideoPayload(formData);
+      await apiClient.put(`/videos/${editingVideo._id}`, payload, {
+        headers,
+        onUploadProgress: onProgress,
       });
-      
       setShowEditModal(false);
       setEditingVideo(null);
       fetchVideos();
     } catch (err) {
-      console.error('Error updating video:', err);
-      alert('Failed to update video');
+      alert(err.message || 'Failed to update video');
     }
   };
 
   const handleDeleteVideo = async (videoId) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      
-      await axios.delete(`${baseURL}/videos/${videoId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
+      await apiClient.delete(`/videos/${videoId}`);
       setDeleteConfirm(null);
       fetchVideos();
     } catch (err) {
-      console.error('Error deleting video:', err);
-      alert('Failed to delete video');
+      alert(err.message || 'Failed to delete video');
     }
-  };
-
-  const handleNavigate = (path) => {
-    window.location.href = path;
   };
 
   // Pagination logic
@@ -810,10 +547,6 @@ const VideosPage = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentVideos = filteredVideos.slice(startIndex, endIndex);
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
 
   // Statistics
   const totalVideos = videos.length;
@@ -826,7 +559,7 @@ const VideosPage = () => {
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-black">
-      <Sidebar currentPage="videos" onNavigate={handleNavigate} />
+      <Sidebar currentPage="videos" onNavigate={navigate} />
       
       <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
@@ -882,12 +615,12 @@ const VideosPage = () => {
               <div className="flex flex-col sm:flex-row gap-2 sm:items-stretch">
                 <div className="sm:w-52">
                   <SubjectSelect
-                    subjects={subjects}
                     value={subjectFilter}
-                    onChange={(subjectId) => setSubjectFilter(subjectId)}
+                    onChange={setSubjectFilter}
                     includeAllOption
                     allLabel="All Subjects"
                     placeholder="Filter by subject"
+                    className="!py-2.5 text-[13px]"
                   />
                 </div>
                 <button
@@ -901,39 +634,29 @@ const VideosPage = () => {
             </div>
           </div>
           {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-400"></div>
-            </div>
+            <Spinner />
           ) : error ? (
-            <div className="bg-red-900/20 border border-red-500/30 text-red-400 px-4 py-3 rounded-md">
-              {error}
-              <button 
-                onClick={fetchVideos}
-                className="ml-4 text-red-300 underline hover:text-red-200"
-              >
-                Retry
-              </button>
-            </div>
+            <ErrorState message={error} onRetry={fetchVideos} />
           ) : (
             <div className="space-y-3">
               {filteredVideos.length === 0 ? (
-                <div className="text-center py-8">
-                  <FiPlay className="mx-auto text-gray-500 mb-3" size={36} />
-                  <p className="text-gray-400">
-                    {searchTerm || subjectFilter ? 'No videos found matching your search' : 'No videos found'}
-                  </p>
-                  {(searchTerm || subjectFilter) && (
-                    <button
-                      onClick={() => {
-                        setSearchTerm('');
-                        setSubjectFilter('');
-                      }}
-                      className="mt-2 text-indigo-400 hover:text-indigo-300 transition-colors text-sm"
-                    >
-                      Clear filters
-                    </button>
-                  )}
-                </div>
+                <EmptyState
+                  icon={FiPlay}
+                  title={searchTerm || subjectFilter ? 'No videos found matching your search' : 'No videos found'}
+                  action={
+                    (searchTerm || subjectFilter) && (
+                      <button
+                        onClick={() => {
+                          setSearchTerm('');
+                          setSubjectFilter('');
+                        }}
+                        className="text-indigo-400 hover:text-indigo-300 transition-colors text-sm"
+                      >
+                        Clear filters
+                      </button>
+                    )
+                  }
+                />
               ) : (
                 <>
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -943,66 +666,19 @@ const VideosPage = () => {
                         video={video}
                         onEdit={() => handleEditVideo(video)}
                         onDelete={() => setDeleteConfirm(video)}
+                        onOpenContent={() => handleOpenContent(video)}
+                        onOpenStats={() => handleOpenStats(video)}
                       />
                     ))}
                   </div>
 
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/60 via-[#1c0b18]/40 to-[#12060f]/60 backdrop-blur-xl p-4 mt-4">
-                      <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
-                        <div className="text-xs text-gray-400 text-center sm:text-left">
-                          Showing {startIndex + 1} to {Math.min(endIndex, filteredVideos.length)} of {filteredVideos.length} videos
-                        </div>
-                        <div className="flex max-w-full items-center gap-1 overflow-x-auto qspot-no-scrollbar">
-                          <button
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={currentPage === 1}
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60 transition-all hover:border-[#EFB078]/40 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            <FiChevronLeft size={14} />
-                          </button>
-
-                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                            // Show first page, last page, current page, and pages around current page
-                            if (
-                              page === 1 ||
-                              page === totalPages ||
-                              (page >= currentPage - 1 && page <= currentPage + 1)
-                            ) {
-                              return (
-                                <button
-                                  key={page}
-                                  onClick={() => handlePageChange(page)}
-                                  className={`shrink-0 px-2.5 py-1.5 min-w-[36px] min-h-[36px] rounded-xl text-xs font-semibold tracking-[0.16em] transition-all ${
-                                    currentPage === page
-                                      ? 'bg-gradient-to-r from-[#701845]/85 via-[#9E4B63]/75 to-[#EFB078]/70 text-white shadow-[0_8px_24px_rgba(112,24,69,0.35)]'
-                                      : 'border border-white/10 bg-white/5 text-white/70 hover:border-[#EFB078]/40 hover:text-white'
-                                  }`}
-                                >
-                                  {page}
-                                </button>
-                              );
-                            } else if (
-                              page === currentPage - 2 ||
-                              page === currentPage + 2
-                            ) {
-                              return <span key={page} className="text-gray-500 text-xs">...</span>;
-                            }
-                            return null;
-                          })}
-                          
-                          <button
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60 transition-all hover:border-[#EFB078]/40 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            <FiChevronRight size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  <Pagination
+                    page={currentPage}
+                    totalPages={totalPages}
+                    total={filteredVideos.length}
+                    onChange={setCurrentPage}
+                    label="videos"
+                  />
                 </>
               )}
             </div>
@@ -1012,24 +688,64 @@ const VideosPage = () => {
 
       {/* Create Video Modal */}
       {showCreateModal && (
-        <CreateVideoModal
-          subjects={subjects}
-          onClose={() => setShowCreateModal(false)}
-          onSave={handleCreateVideo}
-        />
+        <VideoFormModal title="Add New Video" submitLabel="Create Video" onClose={() => setShowCreateModal(false)} onSave={handleCreateVideo} />
       )}
 
       {/* Edit Video Modal */}
       {showEditModal && editingVideo && (
-        <EditVideoModal
+        <VideoFormModal
+          title="Edit Video"
+          submitLabel="Update Video"
           video={editingVideo}
-          subjects={subjects}
           onClose={() => {
             setShowEditModal(false);
             setEditingVideo(null);
           }}
           onSave={handleUpdateVideo}
         />
+      )}
+
+      {statsVideo && (
+        <Modal
+          title={statsVideo.title}
+          subtitle="Video Stats"
+          icon={brandIcon}
+          onClose={() => setStatsVideo(null)}
+          maxWidth="max-w-lg"
+        >
+          {statsLoading ? (
+            <Spinner />
+          ) : statsError ? (
+            <ErrorState message={statsError} onRetry={() => handleOpenStats(statsVideo)} />
+          ) : (
+            stats && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/45">Views</p>
+                  <p className="mt-1 text-2xl font-semibold text-white">{stats.views ?? 0}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/45">Completed</p>
+                  <p className="mt-1 text-2xl font-semibold text-white">{stats.completed ?? 0}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/45">Avg. Watched</p>
+                  <p className="mt-1 text-2xl font-semibold text-white">{formatDuration(stats.avgWatchedSeconds)}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/45">Quiz Attempts</p>
+                  <p className="mt-1 text-2xl font-semibold text-white">{stats.quiz?.attempts ?? 0}</p>
+                </div>
+                <div className="col-span-2 rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/45">Avg. Quiz Score</p>
+                  <p className="mt-1 text-2xl font-semibold text-[#EFB078]">
+                    {stats.quiz?.avgPercentage != null ? `${stats.quiz.avgPercentage}%` : 'NA'}
+                  </p>
+                </div>
+              </div>
+            )
+          )}
+        </Modal>
       )}
 
       {/* Delete Confirmation Modal */}
@@ -1048,55 +764,61 @@ const VideosPage = () => {
   );
 };
 
-// Helper function to format date for date input (YYYY-MM-DD)
-const formatDateForInput = (dateString) => {
-  if (!dateString) return '';
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return '';
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  } catch (error) {
-    return '';
-  }
-};
-
-// Create Video Modal Component
-const CreateVideoModal = ({ subjects, onClose, onSave }) => {
+// Shared create/edit form (`video` present => edit mode). Handles both a
+// pasted URL and a picked file (mp4/webm/mov/m4v) with an upload progress
+// bar, plus the new order/isPublished/durationSeconds fields.
+const VideoFormModal = ({ title, submitLabel, video, onClose, onSave }) => {
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    subject: '',
-    videoUrl: '',
-    releaseDate: ''
+    title: video?.title || '',
+    description: video?.description || '',
+    subject: video?.subject?._id || '',
+    speaker: video?.speaker?._id || '',
+    videoUrl: video?.video || '',
+    videoFile: null,
+    releaseDate: video?.releaseDate || '',
+    order: video?.order ?? 0,
+    isPublished: video?.isPublished !== false,
+    durationSeconds: video?.durationSeconds || '',
+    practiceEnabled: video?.practiceEnabled !== false,
+    practiceTimerMode: video?.practiceTimerMode || 'none',
+    practiceOverallTimeLimit: video?.practiceOverallTimeLimit || '',
+    practicePerQuestionTimeLimit: video?.practicePerQuestionTimeLimit || '',
+    practiceStartDate: video?.practiceStartDate || '',
+    practiceEndDate: video?.practiceEndDate || '',
   });
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  useBodyScrollLock(true);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.videoFile && !formData.videoUrl) {
+      alert('Provide a video URL or upload a video file.');
+      return;
+    }
     setLoading(true);
+    setUploadProgress(0);
     try {
-      await onSave(formData);
+      await onSave(formData, (progressEvent) => {
+        if (!progressEvent.total) return;
+        setUploadProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total));
+      });
     } finally {
       setLoading(false);
+      setUploadProgress(0);
     }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) setFormData((prev) => ({ ...prev, videoFile: file, videoUrl: '' }));
   };
 
   const inputClass =
     'mt-2 block w-full rounded-2xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-[13px] text-white placeholder-white/40 backdrop-blur-sm transition-all duration-200 focus:border-[#EFB078]/60 focus:outline-none focus:ring-0';
 
   return (
-    <div className="fixed inset-0 z-[120] flex h-full w-full items-center justify-center bg-black/70 px-3 py-10 backdrop-blur-md sm:px-4">
+    <div className="fixed inset-0 z-[120] flex h-full w-full items-center justify-center overflow-y-auto bg-black/70 px-3 py-10 backdrop-blur-md sm:px-4">
       <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/92 via-[#190d23]/85 to-[#10060f]/92 shadow-[0_20px_56px_-26px_rgba(12,6,20,0.85)]">
         <div
           className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_top_right,rgba(136,32,82,0.55),transparent_65%)]"
@@ -1109,20 +831,13 @@ const CreateVideoModal = ({ subjects, onClose, onSave }) => {
           </div>
 
           <div className="flex flex-col gap-1.5 pl-[4.3rem] sm:pl-16">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#f3c5a0]/70">
-              Video
-            </p>
-            <h3 className="text-xl font-semibold tracking-wide text-white">Add New Video</h3>
-            <p className="text-xs text-white/70">
-              Provide the details below to publish a new learning video.
-            </p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#f3c5a0]/70">Video</p>
+            <h3 className="text-xl font-semibold tracking-wide text-white">{title}</h3>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4.5">
             <div>
-              <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/65">
-                Title *
-              </label>
+              <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/65">Title *</label>
               <input
                 type="text"
                 value={formData.title}
@@ -1134,9 +849,7 @@ const CreateVideoModal = ({ subjects, onClose, onSave }) => {
             </div>
 
             <div>
-              <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/65">
-                Description
-              </label>
+              <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/65">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -1147,42 +860,137 @@ const CreateVideoModal = ({ subjects, onClose, onSave }) => {
 
             <div className="grid gap-4 sm:grid-cols-2 items-start">
               <div>
-                <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/65">
-                  Subject *
-                </label>
+                <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/65">Subject *</label>
                 <SubjectSelect
-                  subjects={subjects}
                   value={formData.subject}
                   onChange={(subjectId) => setFormData({ ...formData, subject: subjectId })}
-                  placeholder="Select a subject"
+                  className="mt-2"
+                  required
                 />
               </div>
               <div>
-                <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/65">
-                  Release Date
-                </label>
-                <VideoDatePicker
-                  value={formData.releaseDate}
-                  onChange={(nextDate) => setFormData({ ...formData, releaseDate: nextDate })}
+                <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/65">Episode Order</label>
+                <input
+                  type="number"
+                  value={formData.order}
+                  onChange={(e) => setFormData({ ...formData, order: e.target.value })}
+                  className={inputClass}
+                  min="0"
                 />
               </div>
             </div>
 
             <div>
+              <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/65">Release Date</label>
+              <DateTimePicker
+                valueISO={formData.releaseDate}
+                onChangeISO={(iso) => setFormData({ ...formData, releaseDate: iso })}
+                className="mt-2"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/65">Faculty</label>
+              <FacultySelect
+                value={formData.speaker}
+                onChange={(speakerId) => setFormData({ ...formData, speaker: speakerId })}
+                includeAllOption
+                allLabel="No faculty"
+                className="mt-2"
+              />
+            </div>
+
+            <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.03] p-4">
               <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/65">
-                Video URL *
+                Video URL or upload
               </label>
               <input
                 type="url"
                 value={formData.videoUrl}
-                onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value, videoFile: null })}
                 placeholder="https://example.com/video.mp4 or https://youtube.com/watch?v=..."
                 className={inputClass}
-                required
               />
-              <p className="mt-1.5 text-[10px] text-white/60">
-                Paste a direct video file link or a YouTube URL.
-              </p>
+              <div className="mt-2 flex items-center gap-2">
+                <div className="h-px flex-1 bg-white/10" />
+                <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">or</span>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+              <input
+                type="file"
+                accept={VIDEO_FILE_ACCEPT}
+                onChange={handleFileChange}
+                className="mt-2 block w-full text-[12px] text-white/70 file:mr-3 file:rounded-lg file:border-0 file:bg-gradient-to-r file:from-[#701845]/80 file:to-[#EFB078]/70 file:px-3 file:py-2 file:text-[11px] file:font-semibold file:uppercase file:tracking-wide file:text-white"
+              />
+              {formData.videoFile && (
+                <p className="mt-2 text-[11px] text-emerald-300">{formData.videoFile.name} will be uploaded when you save.</p>
+              )}
+              {loading && formData.videoFile && (
+                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-[#701845] to-[#EFB078] transition-all"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 items-center">
+              <div>
+                <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/65">Duration (seconds)</label>
+                <input
+                  type="number"
+                  value={formData.durationSeconds}
+                  onChange={(e) => setFormData({ ...formData, durationSeconds: e.target.value })}
+                  placeholder="Auto-detected on first watch if left blank"
+                  className={inputClass}
+                  min="0"
+                />
+              </div>
+              <label className="mt-6 flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/65">
+                <input
+                  type="checkbox"
+                  checked={formData.isPublished}
+                  onChange={(e) => setFormData({ ...formData, isPublished: e.target.checked })}
+                  className="h-4 w-4 accent-[#EFB078]"
+                />
+                Published
+              </label>
+            </div>
+
+            <div className="rounded-2xl border border-[#EFB078]/20 bg-[#EFB078]/5 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#f3c5a0]">Episode practice settings</p>
+              <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65 sm:col-span-2">
+                  Timer mode
+                  <select value={formData.practiceTimerMode} onChange={(e) => setFormData({ ...formData, practiceTimerMode: e.target.value })} className={inputClass}>
+                    <option value="none">No timer</option>
+                    <option value="overall">Overall timer</option>
+                    <option value="per-question">Timer per question</option>
+                    <option value="both">Overall + per question</option>
+                  </select>
+                </label>
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65">
+                  Overall seconds
+                  <input type="number" min="1" value={formData.practiceOverallTimeLimit} onChange={(e) => setFormData({ ...formData, practiceOverallTimeLimit: e.target.value })} className={inputClass} placeholder="Optional" />
+                </label>
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65">
+                  Per-question seconds
+                  <input type="number" min="1" value={formData.practicePerQuestionTimeLimit} onChange={(e) => setFormData({ ...formData, practicePerQuestionTimeLimit: e.target.value })} className={inputClass} placeholder="Optional" />
+                </label>
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65">
+                  Active from
+                  <DateTimePicker valueISO={formData.practiceStartDate} onChangeISO={(iso) => setFormData({ ...formData, practiceStartDate: iso })} className="mt-2" />
+                </label>
+                <label className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65">
+                  Active until
+                  <DateTimePicker valueISO={formData.practiceEndDate} onChangeISO={(iso) => setFormData({ ...formData, practiceEndDate: iso })} className="mt-2" />
+                </label>
+              </div>
+              <label className="mt-3 flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/65">
+                <input type="checkbox" checked={formData.practiceEnabled} onChange={(e) => setFormData({ ...formData, practiceEnabled: e.target.checked })} className="h-4 w-4 accent-[#EFB078]" />
+                Practice active
+              </label>
             </div>
 
             <div className="flex items-center justify-end gap-2.5 pt-3">
@@ -1198,152 +1006,7 @@ const CreateVideoModal = ({ subjects, onClose, onSave }) => {
                 disabled={loading}
                 className="rounded-lg bg-gradient-to-r from-[#701845]/90 via-[#9E4B63]/80 to-[#EFB078]/85 px-4.5 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_12px_26px_rgba(136,32,82,0.45)] transition-all duration-200 hover:scale-[1.01] disabled:opacity-50 disabled:shadow-none"
               >
-                {loading ? 'Creating...' : 'Create Video'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Edit Video Modal Component
-const EditVideoModal = ({ video, subjects, onClose, onSave }) => {
-  const [formData, setFormData] = useState({
-    title: video.title || '',
-    description: video.description || '',
-    subject: video.subject?._id || '',
-    videoUrl: video.video || '',
-    releaseDate: formatDateForInput(video.releaseDate) || ''
-  });
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
-
-  const inputClass =
-    'mt-2 block w-full rounded-2xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-[13px] text-white placeholder-white/40 backdrop-blur-sm transition-all duration-200 focus:border-[#EFB078]/60 focus:outline-none focus:ring-0';
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await onSave(formData);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-[120] flex h-full w-full items-center justify-center bg-black/70 px-3 py-10 backdrop-blur-md sm:px-4">
-      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/92 via-[#190d23]/85 to-[#10060f]/92 shadow-[0_20px_56px_-26px_rgba(12,6,20,0.85)]">
-        <div
-          className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_top_right,rgba(136,32,82,0.55),transparent_65%)]"
-          aria-hidden="true"
-        />
-
-        <div className="relative px-6 pt-7 pb-6 sm:px-7 sm:pt-8 sm:pb-7">
-          <div className="absolute left-6 top-5 flex h-10 w-10 items-center justify-center rounded-2xl border border-white/12 bg-black/60 shadow-[0_12px_30px_rgba(136,32,82,0.4)] sm:left-7">
-            <img src={brandIcon} alt="QSpot icon" className="h-6 w-6 object-contain" />
-          </div>
-
-          <div className="flex flex-col gap-1.5 pl-[4.3rem] sm:pl-16">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#f3c5a0]/70">
-              Video
-            </p>
-            <h3 className="text-xl font-semibold tracking-wide text-white">Edit Video</h3>
-            <p className="text-xs text-white/70">
-              Update the video information and confirm the shared link.
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4.5">
-            <div>
-              <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/65">
-                Title *
-              </label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Enter video title"
-                className={inputClass}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/65">
-                Description
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Describe the video content (optional)"
-                className={`${inputClass} min-h-[96px] resize-none`}
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 items-start">
-              <div>
-                <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/65">
-                  Subject *
-                </label>
-                <SubjectSelect
-                  subjects={subjects}
-                  value={formData.subject}
-                  onChange={(subjectId) => setFormData({ ...formData, subject: subjectId })}
-                  placeholder="Select a subject"
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/65">
-                  Release Date
-                </label>
-                <VideoDatePicker
-                  value={formData.releaseDate}
-                  onChange={(nextDate) => setFormData({ ...formData, releaseDate: nextDate })}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/65">
-                Video URL *
-              </label>
-              <input
-                type="url"
-                value={formData.videoUrl}
-                onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
-                placeholder="https://example.com/video.mp4 or https://youtube.com/watch?v=..."
-                className={inputClass}
-                required
-              />
-              <p className="mt-1.5 text-[10px] text-white/60">
-                Enter a direct link to a video file (MP4, WebM, etc.) or YouTube URL.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end gap-2.5 pt-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75 transition-all duration-200 hover:border-white/20 hover:bg-white/10 hover:text-white"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="rounded-lg bg-gradient-to-r from-[#701845]/90 via-[#9E4B63]/80 to-[#EFB078]/85 px-4.5 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_12px_26px_rgba(136,32,82,0.45)] transition-all duration-200 hover:scale-[1.01] disabled:opacity-50 disabled:shadow-none"
-              >
-                {loading ? 'Updating...' : 'Update Video'}
+                {loading ? (formData.videoFile ? `Uploading… ${uploadProgress}%` : 'Saving...') : submitLabel}
               </button>
             </div>
           </form>

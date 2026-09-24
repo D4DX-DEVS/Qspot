@@ -2,287 +2,180 @@ const express = require('express');
 const mongoose = require('mongoose');
 const Quiz = require('../models/quiz');
 const QuizConfig = require('../models/quizConfig');
-const { authenticateToken, authenticateUser } = require('../middlewares/auth');
-
-// The one pre-existing quiz configuration document has no real "title"
-// (currently stored as null). Every quiz created through the new multi-quiz
-// API is required to have a non-empty title, so matching "missing OR null"
-// deterministically finds only that original legacy document, regardless of
-// how many new quiz documents get added later.
-const LEGACY_CONFIG_FILTER = {
-    $or: [
-        { title: { $exists: false } },
-        { title: null }
-    ]
-};
+const QuizQuestion = require('../models/quizQuestions');
+const QuizSession = require('../models/quizSession');
+const { authenticateAdmin, authenticateUser } = require('../middlewares/auth');
+const { recordLearningEvent } = require('../services/learningEvents');
 
 const router = express.Router();
 
-// GET /api/quizzes/config - Get quiz configuration only (public)
-router.get('/config', async (req, res) => {
-    try {
-        const config = await QuizConfig.findOne(LEGACY_CONFIG_FILTER)
-            .select('startDate endDate numberOfQuestions questionsRandomization isEnable createdAt updatedAt')
-            .sort({ createdAt: -1 });
-        if (!config) {
-            return res.status(404).json({ message: 'No quiz configuration found' });
+const readOptions = (value) => {
+    if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
+    if (typeof value === 'string') {
+        try {
+            const parsed = JSON.parse(value);
+            if (Array.isArray(parsed)) return parsed.map((v) => String(v).trim()).filter(Boolean);
+        } catch (e) {
+            // fall through
         }
-        res.json(config);
-    } catch (error) {
-        console.error('Error fetching quiz config:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        return value.split(/\r?\n|,/).map((v) => v.trim()).filter(Boolean);
     }
-});
+    return [];
+};
 
-// POST /api/quizzes/config - Create or update quiz configuration only (admin only)
-router.post('/config', authenticateToken, async (req, res) => {
-    try {
-        const { startDate, endDate, numberOfQuestions, questionsRandomization, isEnable } = req.body;
+const correctIndex = (question, optionsEn) => {
+    const expected = String(question.correct_answer ?? '').trim().toLowerCase();
+    const found = optionsEn.findIndex((o) => o.toLowerCase() === expected);
+    if (found >= 0) return found;
+    const numeric = Number.parseInt(question.correct_answer, 10);
+    return Number.isInteger(numeric) && numeric >= 0 && numeric < optionsEn.length ? numeric : -1;
+};
 
-        if (!startDate || !endDate) {
-            return res.status(400).json({ message: 'startDate and endDate are required' });
-        }
-        if (new Date(startDate) >= new Date(endDate)) {
-            return res.status(400).json({ message: 'startDate must be before endDate' });
-        }
-        if (numberOfQuestions === undefined || numberOfQuestions === null || numberOfQuestions < 1) {
-            return res.status(400).json({ message: 'numberOfQuestions must be at least 1' });
-        }
-        if (questionsRandomization === undefined || questionsRandomization === null) {
-            return res.status(400).json({ message: 'questionsRandomization is required' });
-        }
-        if (isEnable === undefined || isEnable === null) {
-            return res.status(400).json({ message: 'isEnable is required' });
-        }
-
-        const existingConfig = await QuizConfig.findOne(LEGACY_CONFIG_FILTER);
-        const isUpdate = !!existingConfig;
-
-        const updateData = {
-            $set: {
-                startDate,
-                endDate,
-                numberOfQuestions,
-                questionsRandomization,
-                isEnable
-            }
+const buildResults = (attempt, questionMap) =>
+    attempt.answers.map((ans) => {
+        const q = questionMap.get(String(ans.questionId));
+        const optionsEn = readOptions(q?.options_en);
+        const optionsMl = readOptions(q?.options_ml);
+        return {
+            questionId: ans.questionId,
+            type: q?.type || 'Multiple Choice',
+            question_en: q?.question_en || '',
+            question_ml: q?.question_ml || '',
+            options_en: optionsEn,
+            options_ml: optionsMl,
+            attemptedAnswer: ans.attemptedAnswer,
+            correctAnswer: q ? correctIndex(q, optionsEn) : -1,
+            isCorrect: Boolean(ans.isCorrect)
         };
+    });
 
-        const config = await QuizConfig.findOneAndUpdate(
-            LEGACY_CONFIG_FILTER,
-            updateData,
-            {
-                new: true,
-                upsert: true,
-                runValidators: true,
-                setDefaultsOnInsert: true
-            }
-        );
-
-        const message = isUpdate
-            ? 'Quiz configuration updated successfully'
-            : 'Quiz configuration created successfully';
-
-        res.status(isUpdate ? 200 : 201).json({
-            message,
-            quiz: config
-        });
-    } catch (error) {
-        console.error('Error creating/updating quiz config:', error);
-        if (error.message.includes('required') || error.message.includes('Only one quiz configuration')) {
-            return res.status(400).json({ message: error.message });
-        }
-        res.status(500).json({ message: 'Internal server error' });
-    }
-});
-
-// PUT /api/quizzes/config - Update quiz configuration only (admin only)
-router.put('/config', authenticateToken, async (req, res) => {
-    try {
-        const { startDate, endDate, numberOfQuestions, questionsRandomization, isEnable } = req.body;
-
-        const existingConfig = await QuizConfig.findOne(LEGACY_CONFIG_FILTER);
-
-        if (!existingConfig) {
-            return res.status(404).json({ message: 'Quiz configuration not found. Use POST to create a new configuration.' });
-        }
-
-        const finalStart = startDate !== undefined ? new Date(startDate) : existingConfig.startDate;
-        const finalEnd = endDate !== undefined ? new Date(endDate) : existingConfig.endDate;
-        const finalNumberOfQuestions = numberOfQuestions !== undefined ? numberOfQuestions : existingConfig.numberOfQuestions;
-        const finalQuestionsRandomization = questionsRandomization !== undefined ? questionsRandomization : existingConfig.questionsRandomization;
-        const finalIsEnable = isEnable !== undefined ? isEnable : existingConfig.isEnable;
-
-        if (!finalStart || !finalEnd) {
-            return res.status(400).json({ message: 'startDate and endDate are required' });
-        }
-        if (finalStart >= finalEnd) {
-            return res.status(400).json({ message: 'startDate must be before endDate' });
-        }
-        if (finalNumberOfQuestions === undefined || finalNumberOfQuestions === null || finalNumberOfQuestions < 1) {
-            return res.status(400).json({ message: 'numberOfQuestions must be at least 1' });
-        }
-        if (finalQuestionsRandomization === undefined || finalQuestionsRandomization === null) {
-            return res.status(400).json({ message: 'questionsRandomization is required' });
-        }
-        if (finalIsEnable === undefined || finalIsEnable === null) {
-            return res.status(400).json({ message: 'isEnable is required' });
-        }
-
-        const updateData = {
-            $set: {}
-        };
-
-        if (startDate !== undefined) {
-            updateData.$set.startDate = startDate;
-        }
-        if (endDate !== undefined) {
-            updateData.$set.endDate = endDate;
-        }
-        if (questionsRandomization !== undefined) {
-            updateData.$set.questionsRandomization = questionsRandomization;
-        }
-        if (numberOfQuestions !== undefined) {
-            updateData.$set.numberOfQuestions = numberOfQuestions;
-        }
-        if (isEnable !== undefined) {
-            updateData.$set.isEnable = isEnable;
-        }
-
-        const updatedConfig = await QuizConfig.findByIdAndUpdate(
-            existingConfig._id,
-            updateData,
-            { new: true, runValidators: true }
-        );
-
-        res.json({
-            message: 'Quiz configuration updated successfully',
-            quiz: updatedConfig
-        });
-    } catch (error) {
-        console.error('Error updating quiz config:', error);
-        if (error.message.includes('required')) {
-            return res.status(400).json({ message: error.message });
-        }
-        res.status(500).json({ message: 'Internal server error' });
-    }
-});
-
-// DELETE /api/quizzes/config - Delete quiz configuration (admin only)
-router.delete('/config', authenticateToken, async (req, res) => {
-    try {
-        const existingConfig = await QuizConfig.findOne(LEGACY_CONFIG_FILTER);
-
-        if (!existingConfig) {
-            return res.status(404).json({ message: 'Quiz configuration not found' });
-        }
-
-        await QuizConfig.findByIdAndDelete(existingConfig._id);
-
-        res.json({
-            message: 'Quiz configuration deleted successfully',
-            quiz: existingConfig
-        });
-    } catch (error) {
-        console.error('Error deleting quiz config:', error);
-        res.status(500).json({ message: 'Internal server error' });
-    }
-});
-
-// POST /api/quizzes/attempt - User submits a quiz attempt (within time window)
+// POST /api/quizzes/attempt (user) - grades against the session's questionIds
 router.post('/attempt', authenticateUser, async (req, res) => {
     try {
-        const { language, questions, answers, score, percentage, totalDuration, quizId } = req.body;
+        const { quizId, language, answers, totalDuration } = req.body || {};
 
-        let config;
-        if (quizId) {
-            if (!mongoose.Types.ObjectId.isValid(quizId)) {
-                return res.status(400).json({ message: 'Invalid quizId' });
-            }
-            config = await QuizConfig.findById(quizId);
-            if (!config) {
-                return res.status(404).json({ message: 'Quiz not found' });
-            }
-        } else {
-            config = await QuizConfig.findOne(LEGACY_CONFIG_FILTER);
-            if (!config) {
-                return res.status(404).json({ message: 'No quiz configuration found' });
-            }
+        if (!quizId || !mongoose.Types.ObjectId.isValid(quizId)) {
+            return res.status(400).json({ message: 'Invalid quizId' });
         }
-
-        const now = new Date();
-        if (!config.isEnable) {
-            return res.status(400).json({ message: 'Quiz is currently disabled' });
-        }
-        if (!(now >= new Date(config.startDate) && now <= new Date(config.endDate))) {
-            return res.status(400).json({ message: 'Quiz is not live right now' });
-        }
-
-        if (!Array.isArray(questions) || questions.length === 0) {
-            return res.status(400).json({ message: 'questions must be a non-empty array' });
-        }
-        if (questions.length !== config.numberOfQuestions) {
-            return res.status(400).json({ message: `questions length (${questions.length}) must equal configured numberOfQuestions (${config.numberOfQuestions})` });
-        }
-        for (const q of questions) {
-            if (
-                q.totalNumberOfQuestions === undefined || q.totalNumberOfQuestions === null ||
-                !q.questionNumber || !q.question || !Array.isArray(q.options) || q.options.length === 0 ||
-                !q.correctAnswer
-            ) {
-                return res.status(400).json({ message: 'Each question requires totalNumberOfQuestions, questionNumber, question, options[], and correctAnswer' });
-            }
-            if (Number(q.totalNumberOfQuestions) !== Number(config.numberOfQuestions)) {
-                return res.status(400).json({ message: `totalNumberOfQuestions (${q.totalNumberOfQuestions}) must equal configured numberOfQuestions (${config.numberOfQuestions})` });
-            }
-        }
-
         if (!Array.isArray(answers) || answers.length === 0) {
             return res.status(400).json({ message: 'answers must be a non-empty array' });
         }
-        for (const a of answers) {
-            if (a.attemptedAnswer === undefined || a.isCorrect === undefined) {
-                return res.status(400).json({ message: 'Each answer requires attemptedAnswer and isCorrect' });
-            }
-            a.isCorrect = String(a.isCorrect);
-            if (a.duration === undefined || a.duration === null) a.duration = 0;
-            if (a.language) delete a.language;
+
+        const config = await QuizConfig.findById(quizId);
+        if (!config) {
+            return res.status(404).json({ message: 'Quiz not found' });
         }
 
-        if (language && !["Malayalam", "English"].includes(language)) {
-            return res.status(400).json({ message: 'language must be either "Malayalam" or "English"' });
+        const now = new Date();
+        if (!config.isEnable || !(now >= new Date(config.startDate) && now <= new Date(config.endDate))) {
+            return res.status(403).json({ message: 'Quiz is not live right now' });
         }
 
-        if (score === undefined || score === null) {
-            return res.status(400).json({ message: 'score (total) is required' });
-        }
-        if (percentage === undefined || percentage === null) {
-            return res.status(400).json({ message: 'percentage (total) is required' });
-        }
-        if (totalDuration === undefined || totalDuration === null) {
-            return res.status(400).json({ message: 'totalDuration is required' });
-        }
-
-        const existingAttempt = await Quiz.findOne({ userId: req.user.id, quizId: quizId || null });
+        const existingAttempt = await Quiz.findOne({ userId: req.user.id, quizId });
         if (existingAttempt) {
-            return res.status(400).json({ message: 'You have already submitted a quiz attempt' });
+            const questions = await QuizQuestion.find({ _id: { $in: existingAttempt.questionIds } });
+            const questionMap = new Map(questions.map((q) => [String(q._id), q]));
+            return res.status(409).json({
+                message: 'Already attempted',
+                attempt: {
+                    attemptId: existingAttempt._id,
+                    quizId: existingAttempt.quizId,
+                    title: config.title,
+                    language: existingAttempt.language,
+                    score: existingAttempt.score,
+                    totalQuestions: existingAttempt.totalQuestions,
+                    percentage: existingAttempt.percentage,
+                    totalDuration: existingAttempt.totalDuration,
+                    createdAt: existingAttempt.createdAt,
+                    results: buildResults(existingAttempt, questionMap)
+                }
+            });
         }
 
-        const attempt = await Quiz.create({
-            userId: req.user.id,
-            quizId: quizId || null,
-            language,
-            questions,
-            answers,
-            score,
-            percentage,
-            totalDuration
-        });
+        const session = await QuizSession.findOne({ userId: req.user.id, quizId });
+        if (!session || session.questionIds.length === 0) {
+            return res.status(400).json({ message: 'No active quiz session. Fetch the questions first.' });
+        }
+
+        const questions = await QuizQuestion.find({ _id: { $in: session.questionIds } });
+        const questionMap = new Map(questions.map((q) => [String(q._id), q]));
+
+        const gradedAnswers = [];
+        let score = 0;
+
+        for (const questionId of session.questionIds) {
+            const q = questionMap.get(String(questionId));
+            if (!q) continue;
+
+            const submitted = answers.find((a) => String(a.questionId) === String(questionId));
+            const optionsEn = readOptions(q.options_en);
+            const expectedIndex = correctIndex(q, optionsEn);
+
+            let attemptedIndex = null;
+            let isCorrect = false;
+            if (submitted && submitted.attemptedAnswer !== undefined && submitted.attemptedAnswer !== null) {
+                const raw = submitted.attemptedAnswer;
+                if (typeof raw === 'number' || /^-?\d+$/.test(String(raw))) {
+                    attemptedIndex = Number.parseInt(raw, 10);
+                } else {
+                    // Accept option text (either language) and resolve it to an index.
+                    const optionsMl = readOptions(q.options_ml);
+                    let idx = optionsEn.findIndex((o) => o.toLowerCase() === String(raw).trim().toLowerCase());
+                    if (idx < 0) idx = optionsMl.findIndex((o) => o.toLowerCase() === String(raw).trim().toLowerCase());
+                    attemptedIndex = idx >= 0 ? idx : null;
+                }
+                isCorrect = attemptedIndex !== null && attemptedIndex === expectedIndex;
+            }
+
+            if (isCorrect) score += 1;
+            gradedAnswers.push({
+                questionId,
+                attemptedAnswer: attemptedIndex,
+                isCorrect,
+                duration: Number(submitted?.duration) || 0
+            });
+        }
+
+        const totalQuestions = session.questionIds.length;
+        const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
+
+        let attempt;
+        try {
+            attempt = await Quiz.create({
+                userId: req.user.id,
+                quizId,
+                language: language === 'Malayalam' ? 'Malayalam' : 'English',
+                questionIds: session.questionIds,
+                answers: gradedAnswers,
+                score,
+                totalQuestions,
+                percentage,
+                totalDuration: Number(totalDuration) || 0
+            });
+        } catch (error) {
+            if (error && error.code === 11000) {
+                return res.status(409).json({ message: 'Already attempted' });
+            }
+            throw error;
+        }
+
+        await QuizSession.deleteOne({ userId: req.user.id, quizId });
+        await recordLearningEvent({ userId: req.user.id, type: 'quiz_completed', sourceType: 'quiz', sourceId: quizId, occurredAt: attempt.createdAt });
 
         return res.status(201).json({
             message: 'Quiz attempt submitted',
-            attemptId: attempt._id,
-            attempt
+            attempt: {
+                attemptId: attempt._id,
+                quizId: attempt.quizId,
+                title: config.title,
+                language: attempt.language,
+                score: attempt.score,
+                totalQuestions: attempt.totalQuestions,
+                percentage: attempt.percentage,
+                totalDuration: attempt.totalDuration,
+                createdAt: attempt.createdAt,
+                results: buildResults(attempt, questionMap)
+            }
         });
     } catch (error) {
         console.error('Error submitting quiz attempt:', error);
@@ -290,60 +183,56 @@ router.post('/attempt', authenticateUser, async (req, res) => {
     }
 });
 
-// DELETE /api/quizzes/attempt/:attemptId - Admin deletes a specific quiz attempt by ID
-router.delete('/attempt/:attemptId', authenticateToken, async (req, res) => {
+// DELETE /api/quizzes/attempt/:attemptId - Admin deletes a specific quiz attempt
+router.delete('/attempt/:attemptId', authenticateAdmin, async (req, res) => {
     try {
         const { attemptId } = req.params;
 
-        const attempt = await Quiz.findById(attemptId);
+        const attempt = await Quiz.findByIdAndDelete(attemptId);
         if (!attempt) {
             return res.status(404).json({ message: 'Quiz attempt not found' });
         }
 
-        await Quiz.findByIdAndDelete(attemptId);
-
-        return res.json({
-            message: 'Quiz attempt deleted successfully',
-            deletedAttemptId: attemptId
-        });
+        return res.json({ message: 'Quiz attempt deleted successfully', id: attemptId });
     } catch (error) {
         console.error('Error deleting quiz attempt:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 });
 
-
-// GET /api/quizzes/attempt/:attemptId - Admin: Get full details of a specific quiz attempt
-router.get('/attempt/:attemptId', authenticateToken, async (req, res) => {
+// GET /api/quizzes/attempt/:attemptId - Admin: full details of a specific quiz attempt
+router.get('/attempt/:attemptId', authenticateAdmin, async (req, res) => {
     try {
         const { attemptId } = req.params;
 
         const attempt = await Quiz.findById(attemptId)
-            .populate({
-                path: 'userId',
-                select: 'name class email'
-            });
+            .populate({ path: 'userId', select: 'name class email' })
+            .populate({ path: 'quizId', select: 'title' });
 
         if (!attempt) {
             return res.status(404).json({ message: 'Quiz attempt not found' });
         }
 
+        const questions = await QuizQuestion.find({ _id: { $in: attempt.questionIds } });
+        const questionMap = new Map(questions.map((q) => [String(q._id), q]));
+
         return res.json({
             attemptId: attempt._id,
-            userId: attempt.userId?._id || attempt.userId,
+            quizId: attempt.quizId?._id || attempt.quizId,
+            title: attempt.quizId?.title || 'Quiz',
             user: {
+                id: attempt.userId?._id || attempt.userId,
                 name: attempt.userId?.name || 'Unknown',
                 class: attempt.userId?.class || null,
                 email: attempt.userId?.email || null
             },
             language: attempt.language || 'English',
-            questions: attempt.questions || [],
-            answers: attempt.answers || [],
             score: Number(attempt.score) || 0,
+            totalQuestions: Number(attempt.totalQuestions) || 0,
             percentage: Number(attempt.percentage) || 0,
             totalDuration: Number(attempt.totalDuration) || 0,
             createdAt: attempt.createdAt,
-            updatedAt: attempt.updatedAt
+            results: buildResults(attempt, questionMap)
         });
     } catch (error) {
         console.error('Error fetching quiz attempt details:', error);
@@ -351,77 +240,4 @@ router.get('/attempt/:attemptId', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/quizzes/stats - Admin: result statistics summary
-router.get('/stats', authenticateToken, async (req, res) => {
-    try {
-        const config = await QuizConfig.findOne(LEGACY_CONFIG_FILTER)
-            .sort({ createdAt: -1 });
-
-        const { minScore, maxScore, from, to } = req.query;
-        const filter = {};
-        if (minScore !== undefined || maxScore !== undefined) {
-            filter.score = {};
-            if (minScore !== undefined) filter.score.$gte = Number(minScore);
-            if (maxScore !== undefined) filter.score.$lte = Number(maxScore);
-        }
-        if (from !== undefined || to !== undefined) {
-            filter.createdAt = {};
-            if (from !== undefined) filter.createdAt.$gte = new Date(from);
-            if (to !== undefined) filter.createdAt.$lte = new Date(to);
-        }
-
-        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
-
-        // Ranking: higher score wins; when scores tie, less time taken wins.
-        const [attempts, total] = await Promise.all([
-            Quiz.find(filter)
-                .populate({ path: 'userId', select: 'name' })
-                .sort({ score: -1, totalDuration: 1 })
-                .skip((page - 1) * limit)
-                .limit(limit),
-            Quiz.countDocuments(filter)
-        ]);
-
-        const attendees = attempts.map((attempt, index) => {
-            const totalDuration = Number(attempt.totalDuration) || 0;
-            const userId = attempt.userId?._id || attempt.userId;
-            const userName = attempt.userId?.name || (typeof attempt.userId === 'object' && attempt.userId?.name) || 'Unknown';
-
-            return {
-                rank: (page - 1) * limit + index + 1,
-                attemptId: attempt._id,
-                userId: userId,
-                name: userName,
-                score: Number(attempt.score) || 0,
-                percentage: Number(attempt.percentage) || 0,
-                duration: totalDuration
-            };
-        });
-
-        const response = {
-            attendees,
-            total,
-            page,
-            limit
-        };
-
-        if (config) {
-            response.startDate = config.startDate;
-            response.endDate = config.endDate;
-            response.numberOfQuestions = config.numberOfQuestions;
-            response.questionsRandomization = config.questionsRandomization;
-            response.isEnable = config.isEnable;
-        }
-
-        return res.json(response);
-    } catch (error) {
-        console.error('Error fetching quiz stats:', error);
-        res.status(500).json({ message: 'Internal server error' });
-    }
-});
-
 module.exports = router;
-
-
-

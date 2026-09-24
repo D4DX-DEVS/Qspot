@@ -22,4 +22,6 @@ const scheduleSchema = new mongoose.Schema({
     timestamps: true
 });
 
+scheduleSchema.index({ faculty: 1 });
+
 module.exports = mongoose.model('schedule', scheduleSchema);
