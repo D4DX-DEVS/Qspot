@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../services/course_service.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
 
 /// "About this course" popup: close on the left, centred title, then the course
 /// story and what the student will learn.
@@ -57,12 +58,11 @@ class AboutCourseSheet extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const Text(
+                  Text(
                     'About this course',
-                    style: TextStyle(
+                    style: AppFonts.bold(
                       color: AppTheme.textPrimary,
                       fontSize: 17,
-                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
@@ -87,18 +87,17 @@ class AboutCourseSheet extends StatelessWidget {
                   if (course.image.isNotEmpty) const SizedBox(height: 18),
                   Text(
                     course.title,
-                    style: const TextStyle(
+                    style: AppFonts.bold(
                       color: AppTheme.textPrimary,
                       fontSize: 22,
                       height: 1.25,
-                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   if (course.subtitle.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(
                       course.subtitle,
-                      style: const TextStyle(
+                      style: AppFonts.regular(
                         color: AppTheme.textMuted,
                         fontSize: 14,
                         height: 1.4,
@@ -109,7 +108,7 @@ class AboutCourseSheet extends StatelessWidget {
                     const SizedBox(height: 20),
                     Text(
                       course.description,
-                      style: const TextStyle(
+                      style: AppFonts.regular(
                         color: AppTheme.textPrimary,
                         fontSize: 15,
                         height: 1.6,
@@ -118,12 +117,11 @@ class AboutCourseSheet extends StatelessWidget {
                   ],
                   if (course.learnPoints.isNotEmpty) ...[
                     const SizedBox(height: 26),
-                    const Text(
+                    Text(
                       'What you will learn in this course:',
-                      style: TextStyle(
+                      style: AppFonts.bold(
                         color: AppTheme.textPrimary,
                         fontSize: 16,
-                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -145,7 +143,7 @@ class AboutCourseSheet extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 point,
-                                style: const TextStyle(
+                                style: AppFonts.regular(
                                   color: AppTheme.textPrimary,
                                   fontSize: 15,
                                   height: 1.55,

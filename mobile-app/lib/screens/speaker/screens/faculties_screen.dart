@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import '../../video/model/video_model.dart';
 import '../../video/provider/video_provider.dart';
 import '../../video/screens/video_reels_screen.dart';
@@ -33,29 +35,21 @@ class _FacultiesScreenState extends State<FacultiesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        backgroundColor: AppTheme.background,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.textPrimary),
-        title: _isSearching
+      appBar: CommonAppBar(
+        title: 'Faculties',
+        titleWidget: _isSearching
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                style: const TextStyle(color: AppTheme.textPrimary),
-                decoration: const InputDecoration(
+                style: AppFonts.regular(color: AppTheme.textPrimary),
+                decoration: InputDecoration(
                   hintText: 'Search faculties…',
-                  hintStyle: TextStyle(color: AppTheme.textMuted),
+                  hintStyle: AppFonts.regular(color: AppTheme.textMuted),
                   border: InputBorder.none,
                 ),
                 onChanged: (value) => setState(() => _query = value.trim()),
               )
-            : const Text(
-                'Faculties',
-                style: TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+            : null,
         actions: [
           IconButton(
             tooltip: _isSearching ? 'Close search' : 'Search faculties',
@@ -159,18 +153,14 @@ class _FacultiesScreenState extends State<FacultiesScreen> {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-              ),
+              style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 17),
             ),
             if (subtitle != null) ...[
               const SizedBox(height: 8),
               Text(
                 subtitle,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: AppFonts.regular(
                   color: AppTheme.textMuted,
                   fontSize: 13.5,
                   height: 1.4,
@@ -216,11 +206,10 @@ class _FacultyProfile extends StatelessWidget {
                 if (speaker.designation.isNotEmpty)
                   Text(
                     speaker.designation,
-                    style: const TextStyle(
+                    style: AppFonts.medium(
                       color: AppTheme.textPrimary,
                       fontSize: 13.5,
                       height: 1.45,
-                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 const SizedBox(height: 16),
@@ -269,21 +258,19 @@ class _FacultyProfile extends StatelessWidget {
                   speaker.name,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: AppFonts.bold(
                     color: Colors.white,
                     fontSize: 22,
                     height: 1.2,
-                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 if (episodes.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Text(
                     '${episodes.length} episode${episodes.length == 1 ? '' : 's'}',
-                    style: const TextStyle(
+                    style: AppFonts.semiBold(
                       color: Colors.white70,
                       fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
@@ -309,32 +296,27 @@ class _FacultyProfile extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         initials.isEmpty ? '?' : initials,
-        style: const TextStyle(
-          color: AppTheme.primary,
-          fontSize: 44,
-          fontWeight: FontWeight.w700,
-        ),
+        style: AppFonts.bold(color: AppTheme.primary, fontSize: 44),
       ),
     );
   }
 
   Widget _episodeSummary(BuildContext context) {
     if (episodes.isEmpty) {
-      return const Text(
+      return Text(
         'No episodes published yet.',
-        style: TextStyle(color: AppTheme.textMuted, fontSize: 13.5),
+        style: AppFonts.regular(color: AppTheme.textMuted, fontSize: 13.5),
       );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'EPISODES',
-          style: TextStyle(
+          style: AppFonts.bold(
             color: AppTheme.textMuted,
             fontSize: 11,
-            fontWeight: FontWeight.w700,
             letterSpacing: 0.8,
           ),
         ),
@@ -366,7 +348,7 @@ class _FacultyProfile extends StatelessWidget {
                             episode.displayTitle,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: AppFonts.regular(
                               color: AppTheme.textPrimary,
                               fontSize: 13.5,
                               height: 1.35,
@@ -390,10 +372,7 @@ class _FacultyProfile extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
               ),
-              textStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
+              textStyle: AppFonts.bold(fontSize: 14),
             ),
             onPressed: () => VideoReelsScreen.open(context, episodes),
             child: Text(

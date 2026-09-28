@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import '../model/quiz_model.dart';
 import 'quiz_review_screen.dart';
 
@@ -63,18 +65,8 @@ class QuizResultsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: const Text(
-          'Quiz Results',
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.textPrimary),
-        automaticallyImplyLeading: onDone == null,
+      appBar: CommonAppBar(
+        title: 'Quiz Results',
         leading: onDone != null
             ? IconButton(icon: const Icon(Icons.close), onPressed: onDone)
             : null,
@@ -182,9 +174,9 @@ class QuizResultsScreen extends StatelessWidget {
                     );
                   },
                   icon: const Icon(Icons.visibility),
-                  label: const Text(
+                  label: Text(
                     'Review Answers',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: AppFonts.bold(fontSize: 16),
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppTheme.primary,

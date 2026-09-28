@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 
 import '../../../services/api_client.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import '../provider/quiz_provider.dart';
 import 'quiz_results_screen.dart';
 
@@ -90,21 +92,12 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
 
         return Scaffold(
           backgroundColor: AppTheme.backgroundColor,
-          appBar: AppBar(
-            title: Text(
-              totalQuestions > 0
-                  ? 'Question ${quizProvider.currentQuestionIndex + 1} of $totalQuestions'
-                  : quizProvider.quizTitle.isNotEmpty
-                  ? quizProvider.quizTitle
-                  : 'Quiz',
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            iconTheme: const IconThemeData(color: AppTheme.textPrimary),
+          appBar: CommonAppBar(
+            title: totalQuestions > 0
+                ? 'Question ${quizProvider.currentQuestionIndex + 1} of $totalQuestions'
+                : quizProvider.quizTitle.isNotEmpty
+                ? quizProvider.quizTitle
+                : 'Quiz',
           ),
           body: totalQuestions == 0
               ? _buildEmptyState(context)
@@ -208,11 +201,10 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   child: Text(
                     'Time ${_timerLabel()}',
-                    style: TextStyle(
+                    style: AppFonts.bold(
                       color: _remainingSeconds! <= 10
                           ? AppTheme.danger
                           : AppTheme.primary,
-                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
@@ -242,10 +234,9 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                   ),
                   child: Text(
                     question.difficulty.toUpperCase(),
-                    style: TextStyle(
+                    style: AppFonts.bold(
                       color: _difficultyColor(question.difficulty),
                       fontSize: 12,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -390,14 +381,13 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                           child: Center(
                             child: Text(
                               '${index + 1}',
-                              style: TextStyle(
+                              style: AppFonts.bold(
                                 color: index == currentIndex
                                     ? AppTheme.onPrimary
                                     : answered
                                     ? AppTheme.primary
                                     : AppTheme.textMuted,
                                 fontSize: 12,
-                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
@@ -457,20 +447,20 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppTheme.background,
-        title: const Text(
+        title: Text(
           'Submit Quiz?',
-          style: TextStyle(color: AppTheme.textPrimary),
+          style: AppFonts.medium(color: AppTheme.textPrimary),
         ),
         content: Text(
           'You have answered $answeredCount out of $totalQuestions questions.\n\nDo you want to submit the quiz?',
-          style: const TextStyle(color: AppTheme.secondaryGray),
+          style: AppFonts.regular(color: AppTheme.secondaryGray),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text(
+            child: Text(
               'Cancel',
-              style: TextStyle(color: AppTheme.secondaryGray),
+              style: AppFonts.medium(color: AppTheme.secondaryGray),
             ),
           ),
           ElevatedButton(

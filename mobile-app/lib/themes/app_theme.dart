@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'app_fonts.dart';
+
 /// QSPOT learner theme: an ocean-teal learning anchor with coral and amber
 /// feedback accents on a quiet blue-white canvas.
 class AppTheme {
@@ -85,12 +87,11 @@ class AppTheme {
   // destination from inventing its own density and hierarchy.
   static const double contentInset = 16.0;
   static const double sectionGap = 24.0;
-  static const TextStyle sectionTitle = TextStyle(
+  static final TextStyle sectionTitle = AppFonts.extraBold(
     color: textPrimary,
     fontSize: 18,
-    fontWeight: FontWeight.w800,
   );
-  static const TextStyle sectionIntro = TextStyle(
+  static final TextStyle sectionIntro = AppFonts.regular(
     color: textMuted,
     fontSize: 14,
     height: 1.4,
@@ -125,101 +126,40 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
+      fontFamily: AppFonts.family,
       scaffoldBackgroundColor: background,
       colorScheme: colorScheme,
       dividerColor: border,
 
-      // App bar: flat white surface with dark content.
-      appBarTheme: const AppBarTheme(
+      // App bar: white-ish surface with dark content, lifted off the
+      // screen by a soft shadow (same when content scrolls under it).
+      appBarTheme: AppBarTheme(
         backgroundColor: background,
         surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+        elevation: 2,
+        scrolledUnderElevation: 2,
+        shadowColor: textPrimary,
         foregroundColor: textPrimary,
-        iconTheme: IconThemeData(color: textPrimary),
-        titleTextStyle: TextStyle(
-          color: textPrimary,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-        ),
+        iconTheme: const IconThemeData(color: textPrimary),
+        titleTextStyle: AppFonts.semiBold(color: textPrimary, fontSize: 20),
       ),
 
-      textTheme: const TextTheme(
-        displayLarge: TextStyle(
-          color: textPrimary,
-          fontSize: 32,
-          fontWeight: FontWeight.bold,
-        ),
-        displayMedium: TextStyle(
-          color: textPrimary,
-          fontSize: 28,
-          fontWeight: FontWeight.w600,
-        ),
-        displaySmall: TextStyle(
-          color: textPrimary,
-          fontSize: 24,
-          fontWeight: FontWeight.w600,
-        ),
-        headlineLarge: TextStyle(
-          color: textPrimary,
-          fontSize: 22,
-          fontWeight: FontWeight.w600,
-        ),
-        headlineMedium: TextStyle(
-          color: textPrimary,
-          fontSize: 20,
-          fontWeight: FontWeight.w500,
-        ),
-        headlineSmall: TextStyle(
-          color: textPrimary,
-          fontSize: 18,
-          fontWeight: FontWeight.w500,
-        ),
-        titleLarge: TextStyle(
-          color: textPrimary,
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
-        titleMedium: TextStyle(
-          color: textPrimary,
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
-        titleSmall: TextStyle(
-          color: textMuted,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-        ),
-        bodyLarge: TextStyle(
-          color: textPrimary,
-          fontSize: 16,
-          fontWeight: FontWeight.normal,
-        ),
-        bodyMedium: TextStyle(
-          color: textPrimary,
-          fontSize: 14,
-          fontWeight: FontWeight.normal,
-        ),
-        bodySmall: TextStyle(
-          color: textMuted,
-          fontSize: 12,
-          fontWeight: FontWeight.normal,
-        ),
-        labelLarge: TextStyle(
-          color: textPrimary,
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
-        labelMedium: TextStyle(
-          color: textMuted,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-        ),
-        labelSmall: TextStyle(
-          color: textMuted,
-          fontSize: 10,
-          fontWeight: FontWeight.w500,
-        ),
+      textTheme: TextTheme(
+        displayLarge: AppFonts.bold(color: textPrimary, fontSize: 32),
+        displayMedium: AppFonts.semiBold(color: textPrimary, fontSize: 28),
+        displaySmall: AppFonts.semiBold(color: textPrimary, fontSize: 24),
+        headlineLarge: AppFonts.semiBold(color: textPrimary, fontSize: 22),
+        headlineMedium: AppFonts.medium(color: textPrimary, fontSize: 20),
+        headlineSmall: AppFonts.medium(color: textPrimary, fontSize: 18),
+        titleLarge: AppFonts.semiBold(color: textPrimary, fontSize: 16),
+        titleMedium: AppFonts.medium(color: textPrimary, fontSize: 14),
+        titleSmall: AppFonts.medium(color: textMuted, fontSize: 12),
+        bodyLarge: AppFonts.regular(color: textPrimary, fontSize: 16),
+        bodyMedium: AppFonts.regular(color: textPrimary, fontSize: 14),
+        bodySmall: AppFonts.regular(color: textMuted, fontSize: 12),
+        labelLarge: AppFonts.medium(color: textPrimary, fontSize: 14),
+        labelMedium: AppFonts.medium(color: textMuted, fontSize: 12),
+        labelSmall: AppFonts.medium(color: textMuted, fontSize: 10),
       ),
 
       cardTheme: CardThemeData(
@@ -262,8 +202,8 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surface,
-        hintStyle: const TextStyle(color: textMuted),
-        labelStyle: const TextStyle(color: textMuted),
+        hintStyle: AppFonts.regular(color: textMuted),
+        labelStyle: AppFonts.regular(color: textMuted),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMedium),
           borderSide: const BorderSide(color: border),
@@ -311,9 +251,9 @@ class AppTheme {
         circularTrackColor: surfaceAlt,
       ),
 
-      snackBarTheme: const SnackBarThemeData(
+      snackBarTheme: SnackBarThemeData(
         backgroundColor: textPrimary,
-        contentTextStyle: TextStyle(color: onPrimary),
+        contentTextStyle: AppFonts.regular(color: onPrimary),
         actionTextColor: accentAmber,
       ),
 

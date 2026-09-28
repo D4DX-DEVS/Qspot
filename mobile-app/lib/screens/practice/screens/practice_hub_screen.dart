@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import '../../assignment/screens/assignments_screen.dart';
 import '../../quiz/screens/quiz_list_screen.dart';
 
@@ -12,8 +14,8 @@ class PracticeHubScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        title: const Text('Practice'),
+      appBar: CommonAppBar(
+        title: 'Practice',
         actions: [
           IconButton(
             tooltip: 'Practice history',
@@ -26,11 +28,11 @@ class PracticeHubScreen extends StatelessWidget {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(
+        padding: EdgeInsets.fromLTRB(
           AppTheme.contentInset,
           8,
           AppTheme.contentInset,
-          32,
+          32 + MediaQuery.paddingOf(context).bottom,
         ),
         children: [
           const _PracticeIntro(),
@@ -67,7 +69,7 @@ class PracticeHubScreen extends StatelessWidget {
               color: AppTheme.primarySoft,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Row(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(Icons.lightbulb_outline_rounded, color: AppTheme.primary),
@@ -75,7 +77,7 @@ class PracticeHubScreen extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Practice is not a score board. It is a safe place to notice what you know next.',
-                    style: TextStyle(
+                    style: AppFonts.regular(
                       color: AppTheme.textPrimary,
                       fontSize: 13,
                       height: 1.4,
@@ -160,16 +162,15 @@ class _PracticeCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: AppFonts.extraBold(
                         color: AppTheme.textPrimary,
                         fontSize: 16,
-                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       body,
-                      style: const TextStyle(
+                      style: AppFonts.regular(
                         color: AppTheme.textMuted,
                         fontSize: 13,
                         height: 1.35,
@@ -178,11 +179,7 @@ class _PracticeCard extends StatelessWidget {
                     const SizedBox(height: 12),
                     Text(
                       action,
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: AppFonts.extraBold(color: color, fontSize: 12.5),
                     ),
                   ],
                 ),

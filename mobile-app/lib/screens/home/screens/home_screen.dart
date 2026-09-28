@@ -10,6 +10,8 @@ import '../../subject/provider/subject_provider.dart';
 import '../../../widgets/common/see_all_button.dart';
 import '../../../widgets/common/loading_skeleton.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import '../../video/screens/video_list_screen.dart';
 import '../../video/screens/video_reels_screen.dart';
 import '../../video/screens/video_questions_screen.dart';
@@ -94,13 +96,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Courses',
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
+          style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 18),
         ),
         const SizedBox(height: 12),
         ..._courses.map(
@@ -138,10 +136,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               course.title,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: AppFonts.semiBold(
                                 color: AppTheme.textPrimary,
                                 fontSize: 15,
-                                fontWeight: FontWeight.w600,
                                 height: 1.3,
                               ),
                             ),
@@ -151,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 course.subtitle,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: AppFonts.regular(
                                   color: AppTheme.textMuted,
                                   fontSize: 12.5,
                                 ),
@@ -188,13 +185,13 @@ class _HomeScreenState extends State<HomeScreen> {
           color: AppTheme.surfaceAlt,
           borderRadius: BorderRadius.circular(28),
         ),
-        child: const Row(
+        child: Row(
           children: [
             Icon(Icons.search, color: AppTheme.textMuted, size: 20),
             SizedBox(width: 10),
             Text(
               'Search',
-              style: TextStyle(color: AppTheme.textMuted, fontSize: 15),
+              style: AppFonts.regular(color: AppTheme.textMuted, fontSize: 15),
             ),
           ],
         ),
@@ -259,8 +256,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: Row(
+      appBar: CommonAppBar(
+        titleWidget: Row(
           children: [
             Container(
               width: 100,
@@ -286,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // const SizedBox(width: AppTheme.paddingSmall),
             // const Text(
             //   'QSpot',
-            //   style: TextStyle(
+            //   style: AppFonts.regular(
             //     fontSize: 24,
             //     fontWeight: FontWeight.bold,
             //     color: AppTheme.primaryWhite,
@@ -294,8 +291,6 @@ class _HomeScreenState extends State<HomeScreen> {
             // ),
           ],
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         centerTitle: false,
         actions: [
           Consumer<NotificationProvider>(
@@ -328,10 +323,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         child: Text(
                           unreadCount > 9 ? '9+' : unreadCount.toString(),
-                          style: const TextStyle(
+                          style: AppFonts.bold(
                             color: AppTheme.onPrimary,
                             fontSize: 10,
-                            fontWeight: FontWeight.bold,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -360,10 +354,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     alignment: Alignment.center,
                     child: Text(
                       _initialsFor(name.isEmpty ? 'Student' : name),
-                      style: const TextStyle(
+                      style: AppFonts.bold(
                         color: AppTheme.onPrimary,
                         fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   );
@@ -486,12 +479,11 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Assalamu Alaikum',
-                    style: TextStyle(
+                    style: AppFonts.semiBold(
                       color: AppTheme.textMuted,
                       fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -499,10 +491,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     name.isNotEmpty ? name : 'Student',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: AppFonts.bold(
                       color: AppTheme.textPrimary,
                       fontSize: 18,
-                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
@@ -520,11 +511,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 child: Text(
                   'Class $classNumber',
-                  style: const TextStyle(
-                    color: AppTheme.primary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: AppFonts.bold(color: AppTheme.primary, fontSize: 12),
                 ),
               ),
           ],
@@ -544,13 +531,9 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Recent videos',
-              style: TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
+              style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 18),
             ),
             SeeAllButton(onPressed: _navigateToVideoList),
           ],
@@ -690,13 +673,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Next up',
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
+          style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 18),
         ),
         const SizedBox(height: 12),
         if (item == null) _buildEmptyTodayCard() else _buildTodayItemCard(item),
@@ -714,14 +693,14 @@ class _HomeScreenState extends State<HomeScreen> {
         color: AppTheme.surfaceAlt,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
       ),
-      child: const Row(
+      child: Row(
         children: [
           Icon(Icons.check_circle_outline, color: AppTheme.success, size: 24),
           SizedBox(width: 12),
           Expanded(
             child: Text(
               'You’re all caught up. Take a break or explore a subject.',
-              style: TextStyle(
+              style: AppFonts.regular(
                 color: AppTheme.textPrimary,
                 fontSize: 14,
                 height: 1.4,
@@ -858,7 +837,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       child: Text(
                         label,
-                        style: TextStyle(
+                        style: AppFonts.bold(
                           color: isUpcoming
                               ? AppTheme.textMuted
                               : isOverdue
@@ -867,7 +846,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               ? AppTheme.success
                               : AppTheme.primary,
                           fontSize: 11,
-                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
@@ -876,10 +854,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: AppFonts.bold(
                         color: AppTheme.textPrimary,
                         fontSize: 14,
-                        fontWeight: FontWeight.w700,
                         height: 1.25,
                       ),
                     ),
@@ -892,7 +869,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           : detail,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: AppFonts.regular(
                         color: AppTheme.textMuted,
                         fontSize: 12,
                         height: 1.35,
@@ -966,7 +943,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   : activeToday
                   ? 'Your progress is saved. Keep your learning rhythm gentle.'
                   : 'Build a learning streak one small lesson at a time.',
-              style: const TextStyle(
+              style: AppFonts.regular(
                 color: AppTheme.textPrimary,
                 fontSize: 12.5,
                 height: 1.35,
@@ -1067,11 +1044,10 @@ class _HomeScreenState extends State<HomeScreen> {
             video.displayTitle,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: AppFonts.semiBold(
               color: AppTheme.textPrimary,
               fontSize: 11.5,
               height: 1.3,
-              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -1108,13 +1084,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Quick access',
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
+          style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 18),
         ),
         const SizedBox(height: 12),
         Container(
@@ -1162,10 +1134,9 @@ class _HomeScreenState extends State<HomeScreen> {
               action.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: AppFonts.semiBold(
                 color: AppTheme.textPrimary,
                 fontSize: 12.5,
-                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -1230,7 +1201,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: Text(
               message.isNotEmpty ? message : 'Could not refresh',
-              style: const TextStyle(
+              style: AppFonts.regular(
                 color: AppTheme.textPrimary,
                 fontSize: 12.5,
               ),

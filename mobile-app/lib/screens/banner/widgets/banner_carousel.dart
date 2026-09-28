@@ -3,6 +3,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../model/banner_model.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
 
 class BannerCarousel extends StatefulWidget {
   final List<BannerModel> banners;
@@ -106,7 +107,10 @@ class _BannerCarouselState extends State<BannerCarousel> {
                 const SizedBox(height: AppTheme.paddingSmall),
                 Text(
                   'Image not available',
-                  style: TextStyle(color: AppTheme.secondaryGray, fontSize: 12),
+                  style: AppFonts.regular(
+                    color: AppTheme.secondaryGray,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),

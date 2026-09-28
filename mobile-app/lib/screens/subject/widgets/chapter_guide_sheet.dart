@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../services/video_progress_service.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
 import '../model/subject_model.dart';
 
 /// The panel shown the first time a chapter is opened: what the chapter
@@ -128,10 +129,9 @@ class ChapterGuideSheet extends StatelessWidget {
                   ? SubjectModel.defaultGuideTitle
                   : subject.guideTitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: AppFonts.bold(
                 color: AppTheme.textPrimary,
                 fontSize: 22,
-                fontWeight: FontWeight.w700,
                 height: 1.25,
               ),
             ),
@@ -139,7 +139,7 @@ class ChapterGuideSheet extends StatelessWidget {
             Text(
               subject.subject,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+              style: AppFonts.regular(color: AppTheme.textMuted, fontSize: 13),
             ),
             const SizedBox(height: 24),
             ...points.map(
@@ -168,7 +168,7 @@ class ChapterGuideSheet extends StatelessWidget {
                         padding: const EdgeInsets.only(top: 8),
                         child: Text(
                           point.text,
-                          style: const TextStyle(
+                          style: AppFonts.regular(
                             color: AppTheme.textPrimary,
                             fontSize: 15,
                             height: 1.4,
@@ -188,10 +188,7 @@ class ChapterGuideSheet extends StatelessWidget {
                   backgroundColor: AppTheme.primary,
                   foregroundColor: AppTheme.onPrimary,
                   shape: const StadiumBorder(),
-                  textStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  textStyle: AppFonts.bold(fontSize: 16),
                 ),
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('Got it'),

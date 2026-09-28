@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../../../services/api_client.dart';
 import '../../../services/video_progress_service.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import '../model/video_model.dart';
 
 /// The questions attached to a video, asked once the video has been watched.
@@ -223,18 +225,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
       // The result view carries its own close button, like the reference popups.
       appBar: _result != null
           ? null
-          : AppBar(
-              backgroundColor: AppTheme.background,
-              elevation: 0,
-              title: const Text(
-                'Video questions',
-                style: TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              iconTheme: const IconThemeData(color: AppTheme.textPrimary),
-            ),
+          : const CommonAppBar(title: 'Video questions'),
       body: _result != null ? _buildResult() : _buildQuestion(),
     );
   }
@@ -280,10 +271,9 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
             Text(
               headline,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: AppFonts.bold(
                 fontSize: 26,
                 height: 1.2,
-                fontWeight: FontWeight.w700,
                 color: AppTheme.textPrimary,
               ),
             ),
@@ -291,7 +281,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
             Text(
               'You answered ${result.score} of ${result.totalQuestions} correctly.',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: AppFonts.regular(
                 fontSize: 16,
                 height: 1.4,
                 color: AppTheme.textPrimary,
@@ -303,7 +293,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: AppFonts.regular(
                 color: AppTheme.textMuted,
                 fontSize: 13,
                 height: 1.4,
@@ -311,10 +301,10 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
             ),
             if (_isReview) ...[
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'You already answered these questions — this is your saved result.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppTheme.textMuted, fontSize: 12.5),
+                style: AppFonts.regular(color: AppTheme.textMuted, fontSize: 12.5),
               ),
             ],
             const Spacer(),
@@ -325,9 +315,8 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
                   backgroundColor: AppTheme.primary,
                   foregroundColor: AppTheme.onPrimary,
                   shape: const StadiumBorder(),
-                  textStyle: const TextStyle(
+                  textStyle: AppFonts.bold(
                     fontSize: 16,
-                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 onPressed: () => Navigator.of(context).pop(),
@@ -393,9 +382,8 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
                   const SizedBox(height: 2),
                   Text(
                     '$percentage%',
-                    style: const TextStyle(
+                    style: AppFonts.bold(
                       fontSize: 20,
-                      fontWeight: FontWeight.w700,
                       color: AppTheme.primary,
                     ),
                   ),
@@ -446,28 +434,25 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
                   alignment: Alignment.centerRight,
                   child: Text(
                     'Time ${_timerLabel()}',
-                    style: TextStyle(
+                    style: AppFonts.bold(
                       color: _remainingSeconds! <= 10 ? AppTheme.danger : AppTheme.primary,
-                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
               if (_remainingSeconds != null) const SizedBox(height: 10),
               Text(
                 'Question ${_index + 1} of ${widget.questions.length}',
-                style: const TextStyle(
+                style: AppFonts.medium(
                   color: AppTheme.textMuted,
                   fontSize: 12,
-                  fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 10),
               Text(
                 question.questionFor(widget.locale),
-                style: const TextStyle(
+                style: AppFonts.semiBold(
                   fontSize: 18,
                   height: 1.35,
-                  fontWeight: FontWeight.w600,
                   color: AppTheme.textPrimary,
                 ),
               ),
@@ -507,8 +492,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
                         child: Center(
                           child: Text(
                             String.fromCharCode(65 + i),
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
+                            style: AppFonts.semiBold(
                               color: selected
                                   ? AppTheme.primary
                                   : AppTheme.textMuted,
@@ -520,7 +504,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
                       Expanded(
                         child: Text(
                           options[i],
-                          style: const TextStyle(
+                          style: AppFonts.regular(
                             color: AppTheme.textPrimary,
                             height: 1.3,
                           ),

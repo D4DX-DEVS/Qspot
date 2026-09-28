@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../model/subject_model.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
 
 class SubjectCard extends StatelessWidget {
   final SubjectModel subject;
@@ -136,10 +137,9 @@ class SubjectCard extends StatelessWidget {
                           const SizedBox(width: 4),
                           Text(
                             '$completedLessons/$totalLessons',
-                            style: const TextStyle(
+                            style: AppFonts.extraBold(
                               color: Colors.white,
                               fontSize: 10,
-                              fontWeight: FontWeight.w800,
                             ),
                           ),
                         ],

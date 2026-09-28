@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../../services/learning_progress_service.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import '../../video/provider/video_provider.dart';
 
 typedef ProgressLoader = Future<LearningProgressData> Function();
@@ -51,7 +53,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('Progress')),
+      appBar: const CommonAppBar(title: 'Progress'),
       body: RefreshIndicator(onRefresh: _load, child: _buildBody()),
     );
   }
@@ -83,13 +85,13 @@ class _ProgressScreenState extends State<ProgressScreen> {
           Text(
             'Progress is unavailable',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            style: AppFonts.extraBold(fontSize: 18),
           ),
           const SizedBox(height: 8),
           Text(
             'Check your connection and try again.',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppTheme.textMuted),
+            style: AppFonts.regular(color: AppTheme.textMuted),
           ),
           const SizedBox(height: 18),
           OutlinedButton.icon(
@@ -103,11 +105,16 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        8,
+        16,
+        32 + MediaQuery.paddingOf(context).bottom,
+      ),
       children: [
-        const Text('Your learning, in view', style: AppTheme.sectionTitle),
+        Text('Your learning, in view', style: AppTheme.sectionTitle),
         const SizedBox(height: 5),
-        const Text(
+        Text(
           'Notice what is becoming familiar and choose your next step.',
           style: AppTheme.sectionIntro,
         ),
@@ -178,18 +185,12 @@ class _ProgressScreenState extends State<ProgressScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+                Text(value, style: AppFonts.extraBold(fontSize: 15)),
                 Text(
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: AppFonts.regular(
                     color: AppTheme.textMuted,
                     fontSize: 10.5,
                   ),
@@ -232,10 +233,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 Center(
                   child: Text(
                     '${(percent * 100).round()}%',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: AppFonts.extraBold(fontSize: 18),
                   ),
                 ),
               ],
@@ -246,16 +244,13 @@ class _ProgressScreenState extends State<ProgressScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Lesson mastery',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                ),
+                Text('Lesson mastery', style: AppFonts.extraBold(fontSize: 16)),
                 const SizedBox(height: 6),
                 Text(
                   data.videosTotal == 0
                       ? 'Start your first lesson'
                       : '${data.videosCompleted} of ${data.videosTotal} started lessons complete',
-                  style: const TextStyle(
+                  style: AppFonts.regular(
                     color: AppTheme.textMuted,
                     fontSize: 13,
                     height: 1.35,
@@ -265,11 +260,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   const SizedBox(height: 7),
                   Text(
                     '${data.videosInProgress} in progress',
-                    style: const TextStyle(
-                      color: AppTheme.accent,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: AppFonts.bold(color: AppTheme.accent, fontSize: 12),
                   ),
                 ],
               ],
@@ -284,10 +275,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
-        ),
+        Text(title, style: AppFonts.extraBold(fontSize: 14)),
         const SizedBox(height: 10),
         ...items.map(_masteryRow),
       ],
@@ -307,20 +295,13 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   item.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: AppFonts.bold(fontSize: 13.5),
                 ),
               ),
               const SizedBox(width: 10),
               Text(
                 '${item.completed}/${item.total}',
-                style: const TextStyle(
-                  color: AppTheme.textMuted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: AppFonts.bold(color: AppTheme.textMuted, fontSize: 12),
               ),
             ],
           ),
@@ -374,14 +355,17 @@ class _ProgressScreenState extends State<ProgressScreen> {
             border: Border.all(color: AppTheme.border),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Row(
+          child: Row(
             children: [
               Icon(Icons.timeline_outlined, color: AppTheme.textMuted),
               SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Your completed lessons and assessments will appear here.',
-                  style: TextStyle(color: AppTheme.textMuted, height: 1.35),
+                  style: AppFonts.regular(
+                    color: AppTheme.textMuted,
+                    height: 1.35,
+                  ),
                 ),
               ),
             ],
@@ -444,10 +428,9 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 children: [
                   Text(
                     item.kind,
-                    style: const TextStyle(
+                    style: AppFonts.bold(
                       color: AppTheme.textMuted,
                       fontSize: 10.5,
-                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -455,15 +438,12 @@ class _ProgressScreenState extends State<ProgressScreen> {
                     item.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: AppFonts.extraBold(fontSize: 13.5),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     item.detail,
-                    style: const TextStyle(
+                    style: AppFonts.regular(
                       color: AppTheme.textMuted,
                       fontSize: 12,
                     ),
@@ -474,7 +454,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
             if (item.date != null)
               Text(
                 _dateLabel(item.date!),
-                style: const TextStyle(
+                style: AppFonts.regular(
                   color: AppTheme.textMuted,
                   fontSize: 10.5,
                 ),

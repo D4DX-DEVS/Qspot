@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../../video/model/video_model.dart';
 import '../provider/bookmark_provider.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import '../../../widgets/common/loading_skeleton.dart';
 import '../../video/screens/video_player_screen.dart';
 
@@ -44,17 +46,8 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: const Text(
-          'Bookmarks',
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.textPrimary),
+      appBar: CommonAppBar(
+        title: 'Bookmarks',
         actions: [
           Consumer<BookmarkProvider>(
             builder: (context, bookmarkProvider, child) {
@@ -69,7 +62,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                   }
                 },
                 itemBuilder: (context) => [
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'clear_all',
                     child: Row(
                       children: [
@@ -77,7 +70,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                         SizedBox(width: 8),
                         Text(
                           'Clear All',
-                          style: TextStyle(color: AppTheme.textPrimary),
+                          style: AppFonts.medium(color: AppTheme.textPrimary),
                         ),
                       ],
                     ),
@@ -138,10 +131,10 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
       child: TextField(
         controller: _searchController,
         onChanged: (_) => setState(() {}),
-        style: const TextStyle(color: AppTheme.textPrimary),
+        style: AppFonts.regular(color: AppTheme.textPrimary),
         decoration: InputDecoration(
           hintText: 'Search bookmarks...',
-          hintStyle: TextStyle(color: AppTheme.secondaryGray),
+          hintStyle: AppFonts.regular(color: AppTheme.secondaryGray),
           prefixIcon: Icon(Icons.search, color: AppTheme.secondaryGray),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
@@ -169,7 +162,10 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
         children: [
           Text(
             '$count bookmark${count != 1 ? 's' : ''}',
-            style: TextStyle(color: AppTheme.secondaryGray, fontSize: 14),
+            style: AppFonts.regular(
+              color: AppTheme.secondaryGray,
+              fontSize: 14,
+            ),
           ),
         ],
       ),
@@ -225,10 +221,9 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                   children: [
                     Text(
                       video.displayTitle,
-                      style: const TextStyle(
+                      style: AppFonts.semiBold(
                         color: AppTheme.textPrimary,
                         fontSize: 16,
-                        fontWeight: FontWeight.w600,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -236,7 +231,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                     const SizedBox(height: AppTheme.paddingSmall),
                     Text(
                       video.caption,
-                      style: TextStyle(
+                      style: AppFonts.regular(
                         color: AppTheme.secondaryGray,
                         fontSize: 14,
                       ),
@@ -248,7 +243,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                       const SizedBox(height: AppTheme.paddingSmall),
                       Text(
                         video.subjectName!,
-                        style: TextStyle(
+                        style: AppFonts.regular(
                           color: AppTheme.secondaryGray,
                           fontSize: 12,
                         ),
@@ -402,9 +397,9 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
       if (!mounted || !success) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
+          content: Text(
             'Bookmark removed',
-            style: TextStyle(color: AppTheme.onPrimary),
+            style: AppFonts.regular(color: AppTheme.onPrimary),
           ),
           backgroundColor: AppTheme.textPrimary,
           action: SnackBarAction(
@@ -422,20 +417,20 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppTheme.background,
-        title: const Text(
+        title: Text(
           'Clear All Bookmarks',
-          style: TextStyle(color: AppTheme.textPrimary),
+          style: AppFonts.medium(color: AppTheme.textPrimary),
         ),
-        content: const Text(
+        content: Text(
           'Are you sure you want to remove all bookmarks? This action cannot be undone.',
-          style: TextStyle(color: AppTheme.secondaryGray),
+          style: AppFonts.regular(color: AppTheme.secondaryGray),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Cancel',
-              style: TextStyle(color: AppTheme.secondaryGray),
+              style: AppFonts.medium(color: AppTheme.secondaryGray),
             ),
           ),
           TextButton(
@@ -443,9 +438,9 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
               Navigator.pop(context);
               _clearAllBookmarks();
             },
-            child: const Text(
+            child: Text(
               'Clear All',
-              style: TextStyle(color: AppTheme.danger),
+              style: AppFonts.medium(color: AppTheme.danger),
             ),
           ),
         ],
@@ -461,10 +456,10 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     bookmarkProvider.clearAllBookmarks().then((success) {
       if (!mounted || !success) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
             'All bookmarks cleared',
-            style: TextStyle(color: AppTheme.onPrimary),
+            style: AppFonts.regular(color: AppTheme.onPrimary),
           ),
           backgroundColor: AppTheme.textPrimary,
         ),

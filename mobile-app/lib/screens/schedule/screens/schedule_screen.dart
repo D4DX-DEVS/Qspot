@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../provider/schedule_provider.dart';
 import '../model/schedule_model.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import '../service/alarm_service.dart';
 
 class ScheduleScreen extends StatefulWidget {
@@ -41,17 +43,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: const Text(
-          'Schedule',
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+      appBar: const CommonAppBar(title: 'Schedule'),
       body: Consumer<ScheduleProvider>(
         builder: (context, scheduleProvider, child) {
           if (scheduleProvider.isLoading) {
@@ -377,10 +369,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ),
           title: Text(
             schedule.title,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppFonts.bold(color: AppTheme.textPrimary),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -397,9 +386,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text(
+              child: Text(
                 'Close',
-                style: TextStyle(color: AppTheme.gradientEnd),
+                style: AppFonts.medium(color: AppTheme.gradientEnd),
               ),
             ),
             if (schedule.isUpcoming)

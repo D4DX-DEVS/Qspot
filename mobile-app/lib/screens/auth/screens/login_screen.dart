@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../provider/auth_provider.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/otp_input.dart';
 import 'registration_screen.dart';
 import '../../common/screens/main_navigation_screen.dart';
@@ -64,11 +65,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           ? 'Check your WhatsApp'
                           : 'Learn the Qur’ān,\none episode at a time.',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: AppFonts.bold(
                         color: AppTheme.textPrimary,
                         fontSize: 26,
                         height: 1.25,
-                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -77,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ? 'Enter the 6-digit code we sent to ${_phoneController.text}'
                           : 'Sign in with your phone number to continue.',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: AppFonts.regular(
                         color: AppTheme.textMuted,
                         fontSize: 15,
                         height: 1.4,
@@ -93,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ? 'Didn’t get the code? Tap Resend, or go back and check your number.'
                           : 'We will send a one-time code to your WhatsApp.',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: AppFonts.regular(
                         color: AppTheme.textMuted,
                         fontSize: 12.5,
                         height: 1.4,
@@ -162,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
         FilteringTextInputFormatter.digitsOnly,
         LengthLimitingTextInputFormatter(10),
       ],
-      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16),
+      style: AppFonts.regular(color: AppTheme.textPrimary, fontSize: 16),
       decoration: _fieldDecoration(
         hint: 'Phone number',
         prefixIcon: const Icon(
@@ -198,9 +198,9 @@ class _LoginScreenState extends State<LoginScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
+            Text(
               'Didn’t receive OTP?',
-              style: TextStyle(color: AppTheme.textMuted, fontSize: 14),
+              style: AppFonts.regular(color: AppTheme.textMuted, fontSize: 14),
             ),
             TextButton(
               onPressed: _isResending ? null : _resendOtp,
@@ -211,10 +211,9 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               child: Text(
                 _isResending ? 'Resending…' : 'Resend',
-                style: const TextStyle(
+                style: AppFonts.bold(
                   color: AppTheme.primary,
                   fontSize: 14,
-                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
@@ -228,7 +227,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final radius = BorderRadius.circular(14);
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 15),
+      hintStyle: AppFonts.regular(color: AppTheme.textMuted, fontSize: 15),
       prefixIcon: prefixIcon,
       filled: true,
       fillColor: AppTheme.surfaceAlt,
@@ -268,9 +267,8 @@ class _LoginScreenState extends State<LoginScreen> {
               disabledBackgroundColor: AppTheme.primary,
               disabledForegroundColor: AppTheme.onPrimary,
               shape: const StadiumBorder(),
-              textStyle: const TextStyle(
+              textStyle: AppFonts.bold(
                 fontSize: 16,
-                fontWeight: FontWeight.w700,
               ),
             ),
             onPressed: authProvider.isLoading
@@ -296,9 +294,9 @@ class _LoginScreenState extends State<LoginScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
+        Text(
           "Don't have an account?",
-          style: TextStyle(color: AppTheme.textMuted, fontSize: 15),
+          style: AppFonts.regular(color: AppTheme.textMuted, fontSize: 15),
         ),
         TextButton(
           onPressed: _navigateToRegistration,
@@ -307,12 +305,11 @@ class _LoginScreenState extends State<LoginScreen> {
             minimumSize: const Size(0, 36),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          child: const Text(
+          child: Text(
             'Register Now',
-            style: TextStyle(
+            style: AppFonts.bold(
               color: AppTheme.primary,
               fontSize: 15,
-              fontWeight: FontWeight.w700,
             ),
           ),
         ),
@@ -340,7 +337,7 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(
           content: Text(
             result['message'] ?? 'OTP sent successfully via WhatsApp',
-            style: const TextStyle(color: AppTheme.onPrimary),
+            style: AppFonts.regular(color: AppTheme.onPrimary),
           ),
           backgroundColor: AppTheme.primary,
         ),
@@ -350,7 +347,7 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(
           content: Text(
             result['message'] ?? 'Failed to send OTP',
-            style: const TextStyle(color: AppTheme.onPrimary),
+            style: AppFonts.regular(color: AppTheme.onPrimary),
           ),
           backgroundColor: AppTheme.danger,
         ),
@@ -369,10 +366,10 @@ class _LoginScreenState extends State<LoginScreen> {
     // The six-box OTP field has no FormField validator, so check it here.
     if (otp.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
             'Please enter the 6-digit OTP',
-            style: TextStyle(color: AppTheme.onPrimary),
+            style: AppFonts.regular(color: AppTheme.onPrimary),
           ),
           backgroundColor: AppTheme.danger,
         ),
@@ -396,7 +393,7 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(
           content: Text(
             result['message'] ?? 'Invalid OTP',
-            style: const TextStyle(color: AppTheme.onPrimary),
+            style: AppFonts.regular(color: AppTheme.onPrimary),
           ),
           backgroundColor: AppTheme.danger,
         ),

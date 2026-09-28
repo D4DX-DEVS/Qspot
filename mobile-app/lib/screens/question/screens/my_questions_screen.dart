@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import '../../auth/service/auth_service.dart';
 import '../../../utils/api_urls.dart';
 import 'ask_question_screen.dart';
@@ -99,68 +101,24 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
+      appBar: CommonAppBar(
+        title: 'My questions',
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await AskQuestionScreen.show(context);
+              _loadQuestions();
+            },
+            child: Text(
+              'Ask new',
+              style: AppFonts.bold(color: AppTheme.primary, fontSize: 15),
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [
-            // Close on the left, centred title, "Ask new" on the right.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        minimumSize: const Size(0, 36),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: const Text(
-                        'Close',
-                        style: TextStyle(
-                          color: AppTheme.textPrimary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const Text(
-                    'My questions',
-                    style: TextStyle(
-                      color: AppTheme.textPrimary,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () async {
-                        await AskQuestionScreen.show(context);
-                        _loadQuestions();
-                      },
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        minimumSize: const Size(0, 36),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: const Text(
-                        'Ask new',
-                        style: TextStyle(
-                          color: AppTheme.primary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             if (!_isLoading && _errorMessage == null)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -217,10 +175,9 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
         ),
         child: Text(
           label,
-          style: TextStyle(
+          style: AppFonts.semiBold(
             color: selected ? AppTheme.primary : AppTheme.textMuted,
             fontSize: 13,
-            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -236,19 +193,15 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
           children: [
             const Icon(Icons.cloud_off, size: 48, color: AppTheme.textMuted),
             const SizedBox(height: 14),
-            const Text(
+            Text(
               'Could not load your questions',
-              style: TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-              ),
+              style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 17),
             ),
             const SizedBox(height: 6),
             Text(
               _errorMessage ?? '',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: AppFonts.regular(
                 color: AppTheme.textMuted,
                 fontSize: 13,
                 height: 1.4,
@@ -286,11 +239,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
             const SizedBox(height: 16),
             Text(
               filtered ? 'Nothing here' : 'There is nothing here yet',
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 19,
-                fontWeight: FontWeight.w700,
-              ),
+              style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 19),
             ),
             const SizedBox(height: 10),
             Text(
@@ -298,7 +247,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
                   ? 'No ${_filter == _QuestionFilter.answered ? 'answered' : 'pending'} questions so far.'
                   : 'Tap "Ask new" to ask your first question.',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: AppFonts.regular(
                 color: AppTheme.textMuted,
                 fontSize: 14,
                 height: 1.5,
@@ -342,26 +291,21 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
             ),
             child: Text(
               hasAnswer ? 'Answered' : 'Waiting for an answer',
-              style: TextStyle(
+              style: AppFonts.bold(
                 color: hasAnswer ? AppTheme.onPrimary : AppTheme.textMuted,
                 fontSize: 11.5,
-                fontWeight: FontWeight.w700,
               ),
             ),
           ),
           const SizedBox(height: 10),
           Text(
             question.subject,
-            style: const TextStyle(
-              color: AppTheme.primary,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
+            style: AppFonts.bold(color: AppTheme.primary, fontSize: 13),
           ),
           const SizedBox(height: 4),
           Text(
             question.description,
-            style: const TextStyle(
+            style: AppFonts.regular(
               color: AppTheme.textPrimary,
               fontSize: 15,
               height: 1.5,
@@ -370,7 +314,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
           const SizedBox(height: 6),
           Text(
             _formatDate(question.createdAt),
-            style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+            style: AppFonts.regular(color: AppTheme.textMuted, fontSize: 12),
           ),
           if (hasAnswer) ...[
             const SizedBox(height: 14),
@@ -386,7 +330,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
                 children: [
                   Text(
                     question.answer!,
-                    style: const TextStyle(
+                    style: AppFonts.regular(
                       color: AppTheme.textPrimary,
                       fontSize: 15,
                       height: 1.5,
@@ -396,10 +340,9 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
                   Text(
                     'Answered by ${question.answeredBy ?? 'the faculty'}'
                     '${question.answeredAt != null ? ' · ${_formatDate(question.answeredAt!)}' : ''}',
-                    style: const TextStyle(
+                    style: AppFonts.semiBold(
                       color: AppTheme.primary,
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],

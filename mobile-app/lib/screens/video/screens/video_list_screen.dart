@@ -4,6 +4,8 @@ import '../model/video_model.dart';
 import '../provider/video_provider.dart';
 import '../widgets/video_card.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import 'video_reels_screen.dart';
 
 class VideoListScreen extends StatefulWidget {
@@ -48,15 +50,16 @@ class _VideoListScreenState extends State<VideoListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: _isSearching
+      appBar: CommonAppBar(
+        title: 'All Videos',
+        titleWidget: _isSearching
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                style: const TextStyle(color: AppTheme.textPrimary),
+                style: AppFonts.regular(color: AppTheme.textPrimary),
                 decoration: InputDecoration(
                   hintText: 'Search videos...',
-                  hintStyle: TextStyle(color: AppTheme.secondaryGray),
+                  hintStyle: AppFonts.regular(color: AppTheme.secondaryGray),
                   border: InputBorder.none,
                 ),
                 onChanged: (value) {
@@ -66,16 +69,7 @@ class _VideoListScreenState extends State<VideoListScreen> {
                   ).searchVideos(value);
                 },
               )
-            : const Text(
-                'All Videos',
-                style: TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.textPrimary),
+            : null,
         actions: [
           IconButton(
             icon: Icon(

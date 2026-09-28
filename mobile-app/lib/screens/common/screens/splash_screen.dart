@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../faculty/screens/faculty_home_screen.dart';
@@ -160,12 +161,11 @@ class _SplashScreenState extends State<SplashScreen>
                         child: child,
                       );
                     },
-                    child: const Text(
+                    child: Text(
                       'Developed by D4DX Innovations LLP',
-                      style: TextStyle(
+                      style: AppFonts.medium(
                         color: Colors.white70,
                         fontSize: 12,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),

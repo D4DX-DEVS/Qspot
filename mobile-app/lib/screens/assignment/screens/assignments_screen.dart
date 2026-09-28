@@ -3,6 +3,8 @@ import 'package:qspot/screens/assignment/model/assignment_model.dart';
 import 'package:qspot/screens/assignment/screens/assignment_detail_screen.dart';
 import 'package:qspot/screens/assignment/service/assignment_service.dart';
 import 'package:qspot/themes/app_theme.dart';
+import 'package:qspot/themes/app_fonts.dart';
+import 'package:qspot/widgets/common/common_app_bar.dart';
 
 class AssignmentsScreen extends StatefulWidget {
   const AssignmentsScreen({super.key});
@@ -29,7 +31,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Assignments')),
+      appBar: const CommonAppBar(title: 'Assignments'),
       body: FutureBuilder<List<AssignmentModel>>(
         future: _assignments,
         builder: (context, snapshot) {
@@ -153,15 +155,12 @@ class _AssignmentTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      assignment.title,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
+                    Text(assignment.title, style: AppFonts.bold()),
                     if (assignment.subject.isNotEmpty) ...[
                       const SizedBox(height: 3),
                       Text(
                         assignment.subject,
-                        style: const TextStyle(
+                        style: AppFonts.regular(
                           color: AppTheme.textMuted,
                           fontSize: 13,
                         ),
@@ -170,7 +169,7 @@ class _AssignmentTile extends StatelessWidget {
                     const SizedBox(height: 7),
                     Text(
                       _dueLabel(assignment),
-                      style: TextStyle(
+                      style: AppFonts.regular(
                         color: overdue ? AppTheme.danger : AppTheme.textMuted,
                         fontSize: 12,
                       ),
@@ -182,14 +181,7 @@ class _AssignmentTile extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  Text(label, style: AppFonts.bold(color: color, fontSize: 12)),
                   const SizedBox(height: 4),
                   const Icon(
                     Icons.chevron_right,
@@ -237,13 +229,13 @@ class _MessageState extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            style: AppFonts.bold(fontSize: 18),
           ),
           const SizedBox(height: 6),
           Text(
             body,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppTheme.textMuted),
+            style: AppFonts.regular(color: AppTheme.textMuted),
           ),
           if (action != null) ...[
             const SizedBox(height: 16),

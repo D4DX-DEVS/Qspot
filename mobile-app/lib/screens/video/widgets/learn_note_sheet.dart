@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
 import '../model/video_model.dart';
 import '../../../services/video_progress_service.dart';
 
@@ -75,15 +76,14 @@ class LearnNoteSheet extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 10),
-                            const Flexible(
+                            Flexible(
                               child: Text(
                                 'Learn — quick note',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
+                                style: AppFonts.bold(
                                   color: AppTheme.textPrimary,
                                   fontSize: 16,
-                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
@@ -94,7 +94,7 @@ class LearnNoteSheet extends StatelessWidget {
                           video.displayTitle,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: AppFonts.regular(
                             color: AppTheme.textMuted,
                             fontSize: 12.5,
                             height: 1.35,
@@ -144,10 +144,7 @@ class LearnNoteSheet extends StatelessWidget {
                         AppTheme.radiusMedium,
                       ),
                     ),
-                    textStyle: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    textStyle: AppFonts.bold(fontSize: 15),
                   ),
                   onPressed: () => Navigator.of(context).pop(),
                   child: const Text('Got it'),
@@ -167,7 +164,7 @@ class LearnNoteSheet extends StatelessWidget {
         if (_hasNote)
           Text(
             video.learnText,
-            style: const TextStyle(
+            style: AppFonts.regular(
               color: AppTheme.textPrimary,
               fontSize: 15,
               height: 1.55,
@@ -175,12 +172,11 @@ class LearnNoteSheet extends StatelessWidget {
           ),
         if (_hasPoints) ...[
           if (_hasNote) const SizedBox(height: 20),
-          const Text(
+          Text(
             'KEY POINTS',
-            style: TextStyle(
+            style: AppFonts.bold(
               color: AppTheme.textMuted,
               fontSize: 11.5,
-              fontWeight: FontWeight.w700,
               letterSpacing: 0.8,
             ),
           ),
@@ -209,7 +205,7 @@ class LearnNoteSheet extends StatelessWidget {
                   Expanded(
                     child: Text(
                       point,
-                      style: const TextStyle(
+                      style: AppFonts.regular(
                         color: AppTheme.textPrimary,
                         fontSize: 15,
                         height: 1.45,
@@ -233,24 +229,23 @@ class LearnNoteSheet extends StatelessWidget {
         color: AppTheme.surfaceAlt,
         borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
       ),
-      child: const Column(
+      child: Column(
         children: [
           Icon(Icons.lightbulb_outline, color: AppTheme.textMuted, size: 28),
           SizedBox(height: 10),
           Text(
             'This episode\'s quick note isn\'t ready yet.',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: AppFonts.semiBold(
               color: AppTheme.textPrimary,
               fontSize: 14.5,
-              fontWeight: FontWeight.w600,
             ),
           ),
           SizedBox(height: 6),
           Text(
             'The note written for this video will appear here.',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: AppFonts.regular(
               color: AppTheme.textMuted,
               fontSize: 12.5,
               height: 1.4,

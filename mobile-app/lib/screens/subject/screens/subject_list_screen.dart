@@ -4,6 +4,7 @@ import '../model/subject_model.dart';
 import '../provider/subject_provider.dart';
 import '../widgets/subject_card.dart';
 import '../../../themes/app_theme.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import 'subject_videos_screen.dart';
 import '../../video/provider/video_provider.dart';
 
@@ -34,18 +35,7 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: const Text(
-          'Learn',
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.textPrimary),
-      ),
+      appBar: const CommonAppBar(title: 'Learn'),
       body: Consumer2<SubjectProvider, VideoProvider>(
         builder: (context, subjectProvider, videoProvider, child) {
           if (subjectProvider.isLoading) {
@@ -129,7 +119,12 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
             backgroundColor: AppTheme.surface,
             color: AppTheme.primary,
             child: ListView.builder(
-              padding: const EdgeInsets.all(AppTheme.paddingMedium),
+              padding: EdgeInsets.fromLTRB(
+                AppTheme.paddingMedium,
+                AppTheme.paddingMedium,
+                AppTheme.paddingMedium,
+                AppTheme.paddingMedium + MediaQuery.paddingOf(context).bottom,
+              ),
               itemCount: groups.length,
               itemBuilder: (context, groupIndex) {
                 final group = groups[groupIndex];

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../model/video_model.dart';
 import '../../../services/video_progress_service.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
 import '../../bookmark/provider/bookmark_provider.dart';
 import '../../schedule/service/alarm_service.dart';
 
@@ -38,7 +39,7 @@ class VideoCard extends StatelessWidget {
         SnackBar(
           content: Text(
             isBookmarked ? 'Added to bookmarks' : 'Removed from bookmarks',
-            style: const TextStyle(color: AppTheme.onPrimary),
+            style: AppFonts.regular(color: AppTheme.onPrimary),
           ),
           backgroundColor: AppTheme.textPrimary,
           duration: const Duration(seconds: 2),
@@ -183,10 +184,9 @@ class VideoCard extends StatelessWidget {
                                 progress!.completed
                                     ? 'Completed'
                                     : 'In progress',
-                                style: const TextStyle(
+                                style: AppFonts.semiBold(
                                   color: AppTheme.onPrimary,
                                   fontSize: 9,
-                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],

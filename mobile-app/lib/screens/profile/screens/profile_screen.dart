@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../../services/api_client.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import '../../auth/model/user_model.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../../services/session.dart';
@@ -24,24 +26,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        backgroundColor: AppTheme.background,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.textPrimary),
-        title: const Text(
-          'Me',
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
+      appBar: const CommonAppBar(title: 'Me'),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          8,
+          16,
+          28 + MediaQuery.paddingOf(context).bottom,
+        ),
         children: [
-          const Text('Your learning space', style: AppTheme.sectionTitle),
+          Text('Your learning space', style: AppTheme.sectionTitle),
           const SizedBox(height: 5),
-          const Text(
+          Text(
             'Keep your saved work, questions, and preferences close.',
             style: AppTheme.sectionIntro,
           ),
@@ -85,11 +81,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 alignment: Alignment.center,
                 child: Text(
                   _initials(displayName),
-                  style: const TextStyle(
-                    color: AppTheme.onPrimary,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: AppFonts.bold(color: AppTheme.onPrimary, fontSize: 22),
                 ),
               ),
               const SizedBox(width: 16),
@@ -101,17 +93,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: AppFonts.bold(
                         color: AppTheme.textPrimary,
                         fontSize: 19,
-                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     if (phone.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
                         phone,
-                        style: const TextStyle(
+                        style: AppFonts.regular(
                           color: AppTheme.textMuted,
                           fontSize: 13.5,
                         ),
@@ -154,11 +145,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Text(
         text,
-        style: const TextStyle(
-          color: AppTheme.primary,
-          fontSize: 11.5,
-          fontWeight: FontWeight.w700,
-        ),
+        style: AppFonts.bold(color: AppTheme.primary, fontSize: 11.5),
       ),
     );
   }
@@ -178,29 +165,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
-          title: const Text(
+          title: Text(
             'Edit profile',
-            style: TextStyle(color: AppTheme.textPrimary),
+            style: AppFonts.medium(color: AppTheme.textPrimary),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                style: const TextStyle(color: AppTheme.textPrimary),
+                style: AppFonts.regular(color: AppTheme.textPrimary),
                 decoration: const InputDecoration(labelText: 'Name'),
               ),
               TextField(
                 controller: classController,
-                style: const TextStyle(color: AppTheme.textPrimary),
+                style: AppFonts.regular(color: AppTheme.textPrimary),
                 decoration: const InputDecoration(labelText: 'Class'),
               ),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Text(
+                  Text(
                     'Language',
-                    style: TextStyle(color: AppTheme.textMuted),
+                    style: AppFonts.regular(color: AppTheme.textMuted),
                   ),
                   const Spacer(),
                   ToggleButtons(
@@ -279,14 +266,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.only(left: 4, bottom: 10),
           child: Text(
             'Your space',
-            style: TextStyle(
+            style: AppFonts.extraBold(
               color: AppTheme.textPrimary,
               fontSize: 15,
-              fontWeight: FontWeight.w800,
             ),
           ),
         ),
@@ -365,10 +351,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       Text(
                         label,
-                        style: const TextStyle(
+                        style: AppFonts.semiBold(
                           color: AppTheme.textPrimary,
                           fontSize: 15,
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -376,7 +361,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         subtitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: AppFonts.regular(
                           color: AppTheme.textMuted,
                           fontSize: 12,
                         ),
@@ -491,10 +476,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             onPressed: () => _confirmLogout(context, authProvider),
             icon: const Icon(Icons.logout, size: 18),
-            label: const Text(
-              'Logout',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
+            label: Text('Logout', style: AppFonts.bold()),
           ),
         );
       },
@@ -509,20 +491,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         ),
-        title: const Text(
+        title: Text(
           'Logout',
-          style: TextStyle(color: AppTheme.textPrimary, fontSize: 19),
+          style: AppFonts.medium(color: AppTheme.textPrimary, fontSize: 19),
         ),
-        content: const Text(
+        content: Text(
           'Are you sure you want to logout?',
-          style: TextStyle(color: AppTheme.textMuted, fontSize: 15),
+          style: AppFonts.regular(color: AppTheme.textMuted, fontSize: 15),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text(
+            child: Text(
               'Cancel',
-              style: TextStyle(color: AppTheme.textPrimary),
+              style: AppFonts.medium(color: AppTheme.textPrimary),
             ),
           ),
           ElevatedButton(

@@ -10,6 +10,8 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 import '../../../services/video_progress_service.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import '../../bookmark/provider/bookmark_provider.dart';
 import '../model/video_model.dart';
 import '../provider/video_provider.dart';
@@ -245,15 +247,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
                 Icon(Icons.verified, color: AppTheme.success),
                 SizedBox(width: 8),
                 Text(
                   'Video completed',
-                  style: TextStyle(
+                  style: AppFonts.bold(
                     fontSize: 18,
-                    fontWeight: FontWeight.w700,
                     color: AppTheme.textPrimary,
                   ),
                 ),
@@ -264,7 +265,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               'You finished "${widget.video.displayTitle}". '
               'Answer ${status.questionCount} question'
               '${status.questionCount == 1 ? '' : 's'} about it.',
-              style: const TextStyle(color: AppTheme.textMuted, height: 1.35),
+              style: AppFonts.regular(color: AppTheme.textMuted, height: 1.35),
             ),
             const SizedBox(height: 20),
             SizedBox(
@@ -286,9 +287,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text(
+              child: Text(
                 'Later',
-                style: TextStyle(color: AppTheme.textMuted),
+                style: AppFonts.medium(color: AppTheme.textMuted),
               ),
             ),
           ],
@@ -318,7 +319,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         SnackBar(
           content: Text(
             isBookmarked ? 'Added to bookmarks' : 'Removed from bookmarks',
-            style: const TextStyle(color: AppTheme.onPrimary),
+            style: AppFonts.regular(color: AppTheme.onPrimary),
           ),
           backgroundColor: AppTheme.textPrimary,
           duration: const Duration(seconds: 2),
@@ -478,7 +479,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                         color: AppTheme.success,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
@@ -489,10 +490,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                           SizedBox(width: 4),
                           Text(
                             'Completed',
-                            style: TextStyle(
+                            style: AppFonts.semiBold(
                               color: Colors.white,
                               fontSize: 12,
-                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
@@ -537,11 +537,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     widget.video.displayTitle,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: AppFonts.bold(
                       color: Colors.white,
                       fontSize: 17,
                       height: 1.3,
-                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -553,7 +552,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                       if (widget.video.formattedDate.isNotEmpty)
                         widget.video.formattedDate,
                     ].join('  ·  '),
-                    style: const TextStyle(
+                    style: AppFonts.regular(
                       color: Colors.white70,
                       fontSize: 12.5,
                     ),
@@ -613,10 +612,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         ),
         child: Text(
           label,
-          style: TextStyle(
+          style: AppFonts.semiBold(
             color: enabled ? Colors.white : Colors.white38,
             fontSize: 12.5,
-            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -647,17 +645,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       backgroundColor: AppTheme.backgroundColor,
       appBar: _isFullScreen
           ? null
-          : AppBar(
-              title: Text(
-                widget.video.displayTitle,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              iconTheme: const IconThemeData(color: AppTheme.textPrimary),
+          : CommonAppBar(
+              title: widget.video.displayTitle,
               actions: [
                 Consumer<BookmarkProvider>(
                   builder: (context, bookmarkProvider, child) {
@@ -735,16 +724,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                         color: AppTheme.danger,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           SizedBox(width: 4),
                           Text(
                             'LIVE',
-                            style: TextStyle(
+                            style: AppFonts.bold(
                               color: AppTheme.primaryWhite,
                               fontSize: 12,
-                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
@@ -789,18 +777,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   Widget _buildUnsupportedScreen() {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: Text(
-          widget.video.displayTitle,
-          style: const TextStyle(
-            color: AppTheme.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.textPrimary),
-      ),
+      appBar: CommonAppBar(title: widget.video.displayTitle),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(AppTheme.paddingLarge),
@@ -813,10 +790,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                 color: AppTheme.secondaryGray,
               ),
               const SizedBox(height: AppTheme.paddingMedium),
-              const Text(
+              Text(
                 'This video cannot be played right now.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppTheme.textPrimary, fontSize: 16),
+                style: AppFonts.regular(
+                  color: AppTheme.textPrimary,
+                  fontSize: 16,
+                ),
               ),
               const SizedBox(height: AppTheme.paddingLarge),
               ElevatedButton(

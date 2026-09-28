@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../model/notification_model.dart';
 import '../provider/notification_provider.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import '../../../widgets/common/loading_skeleton.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -64,18 +66,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: const Text(
-          'Notifications',
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.textPrimary),
-      ),
+      appBar: const CommonAppBar(title: 'Notifications'),
       body: Consumer<NotificationProvider>(
         builder: (context, notificationProvider, child) {
           if (notificationProvider.isLoading) {
@@ -124,10 +115,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: TextField(
         controller: _searchController,
         onChanged: _onSearchChanged,
-        style: const TextStyle(color: AppTheme.textPrimary),
+        style: AppFonts.regular(color: AppTheme.textPrimary),
         decoration: InputDecoration(
           hintText: 'Search notifications...',
-          hintStyle: TextStyle(color: AppTheme.secondaryGray),
+          hintStyle: AppFonts.regular(color: AppTheme.secondaryGray),
           prefixIcon: Icon(Icons.search, color: AppTheme.secondaryGray),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
@@ -157,7 +148,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             builder: (context, notificationProvider, child) {
               return Text(
                 '${_filteredNotifications.length} notification${_filteredNotifications.length != 1 ? 's' : ''}',
-                style: TextStyle(color: AppTheme.secondaryGray, fontSize: 14),
+                style: AppFonts.regular(
+                  color: AppTheme.secondaryGray,
+                  fontSize: 14,
+                ),
               );
             },
           ),
@@ -222,10 +216,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   children: [
                     Text(
                       notification.title,
-                      style: const TextStyle(
+                      style: AppFonts.medium(
                         color: AppTheme.textPrimary,
                         fontSize: 16,
-                        fontWeight: FontWeight.w500,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -235,7 +228,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
                     Text(
                       notification.description,
-                      style: const TextStyle(
+                      style: AppFonts.regular(
                         color: AppTheme.secondaryGray,
                         fontSize: 14,
                       ),
@@ -247,7 +240,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
                     Text(
                       notification.formattedDate,
-                      style: const TextStyle(
+                      style: AppFonts.regular(
                         color: AppTheme.secondaryGray,
                         fontSize: 12,
                       ),
@@ -390,17 +383,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             children: [
               Text(
                 notification.title,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 19,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 19),
               ),
               const SizedBox(height: 8),
               if (notification.formattedDate.isNotEmpty)
                 Text(
                   notification.formattedDate,
-                  style: const TextStyle(
+                  style: AppFonts.regular(
                     color: AppTheme.textMuted,
                     fontSize: 12.5,
                   ),
@@ -408,7 +397,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               const SizedBox(height: 16),
               Text(
                 notification.description,
-                style: const TextStyle(
+                style: AppFonts.regular(
                   color: AppTheme.textPrimary,
                   fontSize: 15,
                   height: 1.5,

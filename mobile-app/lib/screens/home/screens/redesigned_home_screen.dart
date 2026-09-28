@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import '../../../services/today_service.dart';
 import '../../../services/video_progress_service.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import '../../assignment/screens/assignments_screen.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../bookmark/provider/bookmark_provider.dart';
@@ -67,6 +69,11 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
+      appBar: CommonAppBar(
+        title: _greeting(),
+        centerTitle: false,
+        actions: _appBarActions(),
+      ),
       body: RefreshIndicator(
         onRefresh: _refresh,
         color: AppTheme.primary,
@@ -76,19 +83,21 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
           slivers: [
             SliverToBoxAdapter(child: _header()),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 2, 16, 32),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                2,
+                16,
+                32 + MediaQuery.paddingOf(context).bottom,
+              ),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   _todayCard(),
                   const SizedBox(height: 16),
                   _statsStrip(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                   _shortcuts(),
-                  const SizedBox(height: 28),
                   _continueSection(),
-                  const SizedBox(height: 28),
                   _subjectsSection(),
-                  const SizedBox(height: 28),
                   _upcomingSection(),
                 ]),
               ),
@@ -100,91 +109,66 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   }
 
   Widget _header() {
-    return SafeArea(
-      bottom: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 16, 12, 12),
-        child: Row(
-          children: [
-            Expanded(
-              child: Consumer<AuthProvider>(
-                builder: (context, auth, _) {
-                  final name = (auth.user?.name ?? '').trim();
-                  final first = name.isEmpty
-                      ? 'learner'
-                      : name.split(' ').first;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _greeting(),
-                        style: const TextStyle(
-                          color: AppTheme.textMuted,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'Ready for a small win, $first?',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppTheme.textPrimary,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+      child: Consumer<AuthProvider>(
+        builder: (context, auth, _) {
+          final name = (auth.user?.name ?? '').trim();
+          final first = name.isEmpty ? 'learner' : name.split(' ').first;
+          return Text(
+            'Ready for a small win, $first?',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppFonts.extraBold(
+              color: AppTheme.textPrimary,
+              fontSize: 20,
             ),
-            Consumer<NotificationProvider>(
-              builder: (context, notifications, _) => _headerIcon(
-                Icons.notifications_none_rounded,
-                'Notifications',
-                notifications.unreadCount,
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const NotificationsScreen(),
-                  ),
+          );
+        },
+      ),
+    );
+  }
+
+  List<Widget> _appBarActions() {
+    return [
+      Consumer<NotificationProvider>(
+        builder: (context, notifications, _) => _headerIcon(
+          Icons.notifications_none_rounded,
+          'Notifications',
+          notifications.unreadCount,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+          ),
+        ),
+      ),
+      const SizedBox(width: 2),
+      Consumer<AuthProvider>(
+        builder: (context, auth, _) {
+          final name = (auth.user?.name ?? 'Learner').trim();
+          return Semantics(
+            label: 'Open profile',
+            button: true,
+            child: InkWell(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              ),
+              customBorder: const CircleBorder(),
+              child: CircleAvatar(
+                radius: 20,
+                backgroundColor: AppTheme.primary,
+                child: Text(
+                  _initials(name),
+                  style: AppFonts.extraBold(color: AppTheme.onPrimary),
                 ),
               ),
             ),
-            const SizedBox(width: 2),
-            Consumer<AuthProvider>(
-              builder: (context, auth, _) {
-                final name = (auth.user?.name ?? 'Learner').trim();
-                return Semantics(
-                  label: 'Open profile',
-                  button: true,
-                  child: InkWell(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                    ),
-                    customBorder: const CircleBorder(),
-                    child: CircleAvatar(
-                      radius: 20,
-                      backgroundColor: AppTheme.primary,
-                      child: Text(
-                        _initials(name),
-                        style: const TextStyle(
-                          color: AppTheme.onPrimary,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
+          );
+        },
       ),
-    );
+      const SizedBox(width: 12),
+    ];
   }
 
   Widget _headerIcon(
@@ -214,11 +198,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                 child: Text(
                   badge > 9 ? '9+' : '$badge',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: AppFonts.extraBold(color: Colors.white, fontSize: 9),
                 ),
               ),
             ),
@@ -269,10 +249,9 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
             const SizedBox(width: 8),
             Text(
               _itemLabel(item),
-              style: TextStyle(
+              style: AppFonts.extraBold(
                 color: Colors.white.withValues(alpha: 0.85),
                 fontSize: 12,
-                fontWeight: FontWeight.w800,
                 letterSpacing: 0.3,
               ),
             ),
@@ -280,7 +259,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
             if (item.estimatedMinutes != null)
               Text(
                 '${item.estimatedMinutes} min',
-                style: TextStyle(
+                style: AppFonts.regular(
                   color: Colors.white.withValues(alpha: 0.72),
                   fontSize: 12,
                 ),
@@ -292,11 +271,10 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
           item.title,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
+          style: AppFonts.extraBold(
             color: Colors.white,
             fontSize: 21,
             height: 1.18,
-            fontWeight: FontWeight.w800,
           ),
         ),
         const SizedBox(height: 6),
@@ -304,7 +282,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
           _itemDescription(item),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(
+          style: AppFonts.regular(
             color: Colors.white.withValues(alpha: 0.78),
             fontSize: 13,
             height: 1.35,
@@ -359,20 +337,22 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 28),
-        const SizedBox(height: 12),
-        const Text(
-          'Your next small win',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 21,
-            fontWeight: FontWeight.w800,
-          ),
+        Row(
+          children: [
+            Flexible(
+              child: Text(
+                'Your next small win',
+                style: AppFonts.extraBold(color: Colors.white, fontSize: 21),
+              ),
+            ),
+            SizedBox(width: 12),
+            Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 24),
+          ],
         ),
         const SizedBox(height: 6),
         Text(
           'Pick a short lesson and keep your rhythm gentle.',
-          style: TextStyle(
+          style: AppFonts.regular(
             color: Colors.white.withValues(alpha: 0.78),
             fontSize: 13,
           ),
@@ -443,21 +423,19 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
           const SizedBox(width: 7),
           Flexible(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: AppFonts.extraBold(
                     color: AppTheme.textPrimary,
                     fontSize: 15,
-                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 Text(
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: AppFonts.regular(
                     color: AppTheme.textMuted,
                     fontSize: 10.5,
                   ),
@@ -493,16 +471,12 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
         _sectionHeader('Your shortcuts', null),
         const SizedBox(height: 12),
         Row(
-          children: actions
-              .map(
-                (action) => Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: _shortcut(action),
-                  ),
-                ),
-              )
-              .toList(),
+          children: [
+            for (var i = 0; i < actions.length; i++) ...[
+              if (i > 0) const SizedBox(width: 10),
+              Expanded(child: _shortcut(actions[i])),
+            ],
+          ],
         ),
       ],
     );
@@ -531,11 +505,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 11),
               ),
             ],
           ),
@@ -552,6 +522,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 16),
             _sectionHeader('Pick up where you left off', _openLearn),
             const SizedBox(height: 12),
             SizedBox(
@@ -559,7 +530,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: items.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
                 itemBuilder: (context, index) {
                   final video = items[index];
                   return _continueCard(video, videos.progressFor(video.id));
@@ -580,7 +551,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
         onTap: () => _openVideo(video),
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.all(9),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: AppTheme.surface,
             borderRadius: BorderRadius.circular(12),
@@ -608,7 +579,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                       video.subjectName ?? 'Lesson',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: AppFonts.regular(
                         color: AppTheme.textMuted,
                         fontSize: 10.5,
                       ),
@@ -618,11 +589,10 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                       video.displayTitle,
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: AppFonts.bold(
                         color: AppTheme.textPrimary,
                         fontSize: 12,
                         height: 1.25,
-                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -642,7 +612,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                       progress?.completed == true
                           ? 'Completed'
                           : '${(percent * 100).round()}% watched',
-                      style: const TextStyle(
+                      style: AppFonts.regular(
                         color: AppTheme.textMuted,
                         fontSize: 10.5,
                       ),
@@ -665,14 +635,13 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 16),
             _sectionHeader('Choose a subject', _openLearn),
             const SizedBox(height: 12),
-            ...items.map(
-              (subject) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _subjectCard(subject),
-              ),
-            ),
+            for (var i = 0; i < items.length; i++) ...[
+              if (i > 0) const SizedBox(height: 10),
+              _subjectCard(items[i]),
+            ],
           ],
         );
       },
@@ -718,16 +687,18 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                       subject.displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: AppFonts.extraBold(
                         color: AppTheme.textPrimary,
                         fontSize: 14,
-                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
+                    Text(
                       'Open chapter',
-                      style: TextStyle(color: AppTheme.textMuted, fontSize: 11),
+                      style: AppFonts.regular(
+                        color: AppTheme.textMuted,
+                        fontSize: 11,
+                      ),
                     ),
                   ],
                 ),
@@ -750,104 +721,105 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const SizedBox(height: 16),
         _sectionHeader('Due work', _openPractice),
         const SizedBox(height: 12),
-        ...items.map(_upcomingRow),
+        for (var i = 0; i < items.length; i++) ...[
+          if (i > 0) const SizedBox(height: 10),
+          _upcomingRow(items[i]),
+        ],
       ],
     );
   }
 
   Widget _upcomingRow(TodayLearningItem item) {
     final color = item.status == 'overdue' ? AppTheme.danger : AppTheme.primary;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 9),
-      child: InkWell(
-        onTap: () => _openTodayItem(
-          item,
-          context.read<VideoProvider>().getVideoById(item.id),
+    return InkWell(
+      onTap: () => _openTodayItem(
+        item,
+        context.read<VideoProvider>().getVideoById(item.id),
+      ),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppTheme.border),
         ),
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-          decoration: BoxDecoration(
-            color: AppTheme.surface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppTheme.border),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Icon(_iconForKind(item.kind), color: color, size: 18),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(9),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                      ),
+              child: Icon(_iconForKind(item.kind), color: color, size: 18),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppFonts.bold(
+                      color: AppTheme.textPrimary,
+                      fontSize: 13,
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      _upcomingMeta(item),
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    _upcomingMeta(item),
+                    style: AppFonts.semiBold(color: color, fontSize: 11),
+                  ),
+                ],
               ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppTheme.textMuted,
-                size: 20,
-              ),
-            ],
-          ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppTheme.textMuted,
+              size: 20,
+            ),
+          ],
         ),
       ),
     );
   }
 
+  // Every section header shares one height so headers with and without
+  // "See all" sit the same distance from the content around them.
   Widget _sectionHeader(String title, VoidCallback? onMore) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 40),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: AppFonts.extraBold(
+                color: AppTheme.textPrimary,
+                fontSize: 18,
+              ),
             ),
           ),
-        ),
-        if (onMore != null)
-          TextButton(
-            onPressed: onMore,
-            style: TextButton.styleFrom(
-              foregroundColor: AppTheme.primary,
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              minimumSize: const Size(44, 40),
+          if (onMore != null)
+            TextButton(
+              onPressed: onMore,
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.primary,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                minimumSize: const Size(44, 40),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('See all'),
             ),
-            child: const Text('See all'),
-          ),
-      ],
+        ],
+      ),
     );
   }
 

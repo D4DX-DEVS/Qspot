@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../../services/api_client.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import '../model/quiz_model.dart';
 import '../provider/quiz_provider.dart';
 import 'quiz_question_screen.dart';
@@ -178,18 +180,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: const Text(
-          'Quiz',
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.textPrimary),
-      ),
+      appBar: const CommonAppBar(title: 'Quiz'),
       body: Consumer<QuizProvider>(
         builder: (context, quizProvider, child) {
           if (quizProvider.isListLoading) {
@@ -444,14 +435,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+      child: Text(label, style: AppFonts.bold(color: color, fontSize: 11)),
     );
   }
 

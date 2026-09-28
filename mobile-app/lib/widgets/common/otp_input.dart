@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../themes/app_theme.dart';
+import '../../themes/app_fonts.dart';
 
 /// Six (or N) separate digit boxes for OTP entry.
 ///
@@ -154,11 +155,7 @@ class _OtpInputState extends State<OtpInput> {
         maxLength: widget.length,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         onChanged: (value) => _handleChange(index, value),
-        style: const TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.w600,
-          color: AppTheme.textPrimary,
-        ),
+        style: AppFonts.semiBold(fontSize: 22, color: AppTheme.textPrimary),
         decoration: InputDecoration(
           counterText: '',
           filled: true,

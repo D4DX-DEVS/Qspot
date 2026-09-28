@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import '../../common/screens/contact_us_screen.dart';
 import '../../question/screens/ask_question_screen.dart';
 import '../../question/screens/my_questions_screen.dart';
@@ -65,18 +67,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: const Text(
-          'Settings',
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.textPrimary),
-      ),
+      appBar: const CommonAppBar(title: 'Settings'),
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: AppTheme.gradientEnd),
@@ -431,10 +422,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.only(left: 4, bottom: 4),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(
+        style: AppFonts.bold(
           color: AppTheme.textMuted,
           fontSize: 11.5,
-          fontWeight: FontWeight.w700,
           letterSpacing: 0.8,
         ),
       ),
@@ -473,11 +463,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 alignment: Alignment.center,
                 child: Text(
                   initial,
-                  style: const TextStyle(
-                    color: AppTheme.onPrimary,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: AppFonts.bold(color: AppTheme.onPrimary, fontSize: 22),
                 ),
               ),
               const SizedBox(width: 14),
@@ -489,17 +475,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       name.isEmpty ? 'QSPOT student' : name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: AppFonts.bold(
                         color: AppTheme.textPrimary,
                         fontSize: 17,
-                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     if (meta.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
                         meta,
-                        style: const TextStyle(
+                        style: AppFonts.regular(
                           color: AppTheme.textMuted,
                           fontSize: 13,
                         ),
@@ -550,17 +535,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
+                        style: AppFonts.semiBold(
                           color: AppTheme.textPrimary,
                           fontSize: 15,
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       if (subtitle.isNotEmpty) ...[
                         const SizedBox(height: 2),
                         Text(
                           subtitle,
-                          style: const TextStyle(
+                          style: AppFonts.regular(
                             color: AppTheme.textMuted,
                             fontSize: 12.5,
                             height: 1.3,
@@ -732,26 +716,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Icon(Icons.logout, color: AppTheme.danger, size: 24),
             const SizedBox(width: AppTheme.paddingSmall),
-            const Text(
+            Text(
               'Logout',
-              style: TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 20),
             ),
           ],
         ),
-        content: const Text(
+        content: Text(
           'Are you sure you want to logout?',
-          style: TextStyle(color: AppTheme.secondaryGray, fontSize: 16),
+          style: AppFonts.regular(color: AppTheme.secondaryGray, fontSize: 16),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text(
+            child: Text(
               'Cancel',
-              style: TextStyle(color: AppTheme.textPrimary),
+              style: AppFonts.medium(color: AppTheme.textPrimary),
             ),
           ),
           ElevatedButton(
@@ -972,12 +952,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Icon(Icons.email, color: AppTheme.gradientEnd, size: 24),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'Send Feedback',
-                style: TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppFonts.bold(color: AppTheme.textPrimary),
               ),
             ],
           ),
@@ -985,9 +962,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'No email app found. Please send your feedback manually to:',
-                style: TextStyle(color: AppTheme.textPrimary),
+                style: AppFonts.regular(color: AppTheme.textPrimary),
               ),
               const SizedBox(height: 16),
               Container(
@@ -1003,9 +980,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     Row(
                       children: [
-                        const Text(
+                        Text(
                           'Email: ',
-                          style: TextStyle(
+                          style: AppFonts.regular(
                             color: AppTheme.secondaryGray,
                             fontSize: 12,
                           ),
@@ -1013,10 +990,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Expanded(
                           child: Text(
                             'mail@d4dx.co',
-                            style: const TextStyle(
-                              color: AppTheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: AppFonts.semiBold(color: AppTheme.primary),
                           ),
                         ),
                         IconButton(
@@ -1025,10 +999,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               const ClipboardData(text: 'mail@d4dx.co'),
                             );
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Text(
                                   'Email copied to clipboard',
-                                  style: TextStyle(color: AppTheme.onPrimary),
+                                  style: AppFonts.regular(
+                                    color: AppTheme.onPrimary,
+                                  ),
                                 ),
                                 backgroundColor: AppTheme.gradientEnd,
                                 duration: Duration(seconds: 2),
@@ -1045,9 +1021,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Subject: QSpot App Feedback',
-                      style: TextStyle(
+                      style: AppFonts.regular(
                         color: AppTheme.secondaryGray,
                         fontSize: 12,
                       ),
@@ -1060,9 +1036,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
+              child: Text(
                 'Close',
-                style: TextStyle(color: AppTheme.gradientEnd),
+                style: AppFonts.medium(color: AppTheme.gradientEnd),
               ),
             ),
             ElevatedButton(
@@ -1083,10 +1059,10 @@ Thank you!''';
                 Clipboard.setData(ClipboardData(text: fullTemplate));
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                  SnackBar(
                     content: Text(
                       'Email template copied to clipboard',
-                      style: TextStyle(color: AppTheme.onPrimary),
+                      style: AppFonts.regular(color: AppTheme.onPrimary),
                     ),
                     backgroundColor: AppTheme.gradientEnd,
                     duration: Duration(seconds: 2),

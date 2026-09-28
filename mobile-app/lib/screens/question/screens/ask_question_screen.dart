@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../services/api_client.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
 import '../../speaker/provider/speaker_provider.dart';
 import '../model/question_model.dart';
 import '../../speaker/model/speaker_model.dart';
@@ -130,7 +131,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                   Expanded(
                                     child: Text(
                                       'Ask questions to our faculties and get answers',
-                                      style: TextStyle(
+                                      style: AppFonts.regular(
                                         color: AppTheme.textPrimary,
                                         fontSize: 14,
                                       ),
@@ -143,12 +144,11 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                             const SizedBox(height: AppTheme.paddingLarge),
 
                             // Faculty Selection
-                            const Text(
+                            Text(
                               'Select Faculty',
-                              style: TextStyle(
+                              style: AppFonts.semiBold(
                                 color: AppTheme.textPrimary,
                                 fontSize: 16,
-                                fontWeight: FontWeight.w600,
                               ),
                             ),
                             const SizedBox(height: AppTheme.paddingSmall),
@@ -170,14 +170,14 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                 child: DropdownButton<SpeakerModel>(
                                   isExpanded: true,
                                   value: _selectedFaculty,
-                                  hint: const Text(
+                                  hint: Text(
                                     'Choose a faculty',
-                                    style: TextStyle(
+                                    style: AppFonts.regular(
                                       color: AppTheme.secondaryGray,
                                     ),
                                   ),
                                   dropdownColor: AppTheme.background,
-                                  style: const TextStyle(
+                                  style: AppFonts.regular(
                                     color: AppTheme.textPrimary,
                                     fontSize: 16,
                                   ),
@@ -192,7 +192,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                       value: speaker,
                                       child: Text(
                                         speaker.name,
-                                        style: const TextStyle(
+                                        style: AppFonts.regular(
                                           color: AppTheme.textPrimary,
                                           fontSize: 16,
                                         ),
@@ -212,24 +212,23 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                             const SizedBox(height: AppTheme.paddingLarge),
 
                             // Subject Field
-                            const Text(
+                            Text(
                               'Subject',
-                              style: TextStyle(
+                              style: AppFonts.semiBold(
                                 color: AppTheme.textPrimary,
                                 fontSize: 16,
-                                fontWeight: FontWeight.w600,
                               ),
                             ),
                             const SizedBox(height: AppTheme.paddingSmall),
                             TextFormField(
                               controller: _subjectController,
-                              style: const TextStyle(
+                              style: AppFonts.regular(
                                 color: AppTheme.textPrimary,
                                 fontSize: 16,
                               ),
                               decoration: InputDecoration(
                                 hintText: 'Enter subject',
-                                hintStyle: TextStyle(
+                                hintStyle: AppFonts.regular(
                                   color: AppTheme.secondaryGray,
                                 ),
                                 filled: true,
@@ -274,26 +273,25 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                             const SizedBox(height: AppTheme.paddingLarge),
 
                             // Description Field
-                            const Text(
+                            Text(
                               'Your Question',
-                              style: TextStyle(
+                              style: AppFonts.semiBold(
                                 color: AppTheme.textPrimary,
                                 fontSize: 16,
-                                fontWeight: FontWeight.w600,
                               ),
                             ),
                             const SizedBox(height: AppTheme.paddingSmall),
                             TextFormField(
                               controller: _descriptionController,
                               maxLines: 8,
-                              style: const TextStyle(
+                              style: AppFonts.regular(
                                 color: AppTheme.textPrimary,
                                 fontSize: 16,
                               ),
                               decoration: InputDecoration(
                                 hintText:
                                     'Enter your question here in detail...',
-                                hintStyle: TextStyle(
+                                hintStyle: AppFonts.regular(
                                   color: AppTheme.secondaryGray,
                                 ),
                                 filled: true,
@@ -366,12 +364,9 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                           strokeWidth: 2,
                                         ),
                                       )
-                                    : const Text(
+                                    : Text(
                                         'Submit Question',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                        style: AppFonts.bold(fontSize: 16),
                                       ),
                               ),
                             ),
@@ -417,13 +412,9 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
               ),
             ),
           ),
-          const Text(
+          Text(
             'Ask a question',
-            style: TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-            ),
+            style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 17),
           ),
           Align(
             alignment: Alignment.centerRight,
@@ -448,10 +439,10 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
   Future<void> _submitQuestion() async {
     if (_selectedFaculty == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
             'Please select a faculty',
-            style: TextStyle(color: AppTheme.onPrimary),
+            style: AppFonts.regular(color: AppTheme.onPrimary),
           ),
           backgroundColor: AppTheme.danger,
         ),
@@ -483,10 +474,10 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
           });
 
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text(
                 'Question submitted successfully!',
-                style: TextStyle(color: AppTheme.onPrimary),
+                style: AppFonts.regular(color: AppTheme.onPrimary),
               ),
               backgroundColor: AppTheme.gradientStart,
               duration: Duration(seconds: 3),
@@ -505,7 +496,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
             SnackBar(
               content: Text(
                 message,
-                style: const TextStyle(color: AppTheme.onPrimary),
+                style: AppFonts.regular(color: AppTheme.onPrimary),
               ),
               backgroundColor: AppTheme.danger,
               duration: const Duration(seconds: 3),

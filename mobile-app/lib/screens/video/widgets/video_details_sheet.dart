@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../services/video_progress_service.dart';
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
 import '../model/video_model.dart';
 import '../provider/video_provider.dart';
 import '../screens/video_questions_screen.dart';
@@ -107,12 +108,11 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
                       ),
                     ),
                   ),
-                  const Text(
+                  Text(
                     'Episode details',
-                    style: TextStyle(
+                    style: AppFonts.bold(
                       color: AppTheme.textPrimary,
                       fontSize: 17,
-                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
@@ -124,7 +124,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
                 widget.video.displayTitle,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: AppFonts.regular(
                   color: AppTheme.textMuted,
                   fontSize: 12.5,
                   height: 1.35,
@@ -138,14 +138,8 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
               unselectedLabelColor: AppTheme.textMuted,
               indicatorColor: AppTheme.primary,
               indicatorSize: TabBarIndicatorSize.tab,
-              labelStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
-              unselectedLabelStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              labelStyle: AppFonts.bold(fontSize: 14),
+              unselectedLabelStyle: AppFonts.medium(fontSize: 14),
               tabs: const [
                 Tab(text: 'Learn'),
                 Tab(text: 'Downloads'),
@@ -171,7 +165,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
         child: Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: AppFonts.regular(
             color: AppTheme.textMuted,
             fontSize: 14,
             height: 1.5,
@@ -193,7 +187,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
         if (video.learnText.isNotEmpty)
           Text(
             video.learnText,
-            style: const TextStyle(
+            style: AppFonts.regular(
               color: AppTheme.textPrimary,
               fontSize: 15,
               height: 1.55,
@@ -201,12 +195,11 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
           ),
         if (video.learnPoints.isNotEmpty) ...[
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'KEY POINTS',
-            style: TextStyle(
+            style: AppFonts.bold(
               color: AppTheme.textMuted,
               fontSize: 11.5,
-              fontWeight: FontWeight.w700,
               letterSpacing: 0.8,
             ),
           ),
@@ -235,7 +228,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
                   Expanded(
                     child: Text(
                       point,
-                      style: const TextStyle(
+                      style: AppFonts.regular(
                         color: AppTheme.textPrimary,
                         fontSize: 15,
                         height: 1.45,
@@ -293,10 +286,9 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
                   Expanded(
                     child: Text(
                       item.title,
-                      style: const TextStyle(
+                      style: AppFonts.semiBold(
                         color: AppTheme.textPrimary,
                         fontSize: 15,
-                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -353,10 +345,9 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
                     child: Text(
                       '${_questions.length} question${_questions.length == 1 ? '' : 's'} '
                       'on this episode',
-                      style: const TextStyle(
+                      style: AppFonts.semiBold(
                         color: AppTheme.textPrimary,
                         fontSize: 15,
-                        fontWeight: FontWeight.w600,
                         height: 1.35,
                       ),
                     ),
@@ -365,9 +356,9 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Finish watching to unlock the quiz.',
-              style: TextStyle(
+              style: AppFonts.regular(
                 color: AppTheme.textMuted,
                 fontSize: 13,
                 height: 1.45,
@@ -401,10 +392,9 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
                   child: Text(
                     '${_questions.length} question${_questions.length == 1 ? '' : 's'} '
                     'on this episode',
-                    style: const TextStyle(
+                    style: AppFonts.semiBold(
                       color: AppTheme.textPrimary,
                       fontSize: 15,
-                      fontWeight: FontWeight.w600,
                       height: 1.35,
                     ),
                   ),
@@ -413,9 +403,9 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'You finished this episode — try the questions below.',
-            style: TextStyle(
+            style: AppFonts.regular(
               color: AppTheme.textMuted,
               fontSize: 13,
               height: 1.45,
@@ -429,10 +419,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
                 backgroundColor: AppTheme.primary,
                 foregroundColor: AppTheme.onPrimary,
                 shape: const StadiumBorder(),
-                textStyle: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
+                textStyle: AppFonts.bold(fontSize: 16),
               ),
               onPressed: () {
                 Navigator.of(context).pop();

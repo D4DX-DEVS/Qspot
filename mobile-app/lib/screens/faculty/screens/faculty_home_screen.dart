@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import '../../../services/api_client.dart';
 
 class FacultyHomeScreen extends StatefulWidget {
@@ -296,8 +297,8 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
   Widget build(BuildContext context) => DefaultTabController(
     length: 3,
     child: Scaffold(
-      appBar: AppBar(
-        title: const Text('Faculty workspace'),
+      appBar: CommonAppBar(
+        title: 'Faculty workspace',
         actions: [
           IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
         ],

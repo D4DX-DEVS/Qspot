@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../themes/app_theme.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import '../model/quiz_model.dart';
 
 /// Per-question review, rendered strictly from server-graded
@@ -19,23 +21,12 @@ class QuizReviewScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: const Text(
-          'Questions & Answers',
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: AppTheme.background,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.textPrimary),
-      ),
+      appBar: const CommonAppBar(title: 'Questions & Answers'),
       body: results.isEmpty
-          ? const Center(
+          ? Center(
               child: Text(
                 'No quiz results available',
-                style: TextStyle(color: AppTheme.textPrimary),
+                style: AppFonts.regular(color: AppTheme.textPrimary),
               ),
             )
           : Column(
@@ -45,9 +36,9 @@ class QuizReviewScreen extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(AppTheme.paddingLarge),
                   color: AppTheme.background,
-                  child: const Text(
+                  child: Text(
                     'Detailed analysis of each question',
-                    style: TextStyle(
+                    style: AppFonts.regular(
                       color: AppTheme.secondaryGray,
                       fontSize: 14,
                     ),
@@ -106,10 +97,9 @@ class QuizReviewScreen extends StatelessWidget {
               children: [
                 Text(
                   'Question $questionNumber',
-                  style: const TextStyle(
+                  style: AppFonts.medium(
                     color: AppTheme.secondaryGray,
                     fontSize: 14,
-                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 Container(
@@ -134,10 +124,9 @@ class QuizReviewScreen extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         isCorrect ? 'Correct' : 'Incorrect',
-                        style: TextStyle(
+                        style: AppFonts.bold(
                           color: isCorrect ? AppTheme.success : AppTheme.danger,
                           fontSize: 12,
-                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
@@ -148,17 +137,19 @@ class QuizReviewScreen extends StatelessWidget {
             const SizedBox(height: AppTheme.paddingMedium),
             Text(
               questionText,
-              style: const TextStyle(
+              style: AppFonts.medium(
                 color: AppTheme.textPrimary,
                 fontSize: 16,
-                fontWeight: FontWeight.w500,
                 height: 1.4,
               ),
             ),
             const SizedBox(height: AppTheme.paddingMedium),
-            const Text(
+            Text(
               'Options:',
-              style: TextStyle(color: AppTheme.secondaryGray, fontSize: 14),
+              style: AppFonts.regular(
+                color: AppTheme.secondaryGray,
+                fontSize: 14,
+              ),
             ),
             const SizedBox(height: AppTheme.paddingSmall),
             GridView.builder(
@@ -210,13 +201,12 @@ class QuizReviewScreen extends StatelessWidget {
                       Expanded(
                         child: Text(
                           options[optionIndex],
-                          style: TextStyle(
-                            color: textColor,
-                            fontSize: 14,
-                            fontWeight: (showCorrectMark || showIncorrectMark)
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                          ),
+                          style: (showCorrectMark || showIncorrectMark)
+                              ? AppFonts.bold(color: textColor, fontSize: 14)
+                              : AppFonts.regular(
+                                  color: textColor,
+                                  fontSize: 14,
+                                ),
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                           softWrap: true,
@@ -238,9 +228,9 @@ class QuizReviewScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Correct Answer:',
-                        style: TextStyle(
+                        style: AppFonts.regular(
                           color: AppTheme.secondaryGray,
                           fontSize: 12,
                         ),
@@ -251,10 +241,9 @@ class QuizReviewScreen extends StatelessWidget {
                                 correctAnswerIndex < options.length)
                             ? options[correctAnswerIndex]
                             : '-',
-                        style: const TextStyle(
+                        style: AppFonts.bold(
                           color: AppTheme.success,
                           fontSize: 14,
-                          fontWeight: FontWeight.bold,
                         ),
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
@@ -268,9 +257,9 @@ class QuizReviewScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         "User's Answer:",
-                        style: TextStyle(
+                        style: AppFonts.regular(
                           color: AppTheme.secondaryGray,
                           fontSize: 12,
                         ),
@@ -282,10 +271,9 @@ class QuizReviewScreen extends StatelessWidget {
                                 userAnswerIndex < options.length)
                             ? options[userAnswerIndex]
                             : 'Not answered',
-                        style: TextStyle(
+                        style: AppFonts.bold(
                           color: isCorrect ? AppTheme.success : AppTheme.danger,
                           fontSize: 14,
-                          fontWeight: FontWeight.bold,
                         ),
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,

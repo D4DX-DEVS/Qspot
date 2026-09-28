@@ -4,6 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:qspot/screens/assignment/model/assignment_model.dart';
 import 'package:qspot/screens/assignment/service/assignment_service.dart';
 import 'package:qspot/themes/app_theme.dart';
+import 'package:qspot/themes/app_fonts.dart';
+import 'package:qspot/widgets/common/common_app_bar.dart';
 
 class AssignmentDetailScreen extends StatefulWidget {
   const AssignmentDetailScreen({super.key, required this.assignment});
@@ -154,7 +156,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Assignment')),
+    appBar: const CommonAppBar(title: 'Assignment'),
     body: FutureBuilder<AssignmentModel>(
       future: _assignment,
       builder: (context, snapshot) {
@@ -176,21 +178,21 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
               const SizedBox(height: 6),
               Text(
                 assignment.subject,
-                style: const TextStyle(color: AppTheme.textMuted),
+                style: AppFonts.regular(color: AppTheme.textMuted),
               ),
             ],
             const SizedBox(height: 18),
             _DetailMeta(assignment: assignment),
             if (assignment.instructions.isNotEmpty) ...[
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'What to do',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                style: AppFonts.bold(fontSize: 16),
               ),
               const SizedBox(height: 8),
               Text(
                 assignment.instructions,
-                style: const TextStyle(height: 1.45),
+                style: AppFonts.regular(height: 1.45),
               ),
             ],
             const SizedBox(height: 28),
@@ -205,9 +207,9 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Teacher feedback',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                      style: AppFonts.bold(),
                     ),
                     const SizedBox(height: 6),
                     Text(assignment.feedback),
@@ -215,7 +217,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                       const SizedBox(height: 8),
                       Text(
                         'Score: ${assignment.grade}',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                        style: AppFonts.bold(),
                       ),
                     ],
                   ],
@@ -245,9 +247,9 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                   ),
                   if (assignment.submissionFiles.isNotEmpty) ...[
                     const SizedBox(height: 14),
-                    const Text(
+                    Text(
                       'Attachments',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                      style: AppFonts.bold(),
                     ),
                     ...assignment.submissionFiles.map(
                       (file) => ListTile(
@@ -265,9 +267,9 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                 ],
               )
             else ...[
-              const Text(
+              Text(
                 'Your answer',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                style: AppFonts.bold(fontSize: 16),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -319,9 +321,9 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Add a voice recording or photo with your answer. You can attach up to 10 files.',
-                style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                style: AppFonts.regular(color: AppTheme.textMuted, fontSize: 12),
               ),
             ],
           ],
@@ -428,9 +430,8 @@ class _DetailMeta extends StatelessWidget {
           ),
           child: Text(
             status,
-            style: TextStyle(
+            style: AppFonts.bold(
               color: statusColor,
-              fontWeight: FontWeight.w700,
               fontSize: 12,
             ),
           ),
@@ -444,7 +445,7 @@ class _DetailMeta extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           due,
-          style: TextStyle(
+          style: AppFonts.regular(
             color: assignment.isOverdue ? AppTheme.danger : AppTheme.textMuted,
             fontSize: 13,
           ),

@@ -7,6 +7,7 @@ import '../../../services/api_client.dart';
 import '../../video/widgets/video_card.dart';
 import '../widgets/chapter_guide_sheet.dart';
 import '../../../themes/app_theme.dart';
+import '../../../widgets/common/common_app_bar.dart';
 import '../../video/screens/video_reels_screen.dart';
 
 class SubjectVideosScreen extends StatefulWidget {
@@ -105,18 +106,7 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: Text(
-          widget.subject.displayName,
-          style: const TextStyle(
-            color: AppTheme.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppTheme.textPrimary),
-      ),
+      appBar: CommonAppBar(title: widget.subject.displayName),
       body: _buildBody(),
     );
   }
