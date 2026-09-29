@@ -9,6 +9,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 import '../../../services/video_progress_service.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../bookmark/provider/bookmark_provider.dart';
@@ -154,7 +155,7 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
       if (video.isLiveVideo) {
         state.web = WebViewController()
           ..setJavaScriptMode(JavaScriptMode.unrestricted)
-          ..setBackgroundColor(Colors.black)
+          ..setBackgroundColor(AppColors.black)
           ..setNavigationDelegate(
             NavigationDelegate(
               onPageFinished: (_) {
@@ -356,7 +357,7 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
 
     final start = await showModalBottomSheet<bool>(
       context: context,
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -368,13 +369,13 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.verified, color: AppTheme.success),
+                Icon(Icons.verified, color: AppColors.success),
                 SizedBox(width: 8),
                 Text(
                   'Video completed',
                   style: AppFonts.bold(
                     fontSize: 18,
-                    color: AppTheme.textPrimary,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -384,14 +385,14 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
               'You finished "${video.displayTitle}". '
               'Answer ${status.questionCount} question'
               '${status.questionCount == 1 ? '' : 's'} about it.',
-              style: AppFonts.regular(color: AppTheme.textMuted, height: 1.35),
+              style: AppFonts.regular(color: AppColors.textMuted, height: 1.35),
             ),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
+                  backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
@@ -408,7 +409,7 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
               onPressed: () => Navigator.of(context).pop(false),
               child: Text(
                 'Later',
-                style: AppFonts.medium(color: AppTheme.textMuted),
+                style: AppFonts.medium(color: AppColors.textMuted),
               ),
             ),
           ],
@@ -439,9 +440,9 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
       SnackBar(
         content: Text(
           isBookmarked ? 'Added to bookmarks' : 'Removed from bookmarks',
-          style: AppFonts.regular(color: AppTheme.onPrimary),
+          style: AppFonts.regular(color: AppColors.onPrimary),
         ),
-        backgroundColor: AppTheme.textPrimary,
+        backgroundColor: AppColors.textPrimary,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -465,7 +466,7 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.black,
       body: PageView.builder(
         controller: _pageController,
         scrollDirection: Axis.vertical,
@@ -496,7 +497,7 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Color(0xE6000000)],
+                  colors: [AppColors.transparent, AppColors.scrimStrong],
                 ),
               ),
             ),
@@ -521,12 +522,15 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.danger,
+                      color: AppColors.danger,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       'LIVE',
-                      style: AppFonts.bold(color: Colors.white, fontSize: 11),
+                      style: AppFonts.bold(
+                        color: AppColors.white,
+                        fontSize: 11,
+                      ),
                     ),
                   ),
                 if (state.progress?.completed == true)
@@ -536,18 +540,22 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.success,
+                      color: AppColors.success,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.check_circle, size: 14, color: Colors.white),
+                        Icon(
+                          Icons.check_circle,
+                          size: 14,
+                          color: AppColors.white,
+                        ),
                         SizedBox(width: 4),
                         Text(
                           'Completed',
                           style: AppFonts.semiBold(
-                            color: Colors.white,
+                            color: AppColors.white,
                             fontSize: 12,
                           ),
                         ),
@@ -621,7 +629,7 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: AppFonts.bold(
-                    color: Colors.white,
+                    color: AppColors.white,
                     fontSize: 17,
                     height: 1.3,
                   ),
@@ -634,7 +642,7 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
                     if (video.formattedDate.isNotEmpty) video.formattedDate,
                   ].join('  ·  '),
                   style: AppFonts.regular(
-                    color: Colors.white70,
+                    color: AppColors.white70,
                     fontSize: 12.5,
                   ),
                 ),
@@ -647,8 +655,8 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
                     child: LinearProgressIndicator(
                       value: state.progress!.percent,
                       minHeight: 3,
-                      backgroundColor: Colors.white24,
-                      valueColor: const AlwaysStoppedAnimation(Colors.white),
+                      backgroundColor: AppColors.white24,
+                      valueColor: const AlwaysStoppedAnimation(AppColors.white),
                     ),
                   ),
                 ],
@@ -665,7 +673,9 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
       if (state.web == null) return const SizedBox.shrink();
       return state.ready
           ? WebViewWidget(controller: state.web!)
-          : const Center(child: CircularProgressIndicator(color: Colors.white));
+          : const Center(
+              child: CircularProgressIndicator(color: AppColors.white),
+            );
     }
 
     if (video.isYouTubeVideo) {
@@ -677,7 +687,7 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
             child: Text(
               'This video cannot be played here.',
               textAlign: TextAlign.center,
-              style: AppFonts.regular(color: Colors.white70),
+              style: AppFonts.regular(color: AppColors.white70),
             ),
           ),
         );
@@ -705,7 +715,7 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
     // Direct (CDN) video: video_player + chewie (M16).
     if (!state.ready || state.chewie == null) {
       return const Center(
-        child: CircularProgressIndicator(color: Colors.white),
+        child: CircularProgressIndicator(color: AppColors.white),
       );
     }
     return Center(
@@ -736,10 +746,10 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.35),
+            color: AppColors.black.withValues(alpha: 0.35),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: Colors.white, size: 20),
+          child: Icon(icon, color: AppColors.white, size: 20),
         ),
       ),
     );
@@ -755,7 +765,7 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
           _circleButton(icon, onTap),
           Text(
             label,
-            style: AppFonts.semiBold(color: Colors.white, fontSize: 10.5),
+            style: AppFonts.semiBold(color: AppColors.white, fontSize: 10.5),
           ),
         ],
       ),
@@ -787,13 +797,13 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: enabled ? 0.18 : 0.08),
+          color: AppColors.white.withValues(alpha: enabled ? 0.18 : 0.08),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           label,
           style: AppFonts.semiBold(
-            color: enabled ? Colors.white : Colors.white38,
+            color: enabled ? AppColors.white : AppColors.white38,
             fontSize: 12.5,
           ),
         ),

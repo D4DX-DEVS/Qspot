@@ -3,9 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../provider/auth_provider.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../services/course_service.dart';
+import '../../../widgets/common/country_code_prefix.dart';
 
 /// Create-account form. Same flat pattern as the sign-in screen: a circular
 /// back button, one bold heading, soft filled fields, and a single full-width
@@ -96,7 +98,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -113,7 +115,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     Text(
                       'Create your account',
                       style: AppFonts.bold(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontSize: 26,
                         height: 1.25,
                       ),
@@ -122,7 +124,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     Text(
                       'Your number signs you in, so there is no password to remember.',
                       style: AppFonts.regular(
-                        color: AppTheme.textMuted,
+                        color: AppColors.textMuted,
                         fontSize: 15,
                         height: 1.4,
                       ),
@@ -136,17 +138,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         LengthLimitingTextInputFormatter(10),
                       ],
                       style: AppFonts.regular(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontSize: 16,
                       ),
                       decoration: _fieldDecoration(
                         hint: 'Phone number',
-                        prefixText: '+91  ',
-                        prefixIcon: const Icon(
-                          Icons.phone_outlined,
-                          color: AppTheme.textMuted,
-                          size: 20,
-                        ),
+                        prefixIcon: const CountryCodePrefix(),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -158,18 +155,19 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _nameController,
                       textCapitalization: TextCapitalization.words,
                       style: AppFonts.regular(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontSize: 16,
                       ),
                       decoration: _fieldDecoration(
                         hint: 'Full name',
                         prefixIcon: const Icon(
                           Icons.person_outline,
-                          color: AppTheme.textMuted,
+                          color: AppColors.textMuted,
                           size: 20,
                         ),
                       ),
@@ -187,14 +185,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     TextFormField(
                       controller: _classController,
                       style: AppFonts.regular(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontSize: 16,
                       ),
                       decoration: _fieldDecoration(
                         hint: 'Class (for example 9, 10, 11)',
                         prefixIcon: const Icon(
                           Icons.school_outlined,
-                          color: AppTheme.textMuted,
+                          color: AppColors.textMuted,
                           size: 20,
                         ),
                       ),
@@ -218,7 +216,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       'We only use your number to sign you in.',
                       textAlign: TextAlign.center,
                       style: AppFonts.regular(
-                        color: AppTheme.textMuted,
+                        color: AppColors.textMuted,
                         fontSize: 12.5,
                         height: 1.4,
                       ),
@@ -251,19 +249,20 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       children: [
         Text(
           'Choose your courses',
-          style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 15),
+          style: AppFonts.bold(color: AppColors.textPrimary, fontSize: 15),
         ),
         const SizedBox(height: 4),
         Text(
           'You can choose more than one and change this later.',
-          style: AppFonts.regular(color: AppTheme.textMuted, fontSize: 12.5),
+          style: AppFonts.regular(color: AppColors.textMuted, fontSize: 12.5),
         ),
         const SizedBox(height: 8),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: AppTheme.surface,
+        Material(
+          color: AppColors.surface,
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-            border: Border.all(color: AppTheme.border),
+            side: const BorderSide(color: AppColors.border),
           ),
           child: Column(
             children: [
@@ -281,7 +280,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   subtitle: _courses[i].subtitle.isEmpty
                       ? null
                       : Text(_courses[i].subtitle),
-                  activeColor: AppTheme.primary,
+                  activeColor: AppColors.primary,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 10),
                 ),
                 if (i < _courses.length - 1)
@@ -303,14 +302,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           hint: 'Date of birth (optional)',
           prefixIcon: const Icon(
             Icons.cake_outlined,
-            color: AppTheme.textMuted,
+            color: AppColors.textMuted,
             size: 20,
           ),
         ),
         child: Text(
           _dob != null ? _formatDob(_dob!) : 'Date of birth (optional)',
           style: AppFonts.regular(
-            color: _dob != null ? AppTheme.textPrimary : AppTheme.textMuted,
+            color: _dob != null ? AppColors.textPrimary : AppColors.textMuted,
             fontSize: _dob != null ? 16 : 15,
           ),
         ),
@@ -319,79 +318,80 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   Widget _consentSection() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceAlt,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          CheckboxListTile(
-            value: _hasConsent,
-            onChanged: (value) => setState(() => _hasConsent = value ?? false),
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-            activeColor: AppTheme.primary,
-            title: Text(
-              'A parent/guardian or school has given consent',
-              style: AppFonts.regular(
-                color: AppTheme.textPrimary,
-                fontSize: 14,
-              ),
-            ),
-          ),
-          if (_hasConsent) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: RadioListTile<String>(
-                    value: 'parent',
-                    groupValue: _consentBy,
-                    onChanged: (value) =>
-                        setState(() => _consentBy = value ?? 'parent'),
-                    contentPadding: EdgeInsets.zero,
-                    activeColor: AppTheme.primary,
-                    title: Text(
-                      'Parent',
-                      style: AppFonts.regular(fontSize: 13),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: RadioListTile<String>(
-                    value: 'school',
-                    groupValue: _consentBy,
-                    onChanged: (value) =>
-                        setState(() => _consentBy = value ?? 'parent'),
-                    contentPadding: EdgeInsets.zero,
-                    activeColor: AppTheme.primary,
-                    title: Text(
-                      'School',
-                      style: AppFonts.regular(fontSize: 13),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: TextFormField(
-                controller: _consentNameController,
+    return Material(
+      color: AppColors.surfaceAlt,
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            CheckboxListTile(
+              value: _hasConsent,
+              onChanged: (value) =>
+                  setState(() => _hasConsent = value ?? false),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+              activeColor: AppColors.primary,
+              title: Text(
+                'A parent/guardian or school has given consent',
                 style: AppFonts.regular(
-                  color: AppTheme.textPrimary,
-                  fontSize: 15,
-                ),
-                decoration: _fieldDecoration(
-                  hint: _consentBy == 'parent'
-                      ? "Parent/guardian's name"
-                      : "School name",
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
                 ),
               ),
             ),
+            if (_hasConsent) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: RadioListTile<String>(
+                      value: 'parent',
+                      groupValue: _consentBy,
+                      onChanged: (value) =>
+                          setState(() => _consentBy = value ?? 'parent'),
+                      contentPadding: EdgeInsets.zero,
+                      activeColor: AppColors.primary,
+                      title: Text(
+                        'Parent',
+                        style: AppFonts.regular(fontSize: 13),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: RadioListTile<String>(
+                      value: 'school',
+                      groupValue: _consentBy,
+                      onChanged: (value) =>
+                          setState(() => _consentBy = value ?? 'parent'),
+                      contentPadding: EdgeInsets.zero,
+                      activeColor: AppColors.primary,
+                      title: Text(
+                        'School',
+                        style: AppFonts.regular(fontSize: 13),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: TextFormField(
+                  controller: _consentNameController,
+                  style: AppFonts.regular(
+                    color: AppColors.textPrimary,
+                    fontSize: 15,
+                  ),
+                  decoration: _fieldDecoration(
+                    hint: _consentBy == 'parent'
+                        ? "Parent/guardian's name"
+                        : "School name",
+                  ),
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -406,12 +406,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           width: 44,
           height: 44,
           decoration: const BoxDecoration(
-            color: AppTheme.surfaceAlt,
+            color: AppColors.surfaceAlt,
             shape: BoxShape.circle,
           ),
           child: const Icon(
             Icons.arrow_back,
-            color: AppTheme.textPrimary,
+            color: AppColors.textPrimary,
             size: 20,
           ),
         ),
@@ -422,37 +422,36 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   InputDecoration _fieldDecoration({
     required String hint,
     Widget? prefixIcon,
-    String? prefixText,
   }) {
     final radius = BorderRadius.circular(14);
     return InputDecoration(
       hintText: hint,
-      hintStyle: AppFonts.regular(color: AppTheme.textMuted, fontSize: 15),
+      hintStyle: AppFonts.regular(color: AppColors.textMuted, fontSize: 15),
       prefixIcon: prefixIcon,
-      prefixText: prefixText,
-      prefixStyle: AppFonts.medium(color: AppTheme.textPrimary, fontSize: 15),
       filled: true,
-      fillColor: AppTheme.surfaceAlt,
+      // White fill + visible outline so fields stand out from the off-white
+      // page before they are tapped.
+      fillColor: AppColors.surface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
       border: OutlineInputBorder(
         borderRadius: radius,
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: AppColors.border, width: 1.2),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: radius,
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: AppColors.border, width: 1.2),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: radius,
-        borderSide: const BorderSide(color: AppTheme.primary, width: 1.6),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.6),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: radius,
-        borderSide: const BorderSide(color: AppTheme.danger, width: 1.2),
+        borderSide: const BorderSide(color: AppColors.danger, width: 1.2),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: radius,
-        borderSide: const BorderSide(color: AppTheme.danger, width: 1.6),
+        borderSide: const BorderSide(color: AppColors.danger, width: 1.6),
       ),
     );
   }
@@ -465,10 +464,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           height: 54,
           child: FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: AppTheme.onPrimary,
-              disabledBackgroundColor: AppTheme.surfaceAlt,
-              disabledForegroundColor: AppTheme.textMuted,
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.onPrimary,
+              disabledBackgroundColor: AppColors.surfaceAlt,
+              disabledForegroundColor: AppColors.textMuted,
               shape: const StadiumBorder(),
               textStyle: AppFonts.bold(fontSize: 16),
             ),
@@ -479,7 +478,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     height: 22,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppTheme.onPrimary,
+                      color: AppColors.onPrimary,
                     ),
                   )
                 : const Text('Create account'),
@@ -526,9 +525,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           content: Text(
             result['message'] ??
                 'Registration successful! Enter the OTP to continue.',
-            style: AppFonts.regular(color: AppTheme.onPrimary),
+            style: AppFonts.regular(color: AppColors.onPrimary),
           ),
-          backgroundColor: AppTheme.primary,
+          backgroundColor: AppColors.primary,
           duration: const Duration(seconds: 3),
         ),
       );
@@ -541,9 +540,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         SnackBar(
           content: Text(
             result['message'] ?? 'Registration failed',
-            style: AppFonts.regular(color: AppTheme.onPrimary),
+            style: AppFonts.regular(color: AppColors.onPrimary),
           ),
-          backgroundColor: AppTheme.danger,
+          backgroundColor: AppColors.danger,
         ),
       );
     }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../../services/api_client.dart';
+import 'package:qspot/themes/app_colors.dart';
 
 class FacultyHomeScreen extends StatefulWidget {
   const FacultyHomeScreen({super.key});
@@ -120,7 +121,7 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
             trailing: Icon(
               answered ? Icons.check_circle : Icons.reply,
               color: answered
-                  ? Colors.green
+                  ? AppColors.success
                   : Theme.of(context).colorScheme.primary,
             ),
             onTap: () => _answer(q),

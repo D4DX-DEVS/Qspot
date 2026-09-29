@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../services/api_client.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -91,7 +92,7 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
         _startTimerIfConfigured(quizProvider);
 
         return Scaffold(
-          backgroundColor: AppTheme.backgroundColor,
+          backgroundColor: AppColors.background,
           appBar: CommonAppBar(
             title: totalQuestions > 0
                 ? 'Question ${quizProvider.currentQuestionIndex + 1} of $totalQuestions'
@@ -119,29 +120,29 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
             const Icon(
               Icons.quiz_outlined,
               size: 64,
-              color: AppTheme.secondaryGray,
+              color: AppColors.textMuted,
             ),
             const SizedBox(height: AppTheme.paddingMedium),
             Text(
               'No questions available',
               style: Theme.of(
                 context,
-              ).textTheme.headlineSmall?.copyWith(color: AppTheme.textPrimary),
+              ).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary),
             ),
             const SizedBox(height: AppTheme.paddingSmall),
             Text(
               'This quiz has no questions right now. Please try again later.',
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: AppTheme.secondaryGray),
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppTheme.paddingLarge),
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.gradientStart,
-                foregroundColor: AppTheme.onPrimary,
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.onPrimary,
               ),
               child: const Text('Go Back'),
             ),
@@ -159,7 +160,7 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
     final question = quizProvider.currentQuestion;
     if (question == null) {
       return const Center(
-        child: CircularProgressIndicator(color: AppTheme.gradientEnd),
+        child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
 
@@ -178,9 +179,9 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
           ),
           child: LinearProgressIndicator(
             value: (currentIndex + 1) / totalQuestions,
-            backgroundColor: AppTheme.surfaceAlt,
+            backgroundColor: AppColors.surfaceAlt,
             valueColor: const AlwaysStoppedAnimation<Color>(
-              AppTheme.gradientEnd,
+              AppColors.primary,
             ),
             minHeight: 4,
           ),
@@ -193,8 +194,8 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: _remainingSeconds! <= 10
-                      ? AppTheme.danger.withValues(alpha: 0.12)
-                      : AppTheme.primarySoft,
+                      ? AppColors.danger.withValues(alpha: 0.12)
+                      : AppColors.primarySoft,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Padding(
@@ -203,8 +204,8 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                     'Time ${_timerLabel()}',
                     style: AppFonts.bold(
                       color: _remainingSeconds! <= 10
-                          ? AppTheme.danger
-                          : AppTheme.primary,
+                          ? AppColors.danger
+                          : AppColors.primary,
                     ),
                   ),
                 ),
@@ -244,7 +245,7 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                 Text(
                   questionText,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: AppTheme.textPrimary,
+                    color: AppColors.textPrimary,
                     fontWeight: FontWeight.bold,
                     height: 1.4,
                   ),
@@ -269,15 +270,15 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                         padding: const EdgeInsets.all(AppTheme.paddingMedium),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? AppTheme.gradientStart
-                              : AppTheme.background,
+                              ? AppColors.primary
+                              : AppColors.background,
                           borderRadius: BorderRadius.circular(
                             AppTheme.radiusMedium,
                           ),
                           border: Border.all(
                             color: isSelected
-                                ? AppTheme.gradientEnd
-                                : AppTheme.border,
+                                ? AppColors.primary
+                                : AppColors.border,
                             width: isSelected ? 2 : 1,
                           ),
                         ),
@@ -289,14 +290,14 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: isSelected
-                                    ? AppTheme.gradientEnd
-                                    : AppTheme.surfaceAlt,
+                                    ? AppColors.primary
+                                    : AppColors.surfaceAlt,
                               ),
                               child: isSelected
                                   ? const Icon(
                                       Icons.check,
                                       size: 16,
-                                      color: AppTheme.primaryWhite,
+                                      color: AppColors.onPrimary,
                                     )
                                   : null,
                             ),
@@ -307,8 +308,8 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                                 style: Theme.of(context).textTheme.bodyLarge
                                     ?.copyWith(
                                       color: isSelected
-                                          ? AppTheme.onPrimary
-                                          : AppTheme.textPrimary,
+                                          ? AppColors.onPrimary
+                                          : AppColors.textPrimary,
                                       fontWeight: isSelected
                                           ? FontWeight.w600
                                           : FontWeight.normal,
@@ -328,11 +329,11 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
         Container(
           padding: const EdgeInsets.all(AppTheme.paddingMedium),
           decoration: BoxDecoration(
-            color: AppTheme.background,
-            border: const Border(top: BorderSide(color: AppTheme.border)),
+            color: AppColors.background,
+            border: const Border(top: BorderSide(color: AppColors.border)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
+                color: AppColors.black.withValues(alpha: 0.06),
                 blurRadius: 10,
                 offset: const Offset(0, -2),
               ),
@@ -348,9 +349,9 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                 icon: const Icon(Icons.arrow_back),
                 label: const Text('Previous'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.background,
-                  foregroundColor: AppTheme.primary,
-                  side: const BorderSide(color: AppTheme.border),
+                  backgroundColor: AppColors.background,
+                  foregroundColor: AppColors.primary,
+                  side: const BorderSide(color: AppColors.border),
                 ),
               ),
               Expanded(
@@ -372,10 +373,10 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                           margin: const EdgeInsets.symmetric(horizontal: 4),
                           decoration: BoxDecoration(
                             color: index == currentIndex
-                                ? AppTheme.gradientEnd
+                                ? AppColors.primary
                                 : answered
-                                ? AppTheme.primarySoft
-                                : AppTheme.surfaceAlt,
+                                ? AppColors.primarySoft
+                                : AppColors.surfaceAlt,
                             shape: BoxShape.circle,
                           ),
                           child: Center(
@@ -383,10 +384,10 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                               '${index + 1}',
                               style: AppFonts.bold(
                                 color: index == currentIndex
-                                    ? AppTheme.onPrimary
+                                    ? AppColors.onPrimary
                                     : answered
-                                    ? AppTheme.primary
-                                    : AppTheme.textMuted,
+                                    ? AppColors.primary
+                                    : AppColors.textMuted,
                                 fontSize: 12,
                               ),
                             ),
@@ -415,8 +416,8 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                 ),
                 label: Text(quizProvider.hasNextQuestion ? 'Next' : 'Submit'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.gradientStart,
-                  foregroundColor: AppTheme.onPrimary,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.onPrimary,
                 ),
               ),
             ],
@@ -429,13 +430,13 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
   Color _difficultyColor(String difficulty) {
     switch (difficulty.toLowerCase()) {
       case 'easy':
-        return AppTheme.success;
+        return AppColors.success;
       case 'medium':
-        return AppTheme.warning;
+        return AppColors.warning;
       case 'hard':
-        return AppTheme.danger;
+        return AppColors.danger;
       default:
-        return AppTheme.textMuted;
+        return AppColors.textMuted;
     }
   }
 
@@ -446,21 +447,21 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppTheme.background,
+        backgroundColor: AppColors.background,
         title: Text(
           'Submit Quiz?',
-          style: AppFonts.medium(color: AppTheme.textPrimary),
+          style: AppFonts.medium(color: AppColors.textPrimary),
         ),
         content: Text(
           'You have answered $answeredCount out of $totalQuestions questions.\n\nDo you want to submit the quiz?',
-          style: AppFonts.regular(color: AppTheme.secondaryGray),
+          style: AppFonts.regular(color: AppColors.textMuted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
             child: Text(
               'Cancel',
-              style: AppFonts.medium(color: AppTheme.secondaryGray),
+              style: AppFonts.medium(color: AppColors.textMuted),
             ),
           ),
           ElevatedButton(
@@ -469,8 +470,8 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
               _submit(quizProvider);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.gradientStart,
-              foregroundColor: AppTheme.onPrimary,
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.onPrimary,
             ),
             child: const Text('Submit'),
           ),

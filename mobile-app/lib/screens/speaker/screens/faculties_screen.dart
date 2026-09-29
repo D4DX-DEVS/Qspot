@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -34,17 +35,17 @@ class _FacultiesScreenState extends State<FacultiesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppColors.background,
       appBar: CommonAppBar(
         title: 'Faculties',
         titleWidget: _isSearching
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                style: AppFonts.regular(color: AppTheme.textPrimary),
+                style: AppFonts.regular(color: AppColors.textPrimary),
                 decoration: InputDecoration(
                   hintText: 'Search faculties…',
-                  hintStyle: AppFonts.regular(color: AppTheme.textMuted),
+                  hintStyle: AppFonts.regular(color: AppColors.textMuted),
                   border: InputBorder.none,
                 ),
                 onChanged: (value) => setState(() => _query = value.trim()),
@@ -70,7 +71,7 @@ class _FacultiesScreenState extends State<FacultiesScreen> {
         builder: (context, speakerProvider, videoProvider, child) {
           if (speakerProvider.isLoading && speakerProvider.speakers.isEmpty) {
             return const Center(
-              child: CircularProgressIndicator(color: AppTheme.primary),
+              child: CircularProgressIndicator(color: AppColors.primary),
             );
           }
 
@@ -110,8 +111,8 @@ class _FacultiesScreenState extends State<FacultiesScreen> {
 
           return RefreshIndicator(
             onRefresh: () => speakerProvider.refresh(),
-            backgroundColor: AppTheme.background,
-            color: AppTheme.primary,
+            backgroundColor: AppColors.background,
+            color: AppColors.primary,
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
               itemCount: faculties.length,
@@ -148,12 +149,12 @@ class _FacultiesScreenState extends State<FacultiesScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 56, color: AppTheme.textMuted),
+            Icon(icon, size: 56, color: AppColors.textMuted),
             const SizedBox(height: 16),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 17),
+              style: AppFonts.bold(color: AppColors.textPrimary, fontSize: 17),
             ),
             if (subtitle != null) ...[
               const SizedBox(height: 8),
@@ -161,7 +162,7 @@ class _FacultiesScreenState extends State<FacultiesScreen> {
                 subtitle,
                 textAlign: TextAlign.center,
                 style: AppFonts.regular(
-                  color: AppTheme.textMuted,
+                  color: AppColors.textMuted,
                   fontSize: 13.5,
                   height: 1.4,
                 ),
@@ -188,9 +189,9 @@ class _FacultyProfile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.background,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppColors.border),
         boxShadow: AppTheme.cardShadow,
       ),
       clipBehavior: Clip.antiAlias,
@@ -207,7 +208,7 @@ class _FacultyProfile extends StatelessWidget {
                   Text(
                     speaker.designation,
                     style: AppFonts.medium(
-                      color: AppTheme.textPrimary,
+                      color: AppColors.textPrimary,
                       fontSize: 13.5,
                       height: 1.45,
                     ),
@@ -233,7 +234,7 @@ class _FacultyProfile extends StatelessWidget {
             CachedNetworkImage(
               imageUrl: speaker.avatarUrl!,
               fit: BoxFit.cover,
-              placeholder: (_, __) => Container(color: AppTheme.surfaceAlt),
+              placeholder: (_, __) => Container(color: AppColors.surfaceAlt),
               errorWidget: (_, __, ___) => _initials(),
             )
           else
@@ -243,7 +244,7 @@ class _FacultyProfile extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.center,
                 end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Color(0xE6000000)],
+                colors: [AppColors.transparent, AppColors.scrimStrong],
               ),
             ),
           ),
@@ -259,7 +260,7 @@ class _FacultyProfile extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: AppFonts.bold(
-                    color: Colors.white,
+                    color: AppColors.white,
                     fontSize: 22,
                     height: 1.2,
                   ),
@@ -269,7 +270,7 @@ class _FacultyProfile extends StatelessWidget {
                   Text(
                     '${episodes.length} episode${episodes.length == 1 ? '' : 's'}',
                     style: AppFonts.semiBold(
-                      color: Colors.white70,
+                      color: AppColors.white70,
                       fontSize: 12.5,
                     ),
                   ),
@@ -292,11 +293,11 @@ class _FacultyProfile extends StatelessWidget {
         .join();
 
     return Container(
-      color: AppTheme.primarySoft,
+      color: AppColors.primarySoft,
       alignment: Alignment.center,
       child: Text(
         initials.isEmpty ? '?' : initials,
-        style: AppFonts.bold(color: AppTheme.primary, fontSize: 44),
+        style: AppFonts.bold(color: AppColors.primary, fontSize: 44),
       ),
     );
   }
@@ -305,7 +306,7 @@ class _FacultyProfile extends StatelessWidget {
     if (episodes.isEmpty) {
       return Text(
         'No episodes published yet.',
-        style: AppFonts.regular(color: AppTheme.textMuted, fontSize: 13.5),
+        style: AppFonts.regular(color: AppColors.textMuted, fontSize: 13.5),
       );
     }
 
@@ -315,7 +316,7 @@ class _FacultyProfile extends StatelessWidget {
         Text(
           'EPISODES',
           style: AppFonts.bold(
-            color: AppTheme.textMuted,
+            color: AppColors.textMuted,
             fontSize: 11,
             letterSpacing: 0.8,
           ),
@@ -340,7 +341,7 @@ class _FacultyProfile extends StatelessWidget {
                         const Icon(
                           Icons.play_circle_outline,
                           size: 20,
-                          color: AppTheme.primary,
+                          color: AppColors.primary,
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -349,7 +350,7 @@ class _FacultyProfile extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: AppFonts.regular(
-                              color: AppTheme.textPrimary,
+                              color: AppColors.textPrimary,
                               fontSize: 13.5,
                               height: 1.35,
                             ),
@@ -366,8 +367,8 @@ class _FacultyProfile extends StatelessWidget {
           width: double.infinity,
           child: FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: AppTheme.onPrimary,
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 13),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),

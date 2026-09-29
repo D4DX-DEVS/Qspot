@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../model/banner_model.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 
@@ -77,7 +78,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: AppColors.black.withValues(alpha: 0.08),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -89,26 +90,22 @@ class _BannerCarouselState extends State<BannerCarousel> {
           imageUrl: banner.imageUrl,
           fit: BoxFit.cover,
           placeholder: (context, url) => Container(
-            color: AppTheme.surface,
+            color: AppColors.surface,
             child: const Center(
-              child: CircularProgressIndicator(color: AppTheme.gradientEnd),
+              child: CircularProgressIndicator(color: AppColors.primary),
             ),
           ),
           errorWidget: (context, url, error) => Container(
-            color: AppTheme.surface,
+            color: AppColors.surface,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.broken_image,
-                  size: 48,
-                  color: AppTheme.secondaryGray,
-                ),
+                Icon(Icons.broken_image, size: 48, color: AppColors.textMuted),
                 const SizedBox(height: AppTheme.paddingSmall),
                 Text(
                   'Image not available',
                   style: AppFonts.regular(
-                    color: AppTheme.secondaryGray,
+                    color: AppColors.textMuted,
                     fontSize: 12,
                   ),
                 ),
@@ -131,8 +128,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(4),
             color: _currentIndex == entry.key
-                ? AppTheme.gradientEnd
-                : AppTheme.secondaryGray.withValues(alpha: 0.4),
+                ? AppColors.primary
+                : AppColors.textMuted.withValues(alpha: 0.4),
           ),
         );
       }).toList(),

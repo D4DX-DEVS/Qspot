@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../model/video_model.dart';
@@ -17,7 +18,7 @@ class LearnNoteSheet extends StatelessWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -46,7 +47,7 @@ class LearnNoteSheet extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppTheme.border,
+                  color: AppColors.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -66,13 +67,13 @@ class LearnNoteSheet extends StatelessWidget {
                               width: 26,
                               height: 26,
                               decoration: const BoxDecoration(
-                                color: AppTheme.primarySoft,
+                                color: AppColors.primarySoft,
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
                                 Icons.lightbulb_outline,
                                 size: 15,
-                                color: AppTheme.primary,
+                                color: AppColors.primary,
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -82,7 +83,7 @@ class LearnNoteSheet extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: AppFonts.bold(
-                                  color: AppTheme.textPrimary,
+                                  color: AppColors.textPrimary,
                                   fontSize: 16,
                                 ),
                               ),
@@ -95,7 +96,7 @@ class LearnNoteSheet extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: AppFonts.regular(
-                            color: AppTheme.textMuted,
+                            color: AppColors.textMuted,
                             fontSize: 12.5,
                             height: 1.35,
                           ),
@@ -110,12 +111,12 @@ class LearnNoteSheet extends StatelessWidget {
                       width: 36,
                       height: 36,
                       decoration: const BoxDecoration(
-                        color: AppTheme.surfaceAlt,
+                        color: AppColors.surfaceAlt,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.close,
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         size: 18,
                       ),
                     ),
@@ -136,8 +137,8 @@ class LearnNoteSheet extends StatelessWidget {
                 width: double.infinity,
                 child: FilledButton(
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: AppTheme.onPrimary,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(
@@ -165,7 +166,7 @@ class LearnNoteSheet extends StatelessWidget {
           Text(
             video.learnText,
             style: AppFonts.regular(
-              color: AppTheme.textPrimary,
+              color: AppColors.textPrimary,
               fontSize: 15,
               height: 1.55,
             ),
@@ -175,7 +176,7 @@ class LearnNoteSheet extends StatelessWidget {
           Text(
             'KEY POINTS',
             style: AppFonts.bold(
-              color: AppTheme.textMuted,
+              color: AppColors.textMuted,
               fontSize: 11.5,
               letterSpacing: 0.8,
             ),
@@ -192,13 +193,13 @@ class LearnNoteSheet extends StatelessWidget {
                     height: 22,
                     margin: const EdgeInsets.only(top: 1),
                     decoration: const BoxDecoration(
-                      color: AppTheme.primarySoft,
+                      color: AppColors.primarySoft,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       Icons.check,
                       size: 13,
-                      color: AppTheme.primary,
+                      color: AppColors.primary,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -206,7 +207,7 @@ class LearnNoteSheet extends StatelessWidget {
                     child: Text(
                       point,
                       style: AppFonts.regular(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontSize: 15,
                         height: 1.45,
                       ),
@@ -226,18 +227,18 @@ class LearnNoteSheet extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceAlt,
+        color: AppColors.surfaceAlt,
         borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
       ),
       child: Column(
         children: [
-          Icon(Icons.lightbulb_outline, color: AppTheme.textMuted, size: 28),
+          Icon(Icons.lightbulb_outline, color: AppColors.textMuted, size: 28),
           SizedBox(height: 10),
           Text(
             'This episode\'s quick note isn\'t ready yet.',
             textAlign: TextAlign.center,
             style: AppFonts.semiBold(
-              color: AppTheme.textPrimary,
+              color: AppColors.textPrimary,
               fontSize: 14.5,
             ),
           ),
@@ -246,7 +247,7 @@ class LearnNoteSheet extends StatelessWidget {
             'The note written for this video will appear here.',
             textAlign: TextAlign.center,
             style: AppFonts.regular(
-              color: AppTheme.textMuted,
+              color: AppColors.textMuted,
               fontSize: 12.5,
               height: 1.4,
             ),

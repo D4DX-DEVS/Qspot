@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../provider/schedule_provider.dart';
 import '../model/schedule_model.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -42,13 +43,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: AppColors.background,
       appBar: const CommonAppBar(title: 'Schedule'),
       body: Consumer<ScheduleProvider>(
         builder: (context, scheduleProvider, child) {
           if (scheduleProvider.isLoading) {
             return const Center(
-              child: CircularProgressIndicator(color: AppTheme.gradientEnd),
+              child: CircularProgressIndicator(color: AppColors.primary),
             );
           }
 
@@ -65,8 +66,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
           return RefreshIndicator(
             onRefresh: _onRefresh,
-            backgroundColor: AppTheme.surface,
-            color: AppTheme.primary,
+            backgroundColor: AppColors.surface,
+            color: AppColors.primary,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(AppTheme.paddingMedium),
@@ -104,7 +105,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     return Text(
       title,
       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-        color: AppTheme.textPrimary,
+        color: AppColors.textPrimary,
         fontWeight: FontWeight.bold,
       ),
     );
@@ -117,17 +118,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.paddingMedium),
       decoration: BoxDecoration(
-        color: AppTheme.background,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         border: Border.all(
           color: isUpcoming
-              ? AppTheme.primary.withValues(alpha: 0.25)
-              : AppTheme.border,
+              ? AppColors.primary.withValues(alpha: 0.25)
+              : AppColors.border,
           width: 1,
         ),
       ),
       child: Material(
-        color: Colors.transparent,
+        color: AppColors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           onTap: () => _showScheduleDetails(schedule),
@@ -140,8 +141,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    gradient: isUpcoming ? AppTheme.primaryGradient : null,
-                    color: isUpcoming ? null : AppTheme.surfaceAlt,
+                    gradient: isUpcoming ? AppColors.primaryGradient : null,
+                    color: isUpcoming ? null : AppColors.surfaceAlt,
                     borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                   ),
                   child: Column(
@@ -152,8 +153,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(
                               color: isUpcoming
-                                  ? AppTheme.onPrimary
-                                  : AppTheme.textMuted,
+                                  ? AppColors.onPrimary
+                                  : AppColors.textMuted,
                               fontWeight: FontWeight.bold,
                             ),
                       ),
@@ -161,8 +162,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         schedule.formattedDate.split(' ')[0],
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: isUpcoming
-                              ? AppTheme.onPrimary
-                              : AppTheme.textMuted,
+                              ? AppColors.onPrimary
+                              : AppColors.textMuted,
                           fontSize: 10,
                         ),
                       ),
@@ -185,8 +186,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         ),
                         decoration: BoxDecoration(
                           color: isUpcoming
-                              ? AppTheme.primarySoft
-                              : AppTheme.surfaceAlt,
+                              ? AppColors.primarySoft
+                              : AppColors.surfaceAlt,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -194,8 +195,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           style: Theme.of(context).textTheme.labelSmall
                               ?.copyWith(
                                 color: isUpcoming
-                                    ? AppTheme.gradientEnd
-                                    : AppTheme.secondaryGray,
+                                    ? AppColors.primary
+                                    : AppColors.textMuted,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 10,
                               ),
@@ -209,7 +210,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         schedule.title,
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(
-                              color: AppTheme.textPrimary,
+                              color: AppColors.textPrimary,
                               fontWeight: FontWeight.w600,
                             ),
                         maxLines: 2,
@@ -224,14 +225,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           Icon(
                             Icons.access_time,
                             size: 14,
-                            color: AppTheme.secondaryGray,
+                            color: AppColors.textMuted,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             schedule.formattedTime,
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
-                                  color: AppTheme.secondaryGray,
+                                  color: AppColors.textMuted,
                                   fontSize: 12,
                                 ),
                           ),
@@ -244,7 +245,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                   Icon(
                                     Icons.person,
                                     size: 14,
-                                    color: AppTheme.secondaryGray,
+                                    color: AppColors.textMuted,
                                   ),
                                   const SizedBox(width: 4),
                                   Expanded(
@@ -254,7 +255,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                           .textTheme
                                           .bodySmall
                                           ?.copyWith(
-                                            color: AppTheme.secondaryGray,
+                                            color: AppColors.textMuted,
                                             fontSize: 12,
                                           ),
                                       maxLines: 1,
@@ -274,14 +275,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 if (isUpcoming)
                   IconButton(
                     icon: const Icon(Icons.notifications_active),
-                    color: AppTheme.gradientEnd,
+                    color: AppColors.primary,
                     onPressed: () => _setReminder(schedule),
                     tooltip: 'Set Reminder',
                   )
                 else
                   Icon(
                     Icons.check_circle,
-                    color: AppTheme.secondaryGray,
+                    color: AppColors.textMuted,
                     size: 24,
                   ),
               ],
@@ -299,28 +300,28 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: AppTheme.secondaryGray),
+            Icon(Icons.error_outline, size: 64, color: AppColors.textMuted),
             const SizedBox(height: AppTheme.paddingMedium),
             Text(
               'Failed to Load Schedule',
               style: Theme.of(
                 context,
-              ).textTheme.headlineSmall?.copyWith(color: AppTheme.textPrimary),
+              ).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary),
             ),
             const SizedBox(height: AppTheme.paddingSmall),
             Text(
               errorMessage,
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: AppTheme.secondaryGray),
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppTheme.paddingLarge),
             ElevatedButton(
               onPressed: onRetry,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.gradientStart,
-                foregroundColor: AppTheme.onPrimary,
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.onPrimary,
               ),
               child: const Text('Retry'),
             ),
@@ -337,20 +338,20 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.calendar_today, size: 64, color: AppTheme.secondaryGray),
+            Icon(Icons.calendar_today, size: 64, color: AppColors.textMuted),
             const SizedBox(height: AppTheme.paddingMedium),
             Text(
               'No Schedule Available',
               style: Theme.of(
                 context,
-              ).textTheme.headlineSmall?.copyWith(color: AppTheme.textPrimary),
+              ).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary),
             ),
             const SizedBox(height: AppTheme.paddingSmall),
             Text(
               'Check back later for upcoming classes',
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: AppTheme.secondaryGray),
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
             ),
           ],
         ),
@@ -363,13 +364,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: AppTheme.background,
+          backgroundColor: AppColors.background,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
           title: Text(
             schedule.title,
-            style: AppFonts.bold(color: AppTheme.textPrimary),
+            style: AppFonts.bold(color: AppColors.textPrimary),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -388,7 +389,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               onPressed: () => Navigator.pop(context),
               child: Text(
                 'Close',
-                style: AppFonts.medium(color: AppTheme.gradientEnd),
+                style: AppFonts.medium(color: AppColors.primary),
               ),
             ),
             if (schedule.isUpcoming)
@@ -400,8 +401,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 icon: const Icon(Icons.notifications_active, size: 18),
                 label: const Text('Set Reminder'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.gradientStart,
-                  foregroundColor: AppTheme.onPrimary,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.onPrimary,
                 ),
               ),
           ],
@@ -415,14 +416,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppTheme.gradientEnd),
+          Icon(icon, size: 18, color: AppColors.primary),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: AppTheme.textPrimary),
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary),
             ),
           ),
         ],
@@ -444,7 +445,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Reminder set for ${schedule.relativeTime}'),
-            backgroundColor: AppTheme.success,
+            backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
@@ -457,7 +458,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to set reminder: ${e.toString()}'),
-            backgroundColor: AppTheme.danger,
+            backgroundColor: AppColors.danger,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),

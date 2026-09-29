@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../model/subject_model.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 
@@ -47,11 +48,11 @@ class SubjectCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   child: subject.imageUrl == null
                       ? Container(
-                          color: AppTheme.surfaceAlt,
+                          color: AppColors.surfaceAlt,
                           child: Icon(
                             Icons.book,
                             size: 32,
-                            color: AppTheme.secondaryGray,
+                            color: AppColors.textMuted,
                           ),
                         )
                       : CachedNetworkImage(
@@ -60,20 +61,20 @@ class SubjectCard extends StatelessWidget {
                           height: double.infinity,
                           fit: BoxFit.cover,
                           placeholder: (context, url) => Container(
-                            color: AppTheme.surfaceAlt,
+                            color: AppColors.surfaceAlt,
                             child: const Center(
                               child: CircularProgressIndicator(
-                                color: AppTheme.gradientEnd,
+                                color: AppColors.primary,
                                 strokeWidth: 2,
                               ),
                             ),
                           ),
                           errorWidget: (context, url, error) => Container(
-                            color: AppTheme.surfaceAlt,
+                            color: AppColors.surfaceAlt,
                             child: Icon(
                               Icons.book,
                               size: 32,
-                              color: AppTheme.secondaryGray,
+                              color: AppColors.textMuted,
                             ),
                           ),
                         ),
@@ -87,8 +88,8 @@ class SubjectCard extends StatelessWidget {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.55),
+                        AppColors.transparent,
+                        AppColors.black.withValues(alpha: 0.55),
                       ],
                     ),
                   ),
@@ -107,8 +108,10 @@ class SubjectCard extends StatelessWidget {
                           0.0,
                           1.0,
                         ),
-                        backgroundColor: Colors.white.withValues(alpha: 0.35),
-                        color: AppTheme.accentAmber,
+                        backgroundColor: AppColors.white.withValues(
+                          alpha: 0.35,
+                        ),
+                        color: AppColors.accentAmber,
                       ),
                     ),
                   ),
@@ -125,7 +128,7 @@ class SubjectCard extends StatelessWidget {
                             subject.displayName,
                             style: Theme.of(context).textTheme.titleSmall
                                 ?.copyWith(
-                                  color: AppTheme.primaryWhite,
+                                  color: AppColors.onPrimary,
                                   fontWeight: FontWeight.w700,
                                   height: 1.2,
                                 ),
@@ -138,7 +141,7 @@ class SubjectCard extends StatelessWidget {
                           Text(
                             '$completedLessons/$totalLessons',
                             style: AppFonts.extraBold(
-                              color: Colors.white,
+                              color: AppColors.white,
                               fontSize: 10,
                             ),
                           ),

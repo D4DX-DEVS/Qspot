@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../services/api_client.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -25,7 +26,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppColors.background,
       appBar: const CommonAppBar(title: 'Me'),
       body: ListView(
         padding: EdgeInsets.fromLTRB(
@@ -65,7 +66,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: AppTheme.primarySoft,
+            color: AppColors.primarySoft,
             borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
           ),
           child: Row(
@@ -75,13 +76,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 width: 64,
                 height: 64,
                 decoration: const BoxDecoration(
-                  color: AppTheme.primary,
+                  color: AppColors.primary,
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   _initials(displayName),
-                  style: AppFonts.bold(color: AppTheme.onPrimary, fontSize: 22),
+                  style: AppFonts.bold(
+                    color: AppColors.onPrimary,
+                    fontSize: 22,
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -94,7 +98,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppFonts.bold(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontSize: 19,
                       ),
                     ),
@@ -103,7 +107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Text(
                         phone,
                         style: AppFonts.regular(
-                          color: AppTheme.textMuted,
+                          color: AppColors.textMuted,
                           fontSize: 13.5,
                         ),
                       ),
@@ -124,7 +128,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onPressed: () => _editProfile(context, user),
                 icon: const Icon(
                   Icons.edit_outlined,
-                  color: AppTheme.primary,
+                  color: AppColors.primary,
                   size: 20,
                 ),
                 tooltip: 'Edit profile',
@@ -140,12 +144,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: AppTheme.background,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         text,
-        style: AppFonts.bold(color: AppTheme.primary, fontSize: 11.5),
+        style: AppFonts.bold(color: AppColors.primary, fontSize: 11.5),
       ),
     );
   }
@@ -161,25 +165,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          backgroundColor: AppTheme.background,
+          backgroundColor: AppColors.background,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
           title: Text(
             'Edit profile',
-            style: AppFonts.medium(color: AppTheme.textPrimary),
+            style: AppFonts.medium(color: AppColors.textPrimary),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                style: AppFonts.regular(color: AppTheme.textPrimary),
+                style: AppFonts.regular(color: AppColors.textPrimary),
                 decoration: const InputDecoration(labelText: 'Name'),
               ),
               TextField(
                 controller: classController,
-                style: AppFonts.regular(color: AppTheme.textPrimary),
+                style: AppFonts.regular(color: AppColors.textPrimary),
                 decoration: const InputDecoration(labelText: 'Class'),
               ),
               const SizedBox(height: 12),
@@ -187,7 +191,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Text(
                     'Language',
-                    style: AppFonts.regular(color: AppTheme.textMuted),
+                    style: AppFonts.regular(color: AppColors.textMuted),
                   ),
                   const Spacer(),
                   ToggleButtons(
@@ -256,7 +260,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Could not update profile: $e'),
-          backgroundColor: AppTheme.danger,
+          backgroundColor: AppColors.danger,
         ),
       );
     }
@@ -271,7 +275,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Text(
             'Your space',
             style: AppFonts.extraBold(
-              color: AppTheme.textPrimary,
+              color: AppColors.textPrimary,
               fontSize: 15,
             ),
           ),
@@ -319,7 +323,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
-        color: AppTheme.background,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         child: InkWell(
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
@@ -331,7 +335,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-              border: Border.all(color: AppTheme.border),
+              border: Border.all(color: AppColors.border),
             ),
             child: Row(
               children: [
@@ -339,10 +343,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   width: 40,
                   height: 40,
                   decoration: const BoxDecoration(
-                    color: AppTheme.surfaceAlt,
+                    color: AppColors.surfaceAlt,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(icon, size: 19, color: AppTheme.primary),
+                  child: Icon(icon, size: 19, color: AppColors.primary),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -352,7 +356,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Text(
                         label,
                         style: AppFonts.semiBold(
-                          color: AppTheme.textPrimary,
+                          color: AppColors.textPrimary,
                           fontSize: 15,
                         ),
                       ),
@@ -362,7 +366,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppFonts.regular(
-                          color: AppTheme.textMuted,
+                          color: AppColors.textMuted,
                           fontSize: 12,
                         ),
                       ),
@@ -371,7 +375,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const Icon(
                   Icons.chevron_right,
-                  color: AppTheme.textMuted,
+                  color: AppColors.textMuted,
                   size: 20,
                 ),
               ],
@@ -391,7 +395,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          backgroundColor: AppTheme.background,
+          backgroundColor: AppColors.background,
           title: const Text('My courses'),
           content: SizedBox(
             width: 360,
@@ -415,7 +419,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             subtitle: course.subtitle.isEmpty
                                 ? null
                                 : Text(course.subtitle),
-                            activeColor: AppTheme.primary,
+                            activeColor: AppColors.primary,
                             contentPadding: EdgeInsets.zero,
                           ),
                       ],
@@ -467,8 +471,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           width: double.infinity,
           child: OutlinedButton.icon(
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.danger,
-              side: BorderSide(color: AppTheme.danger.withValues(alpha: 0.35)),
+              foregroundColor: AppColors.danger,
+              side: BorderSide(color: AppColors.danger.withValues(alpha: 0.35)),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
@@ -487,30 +491,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppTheme.background,
+        backgroundColor: AppColors.background,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         ),
         title: Text(
           'Logout',
-          style: AppFonts.medium(color: AppTheme.textPrimary, fontSize: 19),
+          style: AppFonts.medium(color: AppColors.textPrimary, fontSize: 19),
         ),
         content: Text(
           'Are you sure you want to logout?',
-          style: AppFonts.regular(color: AppTheme.textMuted, fontSize: 15),
+          style: AppFonts.regular(color: AppColors.textMuted, fontSize: 15),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
             child: Text(
               'Cancel',
-              style: AppFonts.medium(color: AppTheme.textPrimary),
+              style: AppFonts.medium(color: AppColors.textPrimary),
             ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.danger,
-              foregroundColor: AppTheme.onPrimary,
+              backgroundColor: AppColors.danger,
+              foregroundColor: AppColors.onPrimary,
             ),
             onPressed: () async {
               Navigator.of(dialogContext).pop();

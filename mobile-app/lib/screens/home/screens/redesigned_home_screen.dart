@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../../services/today_service.dart';
 import '../../../services/video_progress_service.dart';
-import '../../../themes/app_theme.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../assignment/screens/assignments_screen.dart';
@@ -68,7 +68,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppColors.background,
       appBar: CommonAppBar(
         title: _greeting(),
         centerTitle: false,
@@ -76,8 +76,8 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _refresh,
-        color: AppTheme.primary,
-        backgroundColor: AppTheme.surface,
+        color: AppColors.primary,
+        backgroundColor: AppColors.surface,
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
@@ -120,7 +120,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: AppFonts.extraBold(
-              color: AppTheme.textPrimary,
+              color: AppColors.textPrimary,
               fontSize: 20,
             ),
           );
@@ -157,10 +157,10 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
               customBorder: const CircleBorder(),
               child: CircleAvatar(
                 radius: 20,
-                backgroundColor: AppTheme.primary,
+                backgroundColor: AppColors.primary,
                 child: Text(
                   _initials(name),
-                  style: AppFonts.extraBold(color: AppTheme.onPrimary),
+                  style: AppFonts.extraBold(color: AppColors.onPrimary),
                 ),
               ),
             ),
@@ -192,13 +192,16 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                 constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
                 padding: const EdgeInsets.all(3),
                 decoration: const BoxDecoration(
-                  color: AppTheme.accent,
+                  color: AppColors.accent,
                   shape: BoxShape.circle,
                 ),
                 child: Text(
                   badge > 9 ? '9+' : '$badge',
                   textAlign: TextAlign.center,
-                  style: AppFonts.extraBold(color: Colors.white, fontSize: 9),
+                  style: AppFonts.extraBold(
+                    color: AppColors.white,
+                    fontSize: 9,
+                  ),
                 ),
               ),
             ),
@@ -218,11 +221,11 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
       constraints: const BoxConstraints(minHeight: 186),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: urgent ? const Color(0xFF8D3F34) : AppTheme.primary,
+        color: urgent ? AppColors.accentDeep : AppColors.primary,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primary.withValues(alpha: 0.15),
+            color: AppColors.primary.withValues(alpha: 0.15),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -243,14 +246,14 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
           children: [
             Icon(
               urgent ? Icons.priority_high_rounded : Icons.wb_sunny_outlined,
-              color: Colors.white.withValues(alpha: 0.85),
+              color: AppColors.white.withValues(alpha: 0.85),
               size: 18,
             ),
             const SizedBox(width: 8),
             Text(
               _itemLabel(item),
               style: AppFonts.extraBold(
-                color: Colors.white.withValues(alpha: 0.85),
+                color: AppColors.white.withValues(alpha: 0.85),
                 fontSize: 12,
                 letterSpacing: 0.3,
               ),
@@ -260,7 +263,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
               Text(
                 '${item.estimatedMinutes} min',
                 style: AppFonts.regular(
-                  color: Colors.white.withValues(alpha: 0.72),
+                  color: AppColors.white.withValues(alpha: 0.72),
                   fontSize: 12,
                 ),
               ),
@@ -272,7 +275,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: AppFonts.extraBold(
-            color: Colors.white,
+            color: AppColors.white,
             fontSize: 21,
             height: 1.18,
           ),
@@ -283,7 +286,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: AppFonts.regular(
-            color: Colors.white.withValues(alpha: 0.78),
+            color: AppColors.white.withValues(alpha: 0.78),
             fontSize: 13,
             height: 1.35,
           ),
@@ -302,10 +305,10 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                 ),
                 label: Text(urgent ? 'Handle now' : 'Start this'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: Colors.white,
+                  backgroundColor: AppColors.white,
                   foregroundColor: urgent
-                      ? const Color(0xFF8D3F34)
-                      : AppTheme.primary,
+                      ? AppColors.accentDeep
+                      : AppColors.primary,
                   minimumSize: const Size(0, 44),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -342,18 +345,18 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
             Flexible(
               child: Text(
                 'Your next small win',
-                style: AppFonts.extraBold(color: Colors.white, fontSize: 21),
+                style: AppFonts.extraBold(color: AppColors.white, fontSize: 21),
               ),
             ),
             SizedBox(width: 12),
-            Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 24),
+            Icon(Icons.auto_awesome_rounded, color: AppColors.white, size: 24),
           ],
         ),
         const SizedBox(height: 6),
         Text(
           'Pick a short lesson and keep your rhythm gentle.',
           style: AppFonts.regular(
-            color: Colors.white.withValues(alpha: 0.78),
+            color: AppColors.white.withValues(alpha: 0.78),
             fontSize: 13,
           ),
         ),
@@ -363,8 +366,8 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
           icon: const Icon(Icons.explore_outlined, size: 18),
           label: const Text('Explore lessons'),
           style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.white,
-            side: BorderSide(color: Colors.white.withValues(alpha: 0.55)),
+            foregroundColor: AppColors.white,
+            side: BorderSide(color: AppColors.white.withValues(alpha: 0.55)),
             minimumSize: const Size(0, 44),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -385,9 +388,9 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
@@ -395,19 +398,19 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
             Icons.local_fire_department_outlined,
             '${_today?.currentStreak ?? 0}',
             'day streak',
-            AppTheme.accent,
+            AppColors.accent,
           ),
           _metric(
             Icons.check_circle_outline,
             '$completed/$total',
             'lessons done',
-            AppTheme.success,
+            AppColors.success,
           ),
           _metric(
             Icons.event_note_outlined,
             '$nextCount',
             'coming up',
-            AppTheme.warning,
+            AppColors.warning,
           ),
         ],
       ),
@@ -427,7 +430,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                 Text(
                   value,
                   style: AppFonts.extraBold(
-                    color: AppTheme.textPrimary,
+                    color: AppColors.textPrimary,
                     fontSize: 15,
                   ),
                 ),
@@ -436,7 +439,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppFonts.regular(
-                    color: AppTheme.textMuted,
+                    color: AppColors.textMuted,
                     fontSize: 10.5,
                   ),
                 ),
@@ -450,20 +453,20 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
 
   Widget _shortcuts() {
     final actions = [
-      _Action(Icons.menu_book_outlined, 'Learn', _openLearn, AppTheme.primary),
+      _Action(Icons.menu_book_outlined, 'Learn', _openLearn, AppColors.primary),
       _Action(
         Icons.edit_note_outlined,
         'Practice',
         _openPractice,
-        AppTheme.accent,
+        AppColors.accent,
       ),
       _Action(
         Icons.assignment_outlined,
         'Assignments',
         _openAssignments,
-        AppTheme.warning,
+        AppColors.warning,
       ),
-      _Action(Icons.help_outline_rounded, 'Ask', _openAsk, AppTheme.success),
+      _Action(Icons.help_outline_rounded, 'Ask', _openAsk, AppColors.success),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -505,7 +508,10 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 11),
+                style: AppFonts.bold(
+                  color: AppColors.textPrimary,
+                  fontSize: 11,
+                ),
               ),
             ],
           ),
@@ -553,9 +559,9 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.border),
+            border: Border.all(color: AppColors.border),
           ),
           child: Row(
             children: [
@@ -580,7 +586,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppFonts.regular(
-                        color: AppTheme.textMuted,
+                        color: AppColors.textMuted,
                         fontSize: 10.5,
                       ),
                     ),
@@ -590,7 +596,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       style: AppFonts.bold(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontSize: 12,
                         height: 1.25,
                       ),
@@ -601,9 +607,9 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                       child: LinearProgressIndicator(
                         value: percent,
                         minHeight: 4,
-                        backgroundColor: AppTheme.surfaceAlt,
+                        backgroundColor: AppColors.surfaceAlt,
                         valueColor: const AlwaysStoppedAnimation(
-                          AppTheme.accent,
+                          AppColors.accent,
                         ),
                       ),
                     ),
@@ -613,7 +619,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                           ? 'Completed'
                           : '${(percent * 100).round()}% watched',
                       style: AppFonts.regular(
-                        color: AppTheme.textMuted,
+                        color: AppColors.textMuted,
                         fontSize: 10.5,
                       ),
                     ),
@@ -658,9 +664,9 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.border),
+            border: Border.all(color: AppColors.border),
           ),
           child: Row(
             children: [
@@ -668,12 +674,12 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: AppTheme.primarySoft,
+                  color: AppColors.primarySoft,
                   borderRadius: BorderRadius.circular(9),
                 ),
                 child: const Icon(
                   Icons.auto_stories_outlined,
-                  color: AppTheme.primary,
+                  color: AppColors.primary,
                   size: 19,
                 ),
               ),
@@ -688,7 +694,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppFonts.extraBold(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontSize: 14,
                       ),
                     ),
@@ -696,7 +702,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                     Text(
                       'Open chapter',
                       style: AppFonts.regular(
-                        color: AppTheme.textMuted,
+                        color: AppColors.textMuted,
                         fontSize: 11,
                       ),
                     ),
@@ -705,7 +711,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
               ),
               const Icon(
                 Icons.chevron_right_rounded,
-                color: AppTheme.textMuted,
+                color: AppColors.textMuted,
               ),
             ],
           ),
@@ -733,7 +739,9 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   }
 
   Widget _upcomingRow(TodayLearningItem item) {
-    final color = item.status == 'overdue' ? AppTheme.danger : AppTheme.primary;
+    final color = item.status == 'overdue'
+        ? AppColors.danger
+        : AppColors.primary;
     return InkWell(
       onTap: () => _openTodayItem(
         item,
@@ -743,9 +751,9 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppTheme.border),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           children: [
@@ -768,7 +776,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppFonts.bold(
-                      color: AppTheme.textPrimary,
+                      color: AppColors.textPrimary,
                       fontSize: 13,
                     ),
                   ),
@@ -782,7 +790,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
             ),
             const Icon(
               Icons.chevron_right_rounded,
-              color: AppTheme.textMuted,
+              color: AppColors.textMuted,
               size: 20,
             ),
           ],
@@ -802,7 +810,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
             child: Text(
               title,
               style: AppFonts.extraBold(
-                color: AppTheme.textPrimary,
+                color: AppColors.textPrimary,
                 fontSize: 18,
               ),
             ),
@@ -811,7 +819,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
             TextButton(
               onPressed: onMore,
               style: TextButton.styleFrom(
-                foregroundColor: AppTheme.primary,
+                foregroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 minimumSize: const Size(44, 40),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -825,9 +833,9 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
 
   Widget _mediaFallback() {
     return Container(
-      color: AppTheme.primaryDeep,
+      color: AppColors.primaryDeep,
       alignment: Alignment.center,
-      child: const Icon(Icons.play_lesson_outlined, color: Colors.white),
+      child: const Icon(Icons.play_lesson_outlined, color: AppColors.white),
     );
   }
 

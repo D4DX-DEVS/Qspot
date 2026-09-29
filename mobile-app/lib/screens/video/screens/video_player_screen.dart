@@ -9,6 +9,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 import '../../../services/video_progress_service.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -111,10 +112,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         looping: false,
         aspectRatio: widget.video.playerAspectRatio,
         materialProgressColors: ChewieProgressColors(
-          playedColor: AppTheme.gradientEnd,
-          handleColor: AppTheme.gradientStart,
-          bufferedColor: AppTheme.secondaryGray.withValues(alpha: 0.3),
-          backgroundColor: AppTheme.surfaceAlt,
+          playedColor: AppColors.primary,
+          handleColor: AppColors.primary,
+          bufferedColor: AppColors.textMuted.withValues(alpha: 0.3),
+          backgroundColor: AppColors.surfaceAlt,
         ),
       );
       setState(() => _isPlayerReady = true);
@@ -151,7 +152,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   void _initializeWebView() {
     _webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0x00000000))
+      ..setBackgroundColor(AppColors.transparent)
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (String url) {
@@ -237,7 +238,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
     final start = await showModalBottomSheet<bool>(
       context: context,
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -249,13 +250,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.verified, color: AppTheme.success),
+                Icon(Icons.verified, color: AppColors.success),
                 SizedBox(width: 8),
                 Text(
                   'Video completed',
                   style: AppFonts.bold(
                     fontSize: 18,
-                    color: AppTheme.textPrimary,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -265,14 +266,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               'You finished "${widget.video.displayTitle}". '
               'Answer ${status.questionCount} question'
               '${status.questionCount == 1 ? '' : 's'} about it.',
-              style: AppFonts.regular(color: AppTheme.textMuted, height: 1.35),
+              style: AppFonts.regular(color: AppColors.textMuted, height: 1.35),
             ),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
+                  backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
@@ -289,7 +290,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               onPressed: () => Navigator.of(context).pop(false),
               child: Text(
                 'Later',
-                style: AppFonts.medium(color: AppTheme.textMuted),
+                style: AppFonts.medium(color: AppColors.textMuted),
               ),
             ),
           ],
@@ -319,9 +320,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         SnackBar(
           content: Text(
             isBookmarked ? 'Added to bookmarks' : 'Removed from bookmarks',
-            style: AppFonts.regular(color: AppTheme.onPrimary),
+            style: AppFonts.regular(color: AppColors.onPrimary),
           ),
-          backgroundColor: AppTheme.textPrimary,
+          backgroundColor: AppColors.textPrimary,
           duration: const Duration(seconds: 2),
         ),
       );
@@ -387,12 +388,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         controller: _youtubeController!,
         aspectRatio: widget.video.playerAspectRatio,
         showVideoProgressIndicator: true,
-        progressIndicatorColor: AppTheme.gradientEnd,
+        progressIndicatorColor: AppColors.primary,
         progressColors: ProgressBarColors(
-          playedColor: AppTheme.gradientEnd,
-          handleColor: AppTheme.gradientStart,
-          bufferedColor: AppTheme.secondaryGray.withValues(alpha: 0.3),
-          backgroundColor: AppTheme.surfaceAlt,
+          playedColor: AppColors.primary,
+          handleColor: AppColors.primary,
+          bufferedColor: AppColors.textMuted.withValues(alpha: 0.3),
+          backgroundColor: AppColors.surfaceAlt,
         ),
         onReady: () {
           setState(() {
@@ -413,9 +414,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   Widget _buildDirectPlayerScreen() {
     if (!_isPlayerReady || _chewieController == null) {
       return const Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.black,
         body: Center(
-          child: CircularProgressIndicator(color: AppTheme.gradientEnd),
+          child: CircularProgressIndicator(color: AppColors.primary),
         ),
       );
     }
@@ -431,7 +432,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   /// video centred on a black background with the overlay controls on top.
   Widget _buildReelsStyleScaffold(Widget player) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.black,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -452,7 +453,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Color(0xCC000000)],
+                    colors: [AppColors.transparent, AppColors.scrim],
                   ),
                 ),
               ),
@@ -476,7 +477,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: AppTheme.success,
+                        color: AppColors.success,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
@@ -485,13 +486,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                           Icon(
                             Icons.check_circle,
                             size: 14,
-                            color: Colors.white,
+                            color: AppColors.white,
                           ),
                           SizedBox(width: 4),
                           Text(
                             'Completed',
                             style: AppFonts.semiBold(
-                              color: Colors.white,
+                              color: AppColors.white,
                               fontSize: 12,
                             ),
                           ),
@@ -538,7 +539,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: AppFonts.bold(
-                      color: Colors.white,
+                      color: AppColors.white,
                       fontSize: 17,
                       height: 1.3,
                     ),
@@ -553,7 +554,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                         widget.video.formattedDate,
                     ].join('  ·  '),
                     style: AppFonts.regular(
-                      color: Colors.white70,
+                      color: AppColors.white70,
                       fontSize: 12.5,
                     ),
                   ),
@@ -566,8 +567,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                       child: LinearProgressIndicator(
                         value: _progress!.percent,
                         minHeight: 3,
-                        backgroundColor: Colors.white24,
-                        valueColor: const AlwaysStoppedAnimation(Colors.white),
+                        backgroundColor: AppColors.white24,
+                        valueColor: const AlwaysStoppedAnimation(
+                          AppColors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -607,13 +610,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: enabled ? 0.18 : 0.08),
+          color: AppColors.white.withValues(alpha: enabled ? 0.18 : 0.08),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           label,
           style: AppFonts.semiBold(
-            color: enabled ? Colors.white : Colors.white38,
+            color: enabled ? AppColors.white : AppColors.white38,
             fontSize: 12.5,
           ),
         ),
@@ -631,10 +634,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.35),
+            color: AppColors.black.withValues(alpha: 0.35),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: Colors.white, size: 20),
+          child: Icon(icon, color: AppColors.white, size: 20),
         ),
       ),
     );
@@ -642,7 +645,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
   Widget _buildLiveStreamPlayer() {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: AppColors.background,
       appBar: _isFullScreen
           ? null
           : CommonAppBar(
@@ -658,8 +661,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                       icon: Icon(
                         isBookmarked ? Icons.bookmark : Icons.bookmark_border,
                         color: isBookmarked
-                            ? AppTheme.gradientEnd
-                            : AppTheme.textPrimary,
+                            ? AppColors.primary
+                            : AppColors.textPrimary,
                       ),
                       tooltip: isBookmarked
                           ? 'Remove bookmark'
@@ -686,7 +689,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                   },
                   icon: Icon(
                     _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
-                    color: AppTheme.textPrimary,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -697,12 +700,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             flex: _isFullScreen ? 1 : 3,
             child: Container(
               width: double.infinity,
-              decoration: const BoxDecoration(color: Colors.black),
+              decoration: const BoxDecoration(color: AppColors.black),
               child: _isPlayerReady
                   ? WebViewWidget(controller: _webViewController!)
                   : const Center(
                       child: CircularProgressIndicator(
-                        color: AppTheme.gradientEnd,
+                        color: AppColors.primary,
                       ),
                     ),
             ),
@@ -721,7 +724,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: AppTheme.danger,
+                        color: AppColors.danger,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Row(
@@ -731,7 +734,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                           Text(
                             'LIVE',
                             style: AppFonts.bold(
-                              color: AppTheme.primaryWhite,
+                              color: AppColors.onPrimary,
                               fontSize: 12,
                             ),
                           ),
@@ -743,7 +746,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                       widget.video.displayTitle,
                       style: Theme.of(context).textTheme.headlineSmall
                           ?.copyWith(
-                            color: AppTheme.textPrimary,
+                            color: AppColors.textPrimary,
                             fontWeight: FontWeight.bold,
                           ),
                     ),
@@ -753,7 +756,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(AppTheme.paddingMedium),
                         decoration: BoxDecoration(
-                          color: AppTheme.surfaceAlt,
+                          color: AppColors.surfaceAlt,
                           borderRadius: BorderRadius.circular(
                             AppTheme.radiusMedium,
                           ),
@@ -761,7 +764,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                         child: Text(
                           widget.video.caption,
                           style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppTheme.textPrimary),
+                              ?.copyWith(color: AppColors.textPrimary),
                         ),
                       ),
                     ],
@@ -776,7 +779,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
   Widget _buildUnsupportedScreen() {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: AppColors.background,
       appBar: CommonAppBar(title: widget.video.displayTitle),
       body: Center(
         child: Padding(
@@ -784,17 +787,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.error_outline,
-                size: 64,
-                color: AppTheme.secondaryGray,
-              ),
+              Icon(Icons.error_outline, size: 64, color: AppColors.textMuted),
               const SizedBox(height: AppTheme.paddingMedium),
               Text(
                 'This video cannot be played right now.',
                 textAlign: TextAlign.center,
                 style: AppFonts.regular(
-                  color: AppTheme.textPrimary,
+                  color: AppColors.textPrimary,
                   fontSize: 16,
                 ),
               ),

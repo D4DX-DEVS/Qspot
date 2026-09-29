@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../themes/app_colors.dart';
 import '../../themes/app_theme.dart';
 import '../../themes/app_fonts.dart';
 
@@ -155,11 +156,11 @@ class _OtpInputState extends State<OtpInput> {
         maxLength: widget.length,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         onChanged: (value) => _handleChange(index, value),
-        style: AppFonts.semiBold(fontSize: 22, color: AppTheme.textPrimary),
+        style: AppFonts.semiBold(fontSize: 22, color: AppColors.textPrimary),
         decoration: InputDecoration(
           counterText: '',
           filled: true,
-          fillColor: isFilled ? AppTheme.primarySoft : AppTheme.surface,
+          fillColor: isFilled ? AppColors.primarySoft : AppColors.surface,
           contentPadding: EdgeInsets.zero,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
@@ -168,17 +169,17 @@ class _OtpInputState extends State<OtpInput> {
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
             borderSide: BorderSide(
-              color: isFilled ? AppTheme.primary : AppTheme.border,
+              color: isFilled ? AppColors.primary : AppColors.border,
               width: isFilled ? 1.5 : 1,
             ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-            borderSide: const BorderSide(color: AppTheme.primary, width: 2),
+            borderSide: const BorderSide(color: AppColors.primary, width: 2),
           ),
           disabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-            borderSide: const BorderSide(color: AppTheme.border),
+            borderSide: const BorderSide(color: AppColors.border),
           ),
         ),
       ),

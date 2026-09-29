@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../../../themes/app_theme.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../auth/screens/login_screen.dart';
@@ -34,9 +34,9 @@ class _SplashScreenState extends State<SplashScreen>
     // icons to stay visible.
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
+        statusBarColor: AppColors.transparent,
         statusBarIconBrightness: Brightness.light,
-        systemNavigationBarColor: AppTheme.primary,
+        systemNavigationBarColor: AppColors.primary,
         systemNavigationBarIconBrightness: Brightness.light,
       ),
     );
@@ -80,9 +80,9 @@ class _SplashScreenState extends State<SplashScreen>
     // dark icons on a light bar instead of the splash's light-on-dark style.
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
+        statusBarColor: AppColors.transparent,
         statusBarIconBrightness: Brightness.dark,
-        systemNavigationBarColor: AppTheme.background,
+        systemNavigationBarColor: AppColors.background,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
@@ -108,9 +108,9 @@ class _SplashScreenState extends State<SplashScreen>
     // stuck on the splash's maroon color.
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
+        statusBarColor: AppColors.transparent,
         statusBarIconBrightness: Brightness.dark,
-        systemNavigationBarColor: AppTheme.background,
+        systemNavigationBarColor: AppColors.background,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
@@ -121,7 +121,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.primary,
+      backgroundColor: AppColors.primary,
       body: SizedBox.expand(
         child: Stack(
           children: [
@@ -164,7 +164,7 @@ class _SplashScreenState extends State<SplashScreen>
                     child: Text(
                       'Developed by D4DX Innovations LLP',
                       style: AppFonts.medium(
-                        color: Colors.white70,
+                        color: AppColors.white70,
                         fontSize: 12,
                       ),
                     ),

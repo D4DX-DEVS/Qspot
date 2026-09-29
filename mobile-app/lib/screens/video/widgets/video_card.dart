@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../model/video_model.dart';
 import '../../../services/video_progress_service.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../bookmark/provider/bookmark_provider.dart';
@@ -39,9 +40,9 @@ class VideoCard extends StatelessWidget {
         SnackBar(
           content: Text(
             isBookmarked ? 'Added to bookmarks' : 'Removed from bookmarks',
-            style: AppFonts.regular(color: AppTheme.onPrimary),
+            style: AppFonts.regular(color: AppColors.onPrimary),
           ),
-          backgroundColor: AppTheme.textPrimary,
+          backgroundColor: AppColors.textPrimary,
           duration: const Duration(seconds: 2),
         ),
       );
@@ -63,7 +64,7 @@ class VideoCard extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Reminder set for ${video.upcomingDateFormatted}'),
-            backgroundColor: AppTheme.success,
+            backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
@@ -76,7 +77,7 @@ class VideoCard extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to set reminder: ${e.toString()}'),
-            backgroundColor: AppTheme.danger,
+            backgroundColor: AppColors.danger,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
@@ -96,10 +97,10 @@ class VideoCard extends StatelessWidget {
       height: height,
       child: Card(
         elevation: 0,
-        color: AppTheme.background,
+        color: AppColors.background,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          side: const BorderSide(color: AppTheme.border),
+          side: const BorderSide(color: AppColors.border),
         ),
         child: InkWell(
           onTap: isUpcoming ? null : onTap, // Disable tap for upcoming videos
@@ -121,11 +122,11 @@ class VideoCard extends StatelessWidget {
                           ? Container(
                               width: double.infinity,
                               height: double.infinity,
-                              color: AppTheme.surfaceAlt,
+                              color: AppColors.surfaceAlt,
                               child: Icon(
                                 Icons.video_library,
                                 size: 24,
-                                color: AppTheme.secondaryGray,
+                                color: AppColors.textMuted,
                               ),
                             )
                           : CachedNetworkImage(
@@ -134,20 +135,20 @@ class VideoCard extends StatelessWidget {
                               height: double.infinity,
                               fit: BoxFit.cover,
                               placeholder: (context, url) => Container(
-                                color: AppTheme.surfaceAlt,
+                                color: AppColors.surfaceAlt,
                                 child: const Center(
                                   child: CircularProgressIndicator(
-                                    color: AppTheme.gradientEnd,
+                                    color: AppColors.primary,
                                     strokeWidth: 2,
                                   ),
                                 ),
                               ),
                               errorWidget: (context, url, error) => Container(
-                                color: AppTheme.surfaceAlt,
+                                color: AppColors.surfaceAlt,
                                 child: Icon(
                                   Icons.video_library,
                                   size: 24,
-                                  color: AppTheme.secondaryGray,
+                                  color: AppColors.textMuted,
                                 ),
                               ),
                             ),
@@ -165,8 +166,8 @@ class VideoCard extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: progress!.completed
-                                ? AppTheme.success
-                                : AppTheme.primary,
+                                ? AppColors.success
+                                : AppColors.primary,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Row(
@@ -177,7 +178,7 @@ class VideoCard extends StatelessWidget {
                                     ? Icons.check_circle
                                     : Icons.play_circle_fill,
                                 size: 11,
-                                color: AppTheme.onPrimary,
+                                color: AppColors.onPrimary,
                               ),
                               const SizedBox(width: 3),
                               Text(
@@ -185,7 +186,7 @@ class VideoCard extends StatelessWidget {
                                     ? 'Completed'
                                     : 'In progress',
                                 style: AppFonts.semiBold(
-                                  color: AppTheme.onPrimary,
+                                  color: AppColors.onPrimary,
                                   fontSize: 9,
                                 ),
                               ),
@@ -210,9 +211,9 @@ class VideoCard extends StatelessWidget {
                           child: LinearProgressIndicator(
                             value: progress!.percent,
                             minHeight: 3,
-                            backgroundColor: AppTheme.border,
+                            backgroundColor: AppColors.border,
                             valueColor: const AlwaysStoppedAnimation(
-                              AppTheme.primary,
+                              AppColors.primary,
                             ),
                           ),
                         ),
@@ -237,7 +238,7 @@ class VideoCard extends StatelessWidget {
                               icon: Container(
                                 padding: const EdgeInsets.all(5),
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.7),
+                                  color: AppColors.black.withValues(alpha: 0.7),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
@@ -245,8 +246,8 @@ class VideoCard extends StatelessWidget {
                                       ? Icons.bookmark
                                       : Icons.bookmark_border,
                                   color: isBookmarked
-                                      ? AppTheme.gradientEnd
-                                      : AppTheme.primaryWhite,
+                                      ? AppColors.primary
+                                      : AppColors.onPrimary,
                                   size: 16,
                                 ),
                               ),
@@ -272,8 +273,8 @@ class VideoCard extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: video.isLiveVideo
-                              ? AppTheme.danger
-                              : Colors.black.withValues(alpha: 0.7),
+                              ? AppColors.danger
+                              : AppColors.black.withValues(alpha: 0.7),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: video.isLiveVideo
@@ -284,7 +285,7 @@ class VideoCard extends StatelessWidget {
                                     width: 4,
                                     height: 4,
                                     decoration: const BoxDecoration(
-                                      color: AppTheme.primaryWhite,
+                                      color: AppColors.onPrimary,
                                       shape: BoxShape.circle,
                                     ),
                                   ),
@@ -295,7 +296,7 @@ class VideoCard extends StatelessWidget {
                                         .textTheme
                                         .labelSmall
                                         ?.copyWith(
-                                          color: AppTheme.primaryWhite,
+                                          color: AppColors.onPrimary,
                                           fontSize: 8,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -306,7 +307,7 @@ class VideoCard extends StatelessWidget {
                                 video.formattedDuration,
                                 style: Theme.of(context).textTheme.labelSmall
                                     ?.copyWith(
-                                      color: AppTheme.primaryWhite,
+                                      color: AppColors.onPrimary,
                                       fontSize: 10,
                                     ),
                               ),
@@ -318,14 +319,14 @@ class VideoCard extends StatelessWidget {
                       Center(
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.5),
+                            color: AppColors.black.withValues(alpha: 0.5),
                             shape: BoxShape.circle,
                           ),
                           child: IconButton(
                             iconSize: 20,
                             icon: const Icon(
                               Icons.play_arrow,
-                              color: AppTheme.primaryWhite,
+                              color: AppColors.onPrimary,
                             ),
                             onPressed: onTap,
                           ),
@@ -337,7 +338,7 @@ class VideoCard extends StatelessWidget {
                       Positioned.fill(
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.85),
+                            color: AppColors.black.withValues(alpha: 0.85),
                             borderRadius: const BorderRadius.only(
                               topLeft: Radius.circular(AppTheme.radiusMedium),
                               topRight: Radius.circular(AppTheme.radiusMedium),
@@ -354,7 +355,7 @@ class VideoCard extends StatelessWidget {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  gradient: AppTheme.primaryGradient,
+                                  gradient: AppColors.primaryGradient,
                                   borderRadius: BorderRadius.circular(
                                     AppTheme.radiusSmall,
                                   ),
@@ -364,7 +365,7 @@ class VideoCard extends StatelessWidget {
                                   children: [
                                     const Icon(
                                       Icons.schedule,
-                                      color: AppTheme.primaryWhite,
+                                      color: AppColors.onPrimary,
                                       size: 14,
                                     ),
                                     const SizedBox(width: 3),
@@ -374,7 +375,7 @@ class VideoCard extends StatelessWidget {
                                           .textTheme
                                           .labelSmall
                                           ?.copyWith(
-                                            color: AppTheme.primaryWhite,
+                                            color: AppColors.onPrimary,
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
                                             letterSpacing: 1.0,
@@ -393,7 +394,7 @@ class VideoCard extends StatelessWidget {
                                     video.upcomingDateFormatted,
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
-                                          color: AppTheme.primaryWhite,
+                                          color: AppColors.onPrimary,
                                           fontSize: 9,
                                         ),
                                     textAlign: TextAlign.center,
@@ -419,8 +420,8 @@ class VideoCard extends StatelessWidget {
                                       ),
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.gradientStart,
-                                  foregroundColor: AppTheme.primaryWhite,
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: AppColors.onPrimary,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 10,
                                     vertical: 5,
@@ -457,7 +458,7 @@ class VideoCard extends StatelessWidget {
                           video.displayTitle,
                           style: Theme.of(context).textTheme.titleSmall
                               ?.copyWith(
-                                color: AppTheme.textPrimary,
+                                color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w500,
                               ),
                           maxLines: 2,
@@ -472,7 +473,7 @@ class VideoCard extends StatelessWidget {
                           video.formattedDate,
                           style: Theme.of(context).textTheme.labelSmall
                               ?.copyWith(
-                                color: AppTheme.secondaryGray,
+                                color: AppColors.textMuted,
                                 fontSize: 10,
                               ),
                         ),

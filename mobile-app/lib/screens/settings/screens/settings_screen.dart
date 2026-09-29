@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -66,11 +67,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: AppColors.background,
       appBar: const CommonAppBar(title: 'Settings'),
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: AppTheme.gradientEnd),
+              child: CircularProgressIndicator(color: AppColors.primary),
             )
           : ListView(
               padding: const EdgeInsets.all(AppTheme.paddingMedium),
@@ -171,9 +172,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.all(AppTheme.paddingMedium),
       decoration: BoxDecoration(
-        color: AppTheme.background,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppTheme.border, width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,12 +186,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  gradient: AppTheme.primaryGradient,
+                  gradient: AppColors.primaryGradient,
                   borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                 ),
                 child: const Icon(
                   Icons.alarm,
-                  color: AppTheme.primaryWhite,
+                  color: AppColors.onPrimary,
                   size: 24,
                 ),
               ),
@@ -202,7 +203,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Text(
                       'Daily Reminder',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -210,7 +211,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Text(
                       'Get notified to watch videos',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.secondaryGray,
+                        color: AppColors.textMuted,
                       ),
                     ),
                   ],
@@ -230,7 +231,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             content: const Text(
                               'Notification permission denied',
                             ),
-                            backgroundColor: AppTheme.danger,
+                            backgroundColor: AppColors.danger,
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(
@@ -258,7 +259,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           content: Text(
                             'Daily reminder set for ${_formatTime(_alarmHour, _alarmMinute)}',
                           ),
-                          backgroundColor: AppTheme.success,
+                          backgroundColor: AppColors.success,
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(
@@ -278,7 +279,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text('Daily reminder disabled'),
-                          backgroundColor: AppTheme.textPrimary,
+                          backgroundColor: AppColors.textPrimary,
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(
@@ -290,15 +291,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     }
                   }
                 },
-                activeThumbColor: AppTheme.primary,
-                activeTrackColor: AppTheme.primarySoft,
+                activeThumbColor: AppColors.primary,
+                activeTrackColor: AppColors.primarySoft,
               ),
             ],
           ),
 
           // Time Picker (always show, but only editable when alarm is enabled)
           const SizedBox(height: AppTheme.paddingMedium),
-          const Divider(color: AppTheme.border, height: 1),
+          const Divider(color: AppColors.border, height: 1),
           const SizedBox(height: AppTheme.paddingMedium),
           InkWell(
             onTap: _alarmEnabled ? () => _showTimePicker(context) : null,
@@ -307,8 +308,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: const EdgeInsets.all(AppTheme.paddingMedium),
               decoration: BoxDecoration(
                 color: _alarmEnabled
-                    ? AppTheme.surfaceAlt
-                    : AppTheme.surfaceAlt.withValues(alpha: 0.5),
+                    ? AppColors.surfaceAlt
+                    : AppColors.surfaceAlt.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
               ),
               child: Row(
@@ -316,8 +317,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Icon(
                     Icons.schedule,
                     color: _alarmEnabled
-                        ? AppTheme.primary
-                        : AppTheme.textMuted,
+                        ? AppColors.primary
+                        : AppColors.textMuted,
                     size: 24,
                   ),
                   const SizedBox(width: AppTheme.paddingMedium),
@@ -328,7 +329,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Text(
                           'Reminder Time',
                           style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: AppTheme.secondaryGray),
+                              ?.copyWith(color: AppColors.textMuted),
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -336,8 +337,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(
                                 color: _alarmEnabled
-                                    ? AppTheme.textPrimary
-                                    : AppTheme.textMuted,
+                                    ? AppColors.textPrimary
+                                    : AppColors.textMuted,
                                 fontWeight: FontWeight.bold,
                               ),
                         ),
@@ -347,7 +348,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   if (_alarmEnabled)
                     const Icon(
                       Icons.edit,
-                      color: AppTheme.secondaryGray,
+                      color: AppColors.textMuted,
                       size: 20,
                     ),
                 ],
@@ -367,13 +368,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: AppTheme.primary,
-              onPrimary: AppTheme.onPrimary,
-              surface: AppTheme.background,
-              onSurface: AppTheme.textPrimary,
+              primary: AppColors.primary,
+              onPrimary: AppColors.onPrimary,
+              surface: AppColors.background,
+              onSurface: AppColors.textPrimary,
             ),
             dialogTheme: const DialogThemeData(
-              backgroundColor: AppTheme.background,
+              backgroundColor: AppColors.background,
             ),
           ),
           child: child!,
@@ -399,7 +400,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             content: Text(
               'Reminder updated to ${_formatTime(_alarmHour, _alarmMinute)}',
             ),
-            backgroundColor: AppTheme.success,
+            backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
@@ -423,7 +424,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Text(
         title.toUpperCase(),
         style: AppFonts.bold(
-          color: AppTheme.textMuted,
+          color: AppColors.textMuted,
           fontSize: 11.5,
           letterSpacing: 0.8,
         ),
@@ -448,7 +449,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.primarySoft,
+            color: AppColors.primarySoft,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
@@ -457,13 +458,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 width: 56,
                 height: 56,
                 decoration: const BoxDecoration(
-                  color: AppTheme.primary,
+                  color: AppColors.primary,
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   initial,
-                  style: AppFonts.bold(color: AppTheme.onPrimary, fontSize: 22),
+                  style: AppFonts.bold(
+                    color: AppColors.onPrimary,
+                    fontSize: 22,
+                  ),
                 ),
               ),
               const SizedBox(width: 14),
@@ -476,7 +480,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppFonts.bold(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontSize: 17,
                       ),
                     ),
@@ -485,7 +489,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Text(
                         meta,
                         style: AppFonts.regular(
-                          color: AppTheme.textMuted,
+                          color: AppColors.textMuted,
                           fontSize: 13,
                         ),
                       ),
@@ -510,7 +514,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
-        color: AppTheme.surfaceAlt,
+        color: AppColors.surfaceAlt,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           onTap: onTap,
@@ -523,10 +527,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: AppTheme.primarySoft,
+                    color: AppColors.primarySoft,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, color: AppTheme.primary, size: 20),
+                  child: Icon(icon, color: AppColors.primary, size: 20),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -536,7 +540,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Text(
                         title,
                         style: AppFonts.semiBold(
-                          color: AppTheme.textPrimary,
+                          color: AppColors.textPrimary,
                           fontSize: 15,
                         ),
                       ),
@@ -545,7 +549,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Text(
                           subtitle,
                           style: AppFonts.regular(
-                            color: AppTheme.textMuted,
+                            color: AppColors.textMuted,
                             fontSize: 12.5,
                             height: 1.3,
                           ),
@@ -556,7 +560,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const Icon(
                   Icons.chevron_right,
-                  color: AppTheme.textMuted,
+                  color: AppColors.textMuted,
                   size: 20,
                 ),
               ],
@@ -572,9 +576,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(AppTheme.paddingMedium),
       decoration: BoxDecoration(
-        color: AppTheme.background,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppTheme.border, width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -597,7 +601,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     errorBuilder: (context, error, stackTrace) {
                       return Icon(
                         Icons.book,
-                        color: AppTheme.gradientEnd,
+                        color: AppColors.primary,
                         size: 20,
                       );
                     },
@@ -608,7 +612,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Text(
                 'QSpot',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppTheme.textPrimary,
+                  color: AppColors.textPrimary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -618,7 +622,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Text(
             'Your space for Quran videos and Islamic knowledge. Discover inspiring content from renowned speakers and scholars.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textMuted,
+              color: AppColors.textMuted,
               height: 1.5,
             ),
           ),
@@ -629,12 +633,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 'Version: ',
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: AppTheme.secondaryGray),
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
               ),
               Text(
                 _appVersion.isNotEmpty ? _appVersion : '…',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.gradientEnd,
+                  color: AppColors.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -651,10 +655,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return Container(
           padding: const EdgeInsets.all(AppTheme.paddingMedium),
           decoration: BoxDecoration(
-            color: AppTheme.danger.withValues(alpha: 0.07),
+            color: AppColors.danger.withValues(alpha: 0.07),
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
             border: Border.all(
-              color: AppTheme.danger.withValues(alpha: 0.3),
+              color: AppColors.danger.withValues(alpha: 0.3),
               width: 1,
             ),
           ),
@@ -667,10 +671,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: AppTheme.danger.withValues(alpha: 0.12),
+                    color: AppColors.danger.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.logout, color: AppTheme.danger),
+                  child: Icon(Icons.logout, color: AppColors.danger),
                 ),
                 const SizedBox(width: AppTheme.paddingMedium),
                 Expanded(
@@ -681,7 +685,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         'Logout',
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(
-                              color: AppTheme.danger,
+                              color: AppColors.danger,
                               fontWeight: FontWeight.bold,
                             ),
                       ),
@@ -689,13 +693,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Text(
                         authProvider.user?.phone ?? 'Logged in',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.secondaryGray,
+                          color: AppColors.textMuted,
                         ),
                       ),
                     ],
                   ),
                 ),
-                Icon(Icons.arrow_forward_ios, size: 16, color: AppTheme.danger),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: AppColors.danger,
+                ),
               ],
             ),
           ),
@@ -708,30 +716,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppTheme.background,
+        backgroundColor: AppColors.background,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         ),
         title: Row(
           children: [
-            Icon(Icons.logout, color: AppTheme.danger, size: 24),
+            Icon(Icons.logout, color: AppColors.danger, size: 24),
             const SizedBox(width: AppTheme.paddingSmall),
             Text(
               'Logout',
-              style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 20),
+              style: AppFonts.bold(color: AppColors.textPrimary, fontSize: 20),
             ),
           ],
         ),
         content: Text(
           'Are you sure you want to logout?',
-          style: AppFonts.regular(color: AppTheme.secondaryGray, fontSize: 16),
+          style: AppFonts.regular(color: AppColors.textMuted, fontSize: 16),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
             child: Text(
               'Cancel',
-              style: AppFonts.medium(color: AppTheme.textPrimary),
+              style: AppFonts.medium(color: AppColors.textPrimary),
             ),
           ),
           ElevatedButton(
@@ -740,8 +748,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               await performLogout(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.danger,
-              foregroundColor: AppTheme.onPrimary,
+              backgroundColor: AppColors.danger,
+              foregroundColor: AppColors.onPrimary,
             ),
             child: const Text('Logout'),
           ),
@@ -757,7 +765,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           'Developed by',
           style: Theme.of(
             context,
-          ).textTheme.bodySmall?.copyWith(color: AppTheme.secondaryGray),
+          ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
         ),
         const SizedBox(height: 4),
         GestureDetector(
@@ -765,7 +773,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Container(
             padding: const EdgeInsets.all(AppTheme.paddingSmall),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceAlt,
+              color: AppColors.surfaceAlt,
               borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
             ),
             child: Row(
@@ -781,7 +789,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     errorBuilder: (context, error, stackTrace) {
                       return Icon(
                         Icons.business,
-                        color: AppTheme.gradientStart,
+                        color: AppColors.primary,
                         size: 20,
                       );
                     },
@@ -791,7 +799,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Text(
                   'D4DX Innovations LLP',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.gradientStart,
+                    color: AppColors.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -804,7 +812,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           '© ${DateTime.now().year} D4DX Innovations LLP',
           style: Theme.of(
             context,
-          ).textTheme.bodySmall?.copyWith(color: AppTheme.secondaryGray),
+          ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
         ),
       ],
     );
@@ -944,17 +952,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: AppTheme.background,
+          backgroundColor: AppColors.background,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
           title: Row(
             children: [
-              Icon(Icons.email, color: AppTheme.gradientEnd, size: 24),
+              Icon(Icons.email, color: AppColors.primary, size: 24),
               const SizedBox(width: 8),
               Text(
                 'Send Feedback',
-                style: AppFonts.bold(color: AppTheme.textPrimary),
+                style: AppFonts.bold(color: AppColors.textPrimary),
               ),
             ],
           ),
@@ -964,16 +972,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Text(
                 'No email app found. Please send your feedback manually to:',
-                style: AppFonts.regular(color: AppTheme.textPrimary),
+                style: AppFonts.regular(color: AppColors.textPrimary),
               ),
               const SizedBox(height: 16),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceAlt,
+                  color: AppColors.surfaceAlt,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.border, width: 1),
+                  border: Border.all(color: AppColors.border, width: 1),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -983,14 +991,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Text(
                           'Email: ',
                           style: AppFonts.regular(
-                            color: AppTheme.secondaryGray,
+                            color: AppColors.textMuted,
                             fontSize: 12,
                           ),
                         ),
                         Expanded(
                           child: Text(
                             'mail@d4dx.co',
-                            style: AppFonts.semiBold(color: AppTheme.primary),
+                            style: AppFonts.semiBold(color: AppColors.primary),
                           ),
                         ),
                         IconButton(
@@ -1003,17 +1011,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 content: Text(
                                   'Email copied to clipboard',
                                   style: AppFonts.regular(
-                                    color: AppTheme.onPrimary,
+                                    color: AppColors.onPrimary,
                                   ),
                                 ),
-                                backgroundColor: AppTheme.gradientEnd,
+                                backgroundColor: AppColors.primary,
                                 duration: Duration(seconds: 2),
                               ),
                             );
                           },
                           icon: const Icon(
                             Icons.copy,
-                            color: AppTheme.gradientEnd,
+                            color: AppColors.primary,
                             size: 18,
                           ),
                           tooltip: 'Copy email',
@@ -1024,7 +1032,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Text(
                       'Subject: QSpot App Feedback',
                       style: AppFonts.regular(
-                        color: AppTheme.secondaryGray,
+                        color: AppColors.textMuted,
                         fontSize: 12,
                       ),
                     ),
@@ -1038,7 +1046,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
                 'Close',
-                style: AppFonts.medium(color: AppTheme.gradientEnd),
+                style: AppFonts.medium(color: AppColors.primary),
               ),
             ),
             ElevatedButton(
@@ -1062,16 +1070,16 @@ Thank you!''';
                   SnackBar(
                     content: Text(
                       'Email template copied to clipboard',
-                      style: AppFonts.regular(color: AppTheme.onPrimary),
+                      style: AppFonts.regular(color: AppColors.onPrimary),
                     ),
-                    backgroundColor: AppTheme.gradientEnd,
+                    backgroundColor: AppColors.primary,
                     duration: Duration(seconds: 2),
                   ),
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.gradientStart,
-                foregroundColor: AppTheme.onPrimary,
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.onPrimary,
               ),
               child: const Text('Copy Template'),
             ),

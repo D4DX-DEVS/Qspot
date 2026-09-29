@@ -3,7 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:qspot/screens/assignment/model/assignment_model.dart';
 import 'package:qspot/screens/assignment/service/assignment_service.dart';
-import 'package:qspot/themes/app_theme.dart';
+import 'package:qspot/themes/app_colors.dart';
 import 'package:qspot/themes/app_fonts.dart';
 import 'package:qspot/widgets/common/common_app_bar.dart';
 
@@ -178,7 +178,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
               const SizedBox(height: 6),
               Text(
                 assignment.subject,
-                style: AppFonts.regular(color: AppTheme.textMuted),
+                style: AppFonts.regular(color: AppColors.textMuted),
               ),
             ],
             const SizedBox(height: 18),
@@ -200,9 +200,9 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppTheme.surface,
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.border),
+                  border: Border.all(color: AppColors.border),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,12 +232,12 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppTheme.success.withValues(alpha: 0.08),
+                      color: AppColors.success.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.check_circle, color: AppTheme.success),
+                        Icon(Icons.check_circle, color: AppColors.success),
                         SizedBox(width: 10),
                         Expanded(
                           child: Text('Your work has been sent to your teacher.'),
@@ -313,7 +313,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                           height: 18,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: AppColors.white,
                           ),
                         )
                       : const Icon(Icons.send_outlined),
@@ -323,7 +323,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
               const SizedBox(height: 12),
               Text(
                 'Add a voice recording or photo with your answer. You can attach up to 10 files.',
-                style: AppFonts.regular(color: AppTheme.textMuted, fontSize: 12),
+                style: AppFonts.regular(color: AppColors.textMuted, fontSize: 12),
               ),
             ],
           ],
@@ -408,10 +408,10 @@ class _DetailMeta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statusColor = assignment.isSubmitted
-        ? AppTheme.success
+        ? AppColors.success
         : assignment.isOverdue
-        ? AppTheme.danger
-        : AppTheme.primary;
+        ? AppColors.danger
+        : AppColors.primary;
     final status = assignment.isSubmitted
         ? 'Submitted'
         : assignment.isOverdue
@@ -440,13 +440,13 @@ class _DetailMeta extends StatelessWidget {
         Icon(
           Icons.event_outlined,
           size: 16,
-          color: assignment.isOverdue ? AppTheme.danger : AppTheme.textMuted,
+          color: assignment.isOverdue ? AppColors.danger : AppColors.textMuted,
         ),
         const SizedBox(width: 4),
         Text(
           due,
           style: AppFonts.regular(
-            color: assignment.isOverdue ? AppTheme.danger : AppTheme.textMuted,
+            color: assignment.isOverdue ? AppColors.danger : AppColors.textMuted,
             fontSize: 13,
           ),
         ),

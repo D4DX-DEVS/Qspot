@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../services/api_client.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../speaker/provider/speaker_provider.dart';
@@ -17,7 +18,7 @@ class AskQuestionScreen extends StatefulWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.transparent,
       builder: (context) => const AskQuestionScreen(),
     );
   }
@@ -47,7 +48,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
       height: MediaQuery.of(context).size.height * 0.86,
       child: Container(
         decoration: const BoxDecoration(
-          color: AppTheme.background,
+          color: AppColors.background,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: SafeArea(
@@ -61,7 +62,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                     if (speakerProvider.isLoading) {
                       return const Center(
                         child: CircularProgressIndicator(
-                          color: AppTheme.gradientEnd,
+                          color: AppColors.primary,
                         ),
                       );
                     }
@@ -76,20 +77,20 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                               Icon(
                                 Icons.people_outline,
                                 size: 64,
-                                color: AppTheme.secondaryGray,
+                                color: AppColors.textMuted,
                               ),
                               const SizedBox(height: AppTheme.paddingMedium),
                               Text(
                                 'No Faculties Available',
                                 style: Theme.of(context).textTheme.headlineSmall
-                                    ?.copyWith(color: AppTheme.textPrimary),
+                                    ?.copyWith(color: AppColors.textPrimary),
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: AppTheme.paddingSmall),
                               Text(
                                 'Please check back later',
                                 style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(color: AppTheme.secondaryGray),
+                                    ?.copyWith(color: AppColors.textMuted),
                                 textAlign: TextAlign.center,
                               ),
                             ],
@@ -111,12 +112,12 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                 AppTheme.paddingMedium,
                               ),
                               decoration: BoxDecoration(
-                                color: AppTheme.primarySoft,
+                                color: AppColors.primarySoft,
                                 borderRadius: BorderRadius.circular(
                                   AppTheme.radiusMedium,
                                 ),
                                 border: Border.all(
-                                  color: AppTheme.border,
+                                  color: AppColors.border,
                                   width: 1,
                                 ),
                               ),
@@ -124,7 +125,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                 children: [
                                   Icon(
                                     Icons.info_outline,
-                                    color: AppTheme.gradientEnd,
+                                    color: AppColors.primary,
                                     size: 24,
                                   ),
                                   const SizedBox(width: AppTheme.paddingSmall),
@@ -132,7 +133,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                     child: Text(
                                       'Ask questions to our faculties and get answers',
                                       style: AppFonts.regular(
-                                        color: AppTheme.textPrimary,
+                                        color: AppColors.textPrimary,
                                         fontSize: 14,
                                       ),
                                     ),
@@ -147,7 +148,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                             Text(
                               'Select Faculty',
                               style: AppFonts.semiBold(
-                                color: AppTheme.textPrimary,
+                                color: AppColors.textPrimary,
                                 fontSize: 16,
                               ),
                             ),
@@ -157,12 +158,12 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                 horizontal: AppTheme.paddingMedium,
                               ),
                               decoration: BoxDecoration(
-                                color: AppTheme.background,
+                                color: AppColors.background,
                                 borderRadius: BorderRadius.circular(
                                   AppTheme.radiusMedium,
                                 ),
                                 border: Border.all(
-                                  color: AppTheme.border,
+                                  color: AppColors.border,
                                   width: 1,
                                 ),
                               ),
@@ -173,17 +174,17 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                   hint: Text(
                                     'Choose a faculty',
                                     style: AppFonts.regular(
-                                      color: AppTheme.secondaryGray,
+                                      color: AppColors.textMuted,
                                     ),
                                   ),
-                                  dropdownColor: AppTheme.background,
+                                  dropdownColor: AppColors.background,
                                   style: AppFonts.regular(
-                                    color: AppTheme.textPrimary,
+                                    color: AppColors.textPrimary,
                                     fontSize: 16,
                                   ),
                                   icon: Icon(
                                     Icons.arrow_drop_down,
-                                    color: AppTheme.secondaryGray,
+                                    color: AppColors.textMuted,
                                   ),
                                   items: speakerProvider.speakers.map((
                                     speaker,
@@ -193,7 +194,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                       child: Text(
                                         speaker.name,
                                         style: AppFonts.regular(
-                                          color: AppTheme.textPrimary,
+                                          color: AppColors.textPrimary,
                                           fontSize: 16,
                                         ),
                                         overflow: TextOverflow.ellipsis,
@@ -215,7 +216,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                             Text(
                               'Subject',
                               style: AppFonts.semiBold(
-                                color: AppTheme.textPrimary,
+                                color: AppColors.textPrimary,
                                 fontSize: 16,
                               ),
                             ),
@@ -223,22 +224,22 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                             TextFormField(
                               controller: _subjectController,
                               style: AppFonts.regular(
-                                color: AppTheme.textPrimary,
+                                color: AppColors.textPrimary,
                                 fontSize: 16,
                               ),
                               decoration: InputDecoration(
                                 hintText: 'Enter subject',
                                 hintStyle: AppFonts.regular(
-                                  color: AppTheme.secondaryGray,
+                                  color: AppColors.textMuted,
                                 ),
                                 filled: true,
-                                fillColor: AppTheme.surface,
+                                fillColor: AppColors.surface,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(
                                     AppTheme.radiusMedium,
                                   ),
                                   borderSide: BorderSide(
-                                    color: AppTheme.border,
+                                    color: AppColors.border,
                                   ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
@@ -246,7 +247,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                     AppTheme.radiusMedium,
                                   ),
                                   borderSide: BorderSide(
-                                    color: AppTheme.border,
+                                    color: AppColors.border,
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
@@ -254,7 +255,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                     AppTheme.radiusMedium,
                                   ),
                                   borderSide: const BorderSide(
-                                    color: AppTheme.gradientEnd,
+                                    color: AppColors.primary,
                                     width: 2,
                                   ),
                                 ),
@@ -276,7 +277,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                             Text(
                               'Your Question',
                               style: AppFonts.semiBold(
-                                color: AppTheme.textPrimary,
+                                color: AppColors.textPrimary,
                                 fontSize: 16,
                               ),
                             ),
@@ -285,23 +286,23 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                               controller: _descriptionController,
                               maxLines: 8,
                               style: AppFonts.regular(
-                                color: AppTheme.textPrimary,
+                                color: AppColors.textPrimary,
                                 fontSize: 16,
                               ),
                               decoration: InputDecoration(
                                 hintText:
                                     'Enter your question here in detail...',
                                 hintStyle: AppFonts.regular(
-                                  color: AppTheme.secondaryGray,
+                                  color: AppColors.textMuted,
                                 ),
                                 filled: true,
-                                fillColor: AppTheme.surface,
+                                fillColor: AppColors.surface,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(
                                     AppTheme.radiusMedium,
                                   ),
                                   borderSide: BorderSide(
-                                    color: AppTheme.border,
+                                    color: AppColors.border,
                                   ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
@@ -309,7 +310,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                     AppTheme.radiusMedium,
                                   ),
                                   borderSide: BorderSide(
-                                    color: AppTheme.border,
+                                    color: AppColors.border,
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
@@ -317,7 +318,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                     AppTheme.radiusMedium,
                                   ),
                                   borderSide: const BorderSide(
-                                    color: AppTheme.gradientEnd,
+                                    color: AppColors.primary,
                                     width: 2,
                                   ),
                                 ),
@@ -344,10 +345,10 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                     ? null
                                     : _submitQuestion,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.gradientStart,
-                                  foregroundColor: AppTheme.onPrimary,
-                                  disabledBackgroundColor: AppTheme.surfaceAlt,
-                                  disabledForegroundColor: AppTheme.textMuted,
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: AppColors.onPrimary,
+                                  disabledBackgroundColor: AppColors.surfaceAlt,
+                                  disabledForegroundColor: AppColors.textMuted,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(
                                       AppTheme.radiusMedium,
@@ -360,7 +361,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                         width: 24,
                                         height: 24,
                                         child: CircularProgressIndicator(
-                                          color: AppTheme.onPrimary,
+                                          color: AppColors.onPrimary,
                                           strokeWidth: 2,
                                         ),
                                       )
@@ -401,12 +402,12 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                 width: 40,
                 height: 40,
                 decoration: const BoxDecoration(
-                  color: AppTheme.surfaceAlt,
+                  color: AppColors.surfaceAlt,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.close,
-                  color: AppTheme.textPrimary,
+                  color: AppColors.textPrimary,
                   size: 20,
                 ),
               ),
@@ -414,12 +415,12 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
           ),
           Text(
             'Ask a question',
-            style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 17),
+            style: AppFonts.bold(color: AppColors.textPrimary, fontSize: 17),
           ),
           Align(
             alignment: Alignment.centerRight,
             child: IconButton(
-              icon: const Icon(Icons.history, color: AppTheme.textMuted),
+              icon: const Icon(Icons.history, color: AppColors.textMuted),
               tooltip: 'My questions',
               onPressed: () {
                 Navigator.push(
@@ -442,9 +443,9 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
         SnackBar(
           content: Text(
             'Please select a faculty',
-            style: AppFonts.regular(color: AppTheme.onPrimary),
+            style: AppFonts.regular(color: AppColors.onPrimary),
           ),
-          backgroundColor: AppTheme.danger,
+          backgroundColor: AppColors.danger,
         ),
       );
       return;
@@ -477,9 +478,9 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
             SnackBar(
               content: Text(
                 'Question submitted successfully!',
-                style: AppFonts.regular(color: AppTheme.onPrimary),
+                style: AppFonts.regular(color: AppColors.onPrimary),
               ),
-              backgroundColor: AppTheme.gradientStart,
+              backgroundColor: AppColors.primary,
               duration: Duration(seconds: 3),
             ),
           );
@@ -496,9 +497,9 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
             SnackBar(
               content: Text(
                 message,
-                style: AppFonts.regular(color: AppTheme.onPrimary),
+                style: AppFonts.regular(color: AppColors.onPrimary),
               ),
-              backgroundColor: AppTheme.danger,
+              backgroundColor: AppColors.danger,
               duration: const Duration(seconds: 3),
             ),
           );

@@ -9,6 +9,7 @@ import '../../../services/api_client.dart';
 import '../../../services/common/storage_service.dart';
 import '../../video/model/video_model.dart';
 import '../../video/screens/video_player_screen.dart';
+import 'package:qspot/themes/app_colors.dart';
 
 /// Top-level function for handling background notification responses
 @pragma('vm:entry-point')
@@ -316,7 +317,7 @@ class AlarmService {
             autoCancel: true,
             visibility: NotificationVisibility.public,
             audioAttributesUsage: AudioAttributesUsage.alarm,
-            ledColor: const Color(0xFFFF0000),
+            ledColor: AppColors.alarmLed,
             ledOnMs: 1000,
             ledOffMs: 500,
             actions: <AndroidNotificationAction>[

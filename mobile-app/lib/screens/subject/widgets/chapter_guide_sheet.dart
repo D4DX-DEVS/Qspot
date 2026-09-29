@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../services/video_progress_service.dart';
-import '../../../themes/app_theme.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
 import '../model/subject_model.dart';
 
@@ -61,7 +61,7 @@ class ChapterGuideSheet extends StatelessWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -91,11 +91,11 @@ class ChapterGuideSheet extends StatelessWidget {
                     ? Container(
                         width: 104,
                         height: 104,
-                        color: AppTheme.primarySoft,
+                        color: AppColors.primarySoft,
                         alignment: Alignment.center,
                         child: const Icon(
                           Icons.menu_book,
-                          color: AppTheme.primary,
+                          color: AppColors.primary,
                           size: 34,
                         ),
                       )
@@ -107,16 +107,16 @@ class ChapterGuideSheet extends StatelessWidget {
                         placeholder: (context, url) => Container(
                           width: 104,
                           height: 104,
-                          color: AppTheme.surfaceAlt,
+                          color: AppColors.surfaceAlt,
                         ),
                         errorWidget: (context, url, error) => Container(
                           width: 104,
                           height: 104,
-                          color: AppTheme.primarySoft,
+                          color: AppColors.primarySoft,
                           alignment: Alignment.center,
                           child: const Icon(
                             Icons.menu_book,
-                            color: AppTheme.primary,
+                            color: AppColors.primary,
                             size: 34,
                           ),
                         ),
@@ -130,7 +130,7 @@ class ChapterGuideSheet extends StatelessWidget {
                   : subject.guideTitle,
               textAlign: TextAlign.center,
               style: AppFonts.bold(
-                color: AppTheme.textPrimary,
+                color: AppColors.textPrimary,
                 fontSize: 22,
                 height: 1.25,
               ),
@@ -139,7 +139,7 @@ class ChapterGuideSheet extends StatelessWidget {
             Text(
               subject.subject,
               textAlign: TextAlign.center,
-              style: AppFonts.regular(color: AppTheme.textMuted, fontSize: 13),
+              style: AppFonts.regular(color: AppColors.textMuted, fontSize: 13),
             ),
             const SizedBox(height: 24),
             ...points.map(
@@ -152,13 +152,13 @@ class ChapterGuideSheet extends StatelessWidget {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: AppTheme.primarySoft,
+                        color: AppColors.primarySoft,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       alignment: Alignment.center,
                       child: Icon(
                         iconFor(point.icon),
-                        color: AppTheme.primary,
+                        color: AppColors.primary,
                         size: 20,
                       ),
                     ),
@@ -169,7 +169,7 @@ class ChapterGuideSheet extends StatelessWidget {
                         child: Text(
                           point.text,
                           style: AppFonts.regular(
-                            color: AppTheme.textPrimary,
+                            color: AppColors.textPrimary,
                             fontSize: 15,
                             height: 1.4,
                           ),
@@ -185,8 +185,8 @@ class ChapterGuideSheet extends StatelessWidget {
               height: 54,
               child: FilledButton(
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: AppTheme.onPrimary,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.onPrimary,
                   shape: const StadiumBorder(),
                   textStyle: AppFonts.bold(fontSize: 16),
                 ),

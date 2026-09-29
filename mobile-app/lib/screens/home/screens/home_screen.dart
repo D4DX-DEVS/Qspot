@@ -9,6 +9,7 @@ import '../../speaker/provider/speaker_provider.dart';
 import '../../subject/provider/subject_provider.dart';
 import '../../../widgets/common/see_all_button.dart';
 import '../../../widgets/common/loading_skeleton.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -98,14 +99,14 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Text(
           'Courses',
-          style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 18),
+          style: AppFonts.bold(color: AppColors.textPrimary, fontSize: 18),
         ),
         const SizedBox(height: 12),
         ..._courses.map(
           (course) => Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Material(
-              color: AppTheme.surfaceAlt,
+              color: AppColors.surfaceAlt,
               borderRadius: BorderRadius.circular(16),
               child: InkWell(
                 onTap: () => AboutCourseSheet.show(context, course),
@@ -118,12 +119,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: AppTheme.primarySoft,
+                          color: AppColors.primarySoft,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(
                           Icons.school_outlined,
-                          color: AppTheme.primary,
+                          color: AppColors.primary,
                           size: 22,
                         ),
                       ),
@@ -137,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: AppFonts.semiBold(
-                                color: AppTheme.textPrimary,
+                                color: AppColors.textPrimary,
                                 fontSize: 15,
                                 height: 1.3,
                               ),
@@ -149,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: AppFonts.regular(
-                                  color: AppTheme.textMuted,
+                                  color: AppColors.textMuted,
                                   fontSize: 12.5,
                                 ),
                               ),
@@ -159,7 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const Icon(
                         Icons.chevron_right,
-                        color: AppTheme.textMuted,
+                        color: AppColors.textMuted,
                         size: 20,
                       ),
                     ],
@@ -182,16 +183,16 @@ class _HomeScreenState extends State<HomeScreen> {
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: AppTheme.surfaceAlt,
+          color: AppColors.surfaceAlt,
           borderRadius: BorderRadius.circular(28),
         ),
         child: Row(
           children: [
-            Icon(Icons.search, color: AppTheme.textMuted, size: 20),
+            Icon(Icons.search, color: AppColors.textMuted, size: 20),
             SizedBox(width: 10),
             Text(
               'Search',
-              style: AppFonts.regular(color: AppTheme.textMuted, fontSize: 15),
+              style: AppFonts.regular(color: AppColors.textMuted, fontSize: 15),
             ),
           ],
         ),
@@ -255,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: AppColors.background,
       appBar: CommonAppBar(
         titleWidget: Row(
           children: [
@@ -271,11 +272,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   height: 100,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) {
-                    return Icon(
-                      Icons.book,
-                      color: AppTheme.gradientEnd,
-                      size: 24,
-                    );
+                    return Icon(Icons.book, color: AppColors.primary, size: 24);
                   },
                 ),
               ),
@@ -286,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> {
             //   style: AppFonts.regular(
             //     fontSize: 24,
             //     fontWeight: FontWeight.bold,
-            //     color: AppTheme.primaryWhite,
+            //     color: AppColors.onPrimary,
             //   ),
             // ),
           ],
@@ -302,7 +299,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     onPressed: _navigateToNotifications,
                     icon: const Icon(
                       Icons.notifications_outlined,
-                      color: AppTheme.textPrimary,
+                      color: AppColors.textPrimary,
                       size: 24,
                     ),
                     tooltip: 'Notifications',
@@ -314,7 +311,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: const BoxDecoration(
-                          color: AppTheme.danger,
+                          color: AppColors.danger,
                           shape: BoxShape.circle,
                         ),
                         constraints: const BoxConstraints(
@@ -324,7 +321,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Text(
                           unreadCount > 9 ? '9+' : unreadCount.toString(),
                           style: AppFonts.bold(
-                            color: AppTheme.onPrimary,
+                            color: AppColors.onPrimary,
                             fontSize: 10,
                           ),
                           textAlign: TextAlign.center,
@@ -348,14 +345,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: 32,
                     height: 32,
                     decoration: const BoxDecoration(
-                      color: AppTheme.primary,
+                      color: AppColors.primary,
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
                     child: Text(
                       _initialsFor(name.isEmpty ? 'Student' : name),
                       style: AppFonts.bold(
-                        color: AppTheme.onPrimary,
+                        color: AppColors.onPrimary,
                         fontSize: 12.5,
                       ),
                     ),
@@ -368,8 +365,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _onRefresh,
-        backgroundColor: AppTheme.surface,
-        color: AppTheme.primary,
+        backgroundColor: AppColors.surface,
+        color: AppColors.primary,
         child: Consumer<VideoProvider>(
           builder: (context, videoProvider, child) {
             // Videos are the only data Home renders directly (Speakers/
@@ -482,7 +479,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     'Assalamu Alaikum',
                     style: AppFonts.semiBold(
-                      color: AppTheme.textMuted,
+                      color: AppColors.textMuted,
                       fontSize: 13.5,
                     ),
                   ),
@@ -492,7 +489,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppFonts.bold(
-                      color: AppTheme.textPrimary,
+                      color: AppColors.textPrimary,
                       fontSize: 18,
                     ),
                   ),
@@ -506,12 +503,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: AppTheme.primarySoft,
+                  color: AppColors.primarySoft,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   'Class $classNumber',
-                  style: AppFonts.bold(color: AppTheme.primary, fontSize: 12),
+                  style: AppFonts.bold(color: AppColors.primary, fontSize: 12),
                 ),
               ),
           ],
@@ -533,7 +530,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text(
               'Recent videos',
-              style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 18),
+              style: AppFonts.bold(color: AppColors.textPrimary, fontSize: 18),
             ),
             SeeAllButton(onPressed: _navigateToVideoList),
           ],
@@ -675,7 +672,7 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Text(
           'Next up',
-          style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 18),
+          style: AppFonts.bold(color: AppColors.textPrimary, fontSize: 18),
         ),
         const SizedBox(height: 12),
         if (item == null) _buildEmptyTodayCard() else _buildTodayItemCard(item),
@@ -690,18 +687,18 @@ class _HomeScreenState extends State<HomeScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceAlt,
+        color: AppColors.surfaceAlt,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
       ),
       child: Row(
         children: [
-          Icon(Icons.check_circle_outline, color: AppTheme.success, size: 24),
+          Icon(Icons.check_circle_outline, color: AppColors.success, size: 24),
           SizedBox(width: 12),
           Expanded(
             child: Text(
               'You’re all caught up. Take a break or explore a subject.',
               style: AppFonts.regular(
-                color: AppTheme.textPrimary,
+                color: AppColors.textPrimary,
                 fontSize: 14,
                 height: 1.4,
               ),
@@ -759,7 +756,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final actionVideo = video;
 
     return Material(
-      color: AppTheme.surface,
+      color: AppColors.surface,
       borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
       child: InkWell(
         onTap: item.remote?.kind.toLowerCase() == 'quiz'
@@ -784,7 +781,7 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-            border: Border.all(color: AppTheme.border),
+            border: Border.all(color: AppColors.border),
           ),
           child: Row(
             children: [
@@ -795,10 +792,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   height: 76,
                   child: video?.thumbnailUrl.isNotEmpty != true
                       ? Container(
-                          color: AppTheme.primarySoft,
+                          color: AppColors.primarySoft,
                           child: const Icon(
                             Icons.play_lesson_outlined,
-                            color: AppTheme.primary,
+                            color: AppColors.primary,
                             size: 28,
                           ),
                         )
@@ -806,10 +803,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           imageUrl: video!.thumbnailUrl,
                           fit: BoxFit.cover,
                           errorWidget: (_, __, ___) => Container(
-                            color: AppTheme.primarySoft,
+                            color: AppColors.primarySoft,
                             child: const Icon(
                               Icons.play_lesson_outlined,
-                              color: AppTheme.primary,
+                              color: AppColors.primary,
                             ),
                           ),
                         ),
@@ -827,24 +824,24 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: isUpcoming
-                            ? AppTheme.surfaceAlt
+                            ? AppColors.surfaceAlt
                             : isOverdue
-                            ? const Color(0xFFFFEFED)
+                            ? AppColors.dangerSoft
                             : isPractice
-                            ? const Color(0xFFE8F3EC)
-                            : AppTheme.primarySoft,
+                            ? AppColors.successSoft
+                            : AppColors.primarySoft,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         label,
                         style: AppFonts.bold(
                           color: isUpcoming
-                              ? AppTheme.textMuted
+                              ? AppColors.textMuted
                               : isOverdue
-                              ? AppTheme.danger
+                              ? AppColors.danger
                               : isPractice
-                              ? AppTheme.success
-                              : AppTheme.primary,
+                              ? AppColors.success
+                              : AppColors.primary,
                           fontSize: 11,
                         ),
                       ),
@@ -855,7 +852,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: AppFonts.bold(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontSize: 14,
                         height: 1.25,
                       ),
@@ -870,7 +867,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: AppFonts.regular(
-                        color: AppTheme.textMuted,
+                        color: AppColors.textMuted,
                         fontSize: 12,
                         height: 1.35,
                       ),
@@ -886,9 +883,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               ? progress.percent
                               : _progressFraction(remotePercent ?? 0),
                           minHeight: 4,
-                          backgroundColor: AppTheme.surfaceAlt,
+                          backgroundColor: AppColors.surfaceAlt,
                           valueColor: const AlwaysStoppedAnimation(
-                            AppTheme.primary,
+                            AppColors.primary,
                           ),
                         ),
                       ),
@@ -899,7 +896,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 8),
               Icon(
                 isUpcoming ? Icons.chevron_right : Icons.arrow_forward,
-                color: AppTheme.primary,
+                color: AppColors.primary,
                 size: 20,
               ),
             ],
@@ -923,14 +920,14 @@ class _HomeScreenState extends State<HomeScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7EA),
+        color: AppColors.warningSoft,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
       ),
       child: Row(
         children: [
           const Icon(
             Icons.local_fire_department_outlined,
-            color: AppTheme.warning,
+            color: AppColors.warning,
             size: 22,
           ),
           const SizedBox(width: 10),
@@ -944,7 +941,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ? 'Your progress is saved. Keep your learning rhythm gentle.'
                   : 'Build a learning streak one small lesson at a time.',
               style: AppFonts.regular(
-                color: AppTheme.textPrimary,
+                color: AppColors.textPrimary,
                 fontSize: 12.5,
                 height: 1.35,
               ),
@@ -1002,12 +999,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     imageUrl: video.thumbnailUrl,
                     fit: BoxFit.cover,
                     placeholder: (_, __) =>
-                        Container(color: AppTheme.surfaceAlt),
+                        Container(color: AppColors.surfaceAlt),
                     errorWidget: (_, __, ___) => Container(
-                      color: AppTheme.surfaceAlt,
+                      color: AppColors.surfaceAlt,
                       child: const Icon(
                         Icons.play_circle_outline,
-                        color: AppTheme.textMuted,
+                        color: AppColors.textMuted,
                       ),
                     ),
                   ),
@@ -1017,8 +1014,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       top: 6,
                       child: CircleAvatar(
                         radius: 9,
-                        backgroundColor: AppTheme.success,
-                        child: Icon(Icons.check, size: 12, color: Colors.white),
+                        backgroundColor: AppColors.success,
+                        child: Icon(
+                          Icons.check,
+                          size: 12,
+                          color: AppColors.white,
+                        ),
                       ),
                     )
                   else if (progress != null && progress.percent > 0)
@@ -1029,9 +1030,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: LinearProgressIndicator(
                         value: progress.percent,
                         minHeight: 3,
-                        backgroundColor: Colors.white24,
+                        backgroundColor: AppColors.white24,
                         valueColor: const AlwaysStoppedAnimation(
-                          AppTheme.primary,
+                          AppColors.primary,
                         ),
                       ),
                     ),
@@ -1045,7 +1046,7 @@ class _HomeScreenState extends State<HomeScreen> {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: AppFonts.semiBold(
-              color: AppTheme.textPrimary,
+              color: AppColors.textPrimary,
               fontSize: 11.5,
               height: 1.3,
             ),
@@ -1086,21 +1087,21 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Text(
           'Quick access',
-          style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 18),
+          style: AppFonts.bold(color: AppColors.textPrimary, fontSize: 18),
         ),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-            border: Border.all(color: AppTheme.border),
+            border: Border.all(color: AppColors.border),
           ),
           child: Row(
             children: [
               for (var i = 0; i < actions.length; i++) ...[
                 if (i > 0)
-                  Container(width: 1, height: 46, color: AppTheme.border),
+                  Container(width: 1, height: 46, color: AppColors.border),
                 Expanded(child: _quickAccessItem(actions[i])),
               ],
             ],
@@ -1124,10 +1125,10 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 44,
               height: 44,
               decoration: const BoxDecoration(
-                color: AppTheme.primarySoft,
+                color: AppColors.primarySoft,
                 shape: BoxShape.circle,
               ),
-              child: Icon(action.icon, size: 21, color: AppTheme.primary),
+              child: Icon(action.icon, size: 21, color: AppColors.primary),
             ),
             const SizedBox(height: 10),
             Text(
@@ -1135,7 +1136,7 @@ class _HomeScreenState extends State<HomeScreen> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppFonts.semiBold(
-                color: AppTheme.textPrimary,
+                color: AppColors.textPrimary,
                 fontSize: 12.5,
               ),
             ),
@@ -1152,13 +1153,13 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: AppTheme.secondaryGray),
+            Icon(Icons.error_outline, size: 64, color: AppColors.textMuted),
             const SizedBox(height: AppTheme.paddingMedium),
             Text(
               'Something went wrong',
               style: Theme.of(
                 context,
-              ).textTheme.headlineSmall?.copyWith(color: AppTheme.textPrimary),
+              ).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppTheme.paddingSmall),
@@ -1166,15 +1167,15 @@ class _HomeScreenState extends State<HomeScreen> {
               errorMessage,
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: AppTheme.secondaryGray),
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppTheme.paddingLarge),
             ElevatedButton(
               onPressed: onRetry,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.gradientStart,
-                foregroundColor: AppTheme.onPrimary,
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.onPrimary,
               ),
               child: const Text('Retry'),
             ),
@@ -1191,18 +1192,18 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTheme.danger.withValues(alpha: 0.08),
+        color: AppColors.danger.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, size: 18, color: AppTheme.danger),
+          const Icon(Icons.error_outline, size: 18, color: AppColors.danger),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               message.isNotEmpty ? message : 'Could not refresh',
               style: AppFonts.regular(
-                color: AppTheme.textPrimary,
+                color: AppColors.textPrimary,
                 fontSize: 12.5,
               ),
             ),

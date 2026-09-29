@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../widgets/common/common_app_bar.dart';
 
@@ -8,7 +9,7 @@ class ContactUsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: AppColors.background,
       appBar: const CommonAppBar(title: 'Contact Us'),
       body: Padding(
         padding: const EdgeInsets.all(20),
@@ -21,7 +22,7 @@ class ContactUsScreen extends StatelessWidget {
             Text(
               'Get in Touch',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: AppTheme.textPrimary,
+                color: AppColors.textPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -30,7 +31,7 @@ class ContactUsScreen extends StatelessWidget {
               "We'd love to hear from you",
               style: Theme.of(
                 context,
-              ).textTheme.titleMedium?.copyWith(color: AppTheme.secondaryGray),
+              ).textTheme.titleMedium?.copyWith(color: AppColors.textMuted),
             ),
 
             const SizedBox(height: 40),
@@ -50,7 +51,7 @@ class ContactUsScreen extends StatelessWidget {
                     detail: '+91 98959 89800',
                   ),
 
-                  const Divider(color: Colors.white24, height: 32),
+                  const Divider(color: AppColors.white24, height: 32),
 
                   // Email Section
                   _buildContactSection(
@@ -60,7 +61,7 @@ class ContactUsScreen extends StatelessWidget {
                     detail: 'mail@d4dx.co',
                   ),
 
-                  const Divider(color: Colors.white24, height: 32),
+                  const Divider(color: AppColors.white24, height: 32),
 
                   // Address Section
                   _buildContactSection(
@@ -82,9 +83,9 @@ class ContactUsScreen extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(AppTheme.paddingMedium),
               decoration: BoxDecoration(
-                color: AppTheme.background,
+                color: AppColors.background,
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                border: Border.all(color: AppTheme.border, width: 1),
+                border: Border.all(color: AppColors.border, width: 1),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,7 +94,7 @@ class ContactUsScreen extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.info_outline,
-                        color: AppTheme.gradientEnd,
+                        color: AppColors.primary,
                         size: 20,
                       ),
                       const SizedBox(width: AppTheme.paddingSmall),
@@ -101,7 +102,7 @@ class ContactUsScreen extends StatelessWidget {
                         'About QSpot',
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(
-                              color: AppTheme.textPrimary,
+                              color: AppColors.textPrimary,
                               fontWeight: FontWeight.w600,
                             ),
                       ),
@@ -111,7 +112,7 @@ class ContactUsScreen extends StatelessWidget {
                   Text(
                     'QSpot is your dedicated space for Quran videos and Islamic knowledge. We provide inspiring content from renowned speakers and scholars to help you on your spiritual journey.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.textMuted,
+                      color: AppColors.textMuted,
                       height: 1.5,
                     ),
                   ),
@@ -139,10 +140,10 @@ class ContactUsScreen extends StatelessWidget {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: AppTheme.primaryWhite,
+            color: AppColors.onPrimary,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, color: AppTheme.gradientStart, size: 24),
+          child: Icon(icon, color: AppColors.primary, size: 24),
         ),
 
         const SizedBox(width: 16),
@@ -155,7 +156,7 @@ class ContactUsScreen extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppTheme.primaryWhite,
+                  color: AppColors.onPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -163,7 +164,7 @@ class ContactUsScreen extends StatelessWidget {
               Text(
                 detail,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.primaryWhite,
+                  color: AppColors.onPrimary,
                   height: isMultiLine ? 1.4 : 1.2,
                 ),
               ),

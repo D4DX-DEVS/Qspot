@@ -3,8 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../provider/auth_provider.dart';
-import '../../../themes/app_theme.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/country_code_prefix.dart';
 import '../../../widgets/common/otp_input.dart';
 import 'registration_screen.dart';
 import '../../common/screens/main_navigation_screen.dart';
@@ -40,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -66,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           : 'Learn the Qur’ān,\none episode at a time.',
                       textAlign: TextAlign.center,
                       style: AppFonts.bold(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontSize: 26,
                         height: 1.25,
                       ),
@@ -78,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           : 'Sign in with your phone number to continue.',
                       textAlign: TextAlign.center,
                       style: AppFonts.regular(
-                        color: AppTheme.textMuted,
+                        color: AppColors.textMuted,
                         fontSize: 15,
                         height: 1.4,
                       ),
@@ -94,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           : 'We will send a one-time code to your WhatsApp.',
                       textAlign: TextAlign.center,
                       style: AppFonts.regular(
-                        color: AppTheme.textMuted,
+                        color: AppColors.textMuted,
                         fontSize: 12.5,
                         height: 1.4,
                       ),
@@ -119,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
         height: 176,
         padding: const EdgeInsets.all(26),
         decoration: const BoxDecoration(
-          color: AppTheme.primarySoft,
+          color: AppColors.primarySoft,
           shape: BoxShape.circle,
         ),
         // qspot-mark.png is Icon.png cropped to a tight square around the mark.
@@ -141,12 +142,12 @@ class _LoginScreenState extends State<LoginScreen> {
           width: 44,
           height: 44,
           decoration: const BoxDecoration(
-            color: AppTheme.surfaceAlt,
+            color: AppColors.surfaceAlt,
             shape: BoxShape.circle,
           ),
           child: const Icon(
             Icons.arrow_back,
-            color: AppTheme.textPrimary,
+            color: AppColors.textPrimary,
             size: 20,
           ),
         ),
@@ -162,14 +163,10 @@ class _LoginScreenState extends State<LoginScreen> {
         FilteringTextInputFormatter.digitsOnly,
         LengthLimitingTextInputFormatter(10),
       ],
-      style: AppFonts.regular(color: AppTheme.textPrimary, fontSize: 16),
+      style: AppFonts.regular(color: AppColors.textPrimary, fontSize: 16),
       decoration: _fieldDecoration(
-        hint: 'Phone number',
-        prefixIcon: const Icon(
-          Icons.phone_outlined,
-          color: AppTheme.textMuted,
-          size: 20,
-        ),
+        hint: 'Enter your phone number',
+        prefixIcon: const CountryCodePrefix(),
       ),
       validator: (value) {
         if (value == null || value.isEmpty) {
@@ -200,7 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             Text(
               'Didn’t receive OTP?',
-              style: AppFonts.regular(color: AppTheme.textMuted, fontSize: 14),
+              style: AppFonts.regular(color: AppColors.textMuted, fontSize: 14),
             ),
             TextButton(
               onPressed: _isResending ? null : _resendOtp,
@@ -212,7 +209,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Text(
                 _isResending ? 'Resending…' : 'Resend',
                 style: AppFonts.bold(
-                  color: AppTheme.primary,
+                  color: AppColors.primary,
                   fontSize: 14,
                 ),
               ),
@@ -227,30 +224,33 @@ class _LoginScreenState extends State<LoginScreen> {
     final radius = BorderRadius.circular(14);
     return InputDecoration(
       hintText: hint,
-      hintStyle: AppFonts.regular(color: AppTheme.textMuted, fontSize: 15),
+      hintStyle: AppFonts.regular(color: AppColors.textMuted, fontSize: 15),
       prefixIcon: prefixIcon,
+      prefixIconConstraints: const BoxConstraints(),
       filled: true,
-      fillColor: AppTheme.surfaceAlt,
+      // White fill + visible outline so the field stands out from the
+      // off-white page before it is tapped.
+      fillColor: AppColors.surface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
       border: OutlineInputBorder(
         borderRadius: radius,
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: AppColors.border, width: 1.2),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: radius,
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: AppColors.border, width: 1.2),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: radius,
-        borderSide: const BorderSide(color: AppTheme.primary, width: 1.6),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.6),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: radius,
-        borderSide: const BorderSide(color: AppTheme.danger, width: 1.2),
+        borderSide: const BorderSide(color: AppColors.danger, width: 1.2),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: radius,
-        borderSide: const BorderSide(color: AppTheme.danger, width: 1.6),
+        borderSide: const BorderSide(color: AppColors.danger, width: 1.6),
       ),
     );
   }
@@ -262,10 +262,10 @@ class _LoginScreenState extends State<LoginScreen> {
           height: 54,
           child: FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: AppTheme.onPrimary,
-              disabledBackgroundColor: AppTheme.primary,
-              disabledForegroundColor: AppTheme.onPrimary,
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.onPrimary,
+              disabledBackgroundColor: AppColors.primary,
+              disabledForegroundColor: AppColors.onPrimary,
               shape: const StadiumBorder(),
               textStyle: AppFonts.bold(
                 fontSize: 16,
@@ -280,7 +280,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     height: 22,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppTheme.onPrimary,
+                      color: AppColors.onPrimary,
                     ),
                   )
                 : Text(_otpSent ? 'Verify OTP' : 'Send OTP'),
@@ -296,7 +296,7 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         Text(
           "Don't have an account?",
-          style: AppFonts.regular(color: AppTheme.textMuted, fontSize: 15),
+          style: AppFonts.regular(color: AppColors.textMuted, fontSize: 15),
         ),
         TextButton(
           onPressed: _navigateToRegistration,
@@ -308,7 +308,7 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Text(
             'Register Now',
             style: AppFonts.bold(
-              color: AppTheme.primary,
+              color: AppColors.primary,
               fontSize: 15,
             ),
           ),
@@ -337,9 +337,9 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(
           content: Text(
             result['message'] ?? 'OTP sent successfully via WhatsApp',
-            style: AppFonts.regular(color: AppTheme.onPrimary),
+            style: AppFonts.regular(color: AppColors.onPrimary),
           ),
-          backgroundColor: AppTheme.primary,
+          backgroundColor: AppColors.primary,
         ),
       );
     } else {
@@ -347,9 +347,9 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(
           content: Text(
             result['message'] ?? 'Failed to send OTP',
-            style: AppFonts.regular(color: AppTheme.onPrimary),
+            style: AppFonts.regular(color: AppColors.onPrimary),
           ),
-          backgroundColor: AppTheme.danger,
+          backgroundColor: AppColors.danger,
         ),
       );
     }
@@ -369,9 +369,9 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(
           content: Text(
             'Please enter the 6-digit OTP',
-            style: AppFonts.regular(color: AppTheme.onPrimary),
+            style: AppFonts.regular(color: AppColors.onPrimary),
           ),
-          backgroundColor: AppTheme.danger,
+          backgroundColor: AppColors.danger,
         ),
       );
       return;
@@ -393,9 +393,9 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(
           content: Text(
             result['message'] ?? 'Invalid OTP',
-            style: AppFonts.regular(color: AppTheme.onPrimary),
+            style: AppFonts.regular(color: AppColors.onPrimary),
           ),
-          backgroundColor: AppTheme.danger,
+          backgroundColor: AppColors.danger,
         ),
       );
     }

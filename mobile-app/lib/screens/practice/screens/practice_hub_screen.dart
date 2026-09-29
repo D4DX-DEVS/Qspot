@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -13,7 +14,7 @@ class PracticeHubScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppColors.background,
       appBar: CommonAppBar(
         title: 'Practice',
         actions: [
@@ -39,7 +40,7 @@ class PracticeHubScreen extends StatelessWidget {
           const SizedBox(height: 18),
           _PracticeCard(
             icon: Icons.assignment_outlined,
-            color: AppTheme.warning,
+            color: AppColors.warning,
             title: 'Assignments',
             body:
                 'See what is due, submit your work, and read teacher feedback.',
@@ -52,7 +53,7 @@ class PracticeHubScreen extends StatelessWidget {
           const SizedBox(height: 12),
           _PracticeCard(
             icon: Icons.edit_note_outlined,
-            color: AppTheme.accent,
+            color: AppColors.accent,
             title: 'Quizzes and exams',
             body:
                 'Take a short knowledge quiz or show your skills in a practical exam.',
@@ -66,19 +67,19 @@ class PracticeHubScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.primarySoft,
+              color: AppColors.primarySoft,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.lightbulb_outline_rounded, color: AppTheme.primary),
+                Icon(Icons.lightbulb_outline_rounded, color: AppColors.primary),
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Practice is not a score board. It is a safe place to notice what you know next.',
                     style: AppFonts.regular(
-                      color: AppTheme.textPrimary,
+                      color: AppColors.textPrimary,
                       fontSize: 13,
                       height: 1.4,
                     ),
@@ -132,7 +133,7 @@ class _PracticeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppTheme.surface,
+      color: AppColors.surface,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -140,7 +141,7 @@ class _PracticeCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            border: Border.all(color: AppTheme.border),
+            border: Border.all(color: AppColors.border),
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
           child: Row(
@@ -163,7 +164,7 @@ class _PracticeCard extends StatelessWidget {
                     Text(
                       title,
                       style: AppFonts.extraBold(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontSize: 16,
                       ),
                     ),
@@ -171,7 +172,7 @@ class _PracticeCard extends StatelessWidget {
                     Text(
                       body,
                       style: AppFonts.regular(
-                        color: AppTheme.textMuted,
+                        color: AppColors.textMuted,
                         fontSize: 13,
                         height: 1.35,
                       ),
@@ -186,7 +187,7 @@ class _PracticeCard extends StatelessWidget {
               ),
               const Icon(
                 Icons.arrow_forward_rounded,
-                color: AppTheme.textMuted,
+                color: AppColors.textMuted,
                 size: 20,
               ),
             ],

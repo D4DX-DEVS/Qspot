@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../model/video_model.dart';
 import '../provider/video_provider.dart';
 import '../widgets/video_card.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -49,17 +50,17 @@ class _VideoListScreenState extends State<VideoListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: AppColors.background,
       appBar: CommonAppBar(
         title: 'All Videos',
         titleWidget: _isSearching
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                style: AppFonts.regular(color: AppTheme.textPrimary),
+                style: AppFonts.regular(color: AppColors.textPrimary),
                 decoration: InputDecoration(
                   hintText: 'Search videos...',
-                  hintStyle: AppFonts.regular(color: AppTheme.secondaryGray),
+                  hintStyle: AppFonts.regular(color: AppColors.textMuted),
                   border: InputBorder.none,
                 ),
                 onChanged: (value) {
@@ -74,7 +75,7 @@ class _VideoListScreenState extends State<VideoListScreen> {
           IconButton(
             icon: Icon(
               _isSearching ? Icons.close : Icons.search,
-              color: AppTheme.textPrimary,
+              color: AppColors.textPrimary,
             ),
             onPressed: () {
               setState(() {
@@ -95,7 +96,7 @@ class _VideoListScreenState extends State<VideoListScreen> {
         builder: (context, videoProvider, child) {
           if (videoProvider.isLoading) {
             return const Center(
-              child: CircularProgressIndicator(color: AppTheme.gradientEnd),
+              child: CircularProgressIndicator(color: AppColors.primary),
             );
           }
 
@@ -109,19 +110,19 @@ class _VideoListScreenState extends State<VideoListScreen> {
                     Icon(
                       Icons.error_outline,
                       size: 64,
-                      color: AppTheme.secondaryGray,
+                      color: AppColors.textMuted,
                     ),
                     const SizedBox(height: AppTheme.paddingMedium),
                     Text(
                       'Error Loading Videos',
                       style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(color: AppTheme.textPrimary),
+                          ?.copyWith(color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: AppTheme.paddingSmall),
                     Text(
                       videoProvider.errorMessage,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.secondaryGray,
+                        color: AppColors.textMuted,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -153,7 +154,7 @@ class _VideoListScreenState extends State<VideoListScreen> {
                           ? Icons.search_off
                           : Icons.video_library_outlined,
                       size: 64,
-                      color: AppTheme.secondaryGray,
+                      color: AppColors.textMuted,
                     ),
                     const SizedBox(height: AppTheme.paddingMedium),
                     Text(
@@ -161,7 +162,7 @@ class _VideoListScreenState extends State<VideoListScreen> {
                           ? 'No Results Found'
                           : 'No Videos Available',
                       style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(color: AppTheme.textPrimary),
+                          ?.copyWith(color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: AppTheme.paddingSmall),
                     Text(
@@ -169,7 +170,7 @@ class _VideoListScreenState extends State<VideoListScreen> {
                           ? 'Try different keywords'
                           : 'Check back later for new content',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.secondaryGray,
+                        color: AppColors.textMuted,
                       ),
                     ),
                   ],
@@ -180,8 +181,8 @@ class _VideoListScreenState extends State<VideoListScreen> {
 
           return RefreshIndicator(
             onRefresh: () => videoProvider.refresh(),
-            backgroundColor: AppTheme.surface,
-            color: AppTheme.primary,
+            backgroundColor: AppColors.surface,
+            color: AppColors.primary,
             child: GridView.builder(
               padding: const EdgeInsets.all(AppTheme.paddingMedium),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

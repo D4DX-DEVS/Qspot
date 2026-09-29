@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../services/api_client.dart';
 import '../../../services/video_progress_service.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -212,7 +213,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_submitError!),
-          backgroundColor: AppTheme.danger,
+          backgroundColor: AppColors.danger,
         ),
       );
     }
@@ -221,7 +222,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppColors.background,
       // The result view carries its own close button, like the reference popups.
       appBar: _result != null
           ? null
@@ -254,12 +255,12 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
                   width: 40,
                   height: 40,
                   decoration: const BoxDecoration(
-                    color: AppTheme.surfaceAlt,
+                    color: AppColors.surfaceAlt,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.close,
-                    color: AppTheme.textPrimary,
+                    color: AppColors.textPrimary,
                     size: 20,
                   ),
                 ),
@@ -274,7 +275,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
               style: AppFonts.bold(
                 fontSize: 26,
                 height: 1.2,
-                color: AppTheme.textPrimary,
+                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 10),
@@ -284,7 +285,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
               style: AppFonts.regular(
                 fontSize: 16,
                 height: 1.4,
-                color: AppTheme.textPrimary,
+                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 12),
@@ -294,7 +295,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: AppFonts.regular(
-                color: AppTheme.textMuted,
+                color: AppColors.textMuted,
                 fontSize: 13,
                 height: 1.4,
               ),
@@ -304,7 +305,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
               Text(
                 'You already answered these questions — this is your saved result.',
                 textAlign: TextAlign.center,
-                style: AppFonts.regular(color: AppTheme.textMuted, fontSize: 12.5),
+                style: AppFonts.regular(color: AppColors.textMuted, fontSize: 12.5),
               ),
             ],
             const Spacer(),
@@ -312,8 +313,8 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
               height: 54,
               child: FilledButton(
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: AppTheme.onPrimary,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.onPrimary,
                   shape: const StadiumBorder(),
                   textStyle: AppFonts.bold(
                     fontSize: 16,
@@ -342,7 +343,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
       [86, 4, 6],
       [118, 142, 6],
     ];
-    const colors = [AppTheme.accent, AppTheme.accentAmber, AppTheme.primary];
+    const colors = [AppColors.accent, AppColors.accentAmber, AppColors.primary];
 
     return Center(
       child: SizedBox(
@@ -368,7 +369,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
               width: 136,
               height: 136,
               decoration: const BoxDecoration(
-                color: AppTheme.primarySoft,
+                color: AppColors.primarySoft,
                 shape: BoxShape.circle,
               ),
               child: Column(
@@ -377,14 +378,14 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
                   const Icon(
                     Icons.emoji_events,
                     size: 46,
-                    color: AppTheme.primary,
+                    color: AppColors.primary,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     '$percentage%',
                     style: AppFonts.bold(
                       fontSize: 20,
-                      color: AppTheme.primary,
+                      color: AppColors.primary,
                     ),
                   ),
                 ],
@@ -399,7 +400,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
   Widget _buildQuestion() {
     if (widget.questions.isEmpty) {
       return const Center(
-        child: CircularProgressIndicator(color: AppTheme.primary),
+        child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
 
@@ -424,8 +425,8 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
                 child: LinearProgressIndicator(
                   value: (_index + 1) / widget.questions.length,
                   minHeight: 6,
-                  backgroundColor: AppTheme.surfaceAlt,
-                  valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
+                  backgroundColor: AppColors.surfaceAlt,
+                  valueColor: const AlwaysStoppedAnimation(AppColors.primary),
                 ),
               ),
               const SizedBox(height: 16),
@@ -435,7 +436,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
                   child: Text(
                     'Time ${_timerLabel()}',
                     style: AppFonts.bold(
-                      color: _remainingSeconds! <= 10 ? AppTheme.danger : AppTheme.primary,
+                      color: _remainingSeconds! <= 10 ? AppColors.danger : AppColors.primary,
                     ),
                   ),
                 ),
@@ -443,7 +444,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
               Text(
                 'Question ${_index + 1} of ${widget.questions.length}',
                 style: AppFonts.medium(
-                  color: AppTheme.textMuted,
+                  color: AppColors.textMuted,
                   fontSize: 12,
                 ),
               ),
@@ -453,7 +454,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
                 style: AppFonts.semiBold(
                   fontSize: 18,
                   height: 1.35,
-                  color: AppTheme.textPrimary,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
@@ -477,10 +478,10 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
                     vertical: 14,
                   ),
                   decoration: BoxDecoration(
-                    color: selected ? AppTheme.primarySoft : AppTheme.surface,
+                    color: selected ? AppColors.primarySoft : AppColors.surface,
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                     border: Border.all(
-                      color: selected ? AppTheme.primary : AppTheme.border,
+                      color: selected ? AppColors.primary : AppColors.border,
                       width: selected ? 1.5 : 1,
                     ),
                   ),
@@ -494,8 +495,8 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
                             String.fromCharCode(65 + i),
                             style: AppFonts.semiBold(
                               color: selected
-                                  ? AppTheme.primary
-                                  : AppTheme.textMuted,
+                                  ? AppColors.primary
+                                  : AppColors.textMuted,
                             ),
                           ),
                         ),
@@ -505,7 +506,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
                         child: Text(
                           options[i],
                           style: AppFonts.regular(
-                            color: AppTheme.textPrimary,
+                            color: AppColors.textPrimary,
                             height: 1.3,
                           ),
                         ),
@@ -523,8 +524,8 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
             width: double.infinity,
             child: FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                disabledBackgroundColor: AppTheme.surfaceAlt,
+                backgroundColor: AppColors.primary,
+                disabledBackgroundColor: AppColors.surfaceAlt,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),

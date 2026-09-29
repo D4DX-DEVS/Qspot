@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:qspot/screens/assignment/model/assignment_model.dart';
 import 'package:qspot/screens/assignment/screens/assignment_detail_screen.dart';
 import 'package:qspot/screens/assignment/service/assignment_service.dart';
-import 'package:qspot/themes/app_theme.dart';
+import 'package:qspot/themes/app_colors.dart';
 import 'package:qspot/themes/app_fonts.dart';
 import 'package:qspot/widgets/common/common_app_bar.dart';
 
@@ -111,10 +111,10 @@ class _AssignmentTile extends StatelessWidget {
     final overdue = assignment.isOverdue;
     final submitted = assignment.isSubmitted;
     final color = submitted
-        ? AppTheme.success
+        ? AppColors.success
         : overdue
-        ? AppTheme.danger
-        : AppTheme.primary;
+        ? AppColors.danger
+        : AppColors.primary;
     final label = submitted
         ? assignment.status.toLowerCase() == 'graded'
               ? 'Reviewed'
@@ -123,7 +123,7 @@ class _AssignmentTile extends StatelessWidget {
         ? 'Past due'
         : 'To do';
     return Material(
-      color: AppTheme.background,
+      color: AppColors.background,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: onTap,
@@ -131,7 +131,7 @@ class _AssignmentTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            border: Border.all(color: AppTheme.border),
+            border: Border.all(color: AppColors.border),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -161,7 +161,7 @@ class _AssignmentTile extends StatelessWidget {
                       Text(
                         assignment.subject,
                         style: AppFonts.regular(
-                          color: AppTheme.textMuted,
+                          color: AppColors.textMuted,
                           fontSize: 13,
                         ),
                       ),
@@ -170,7 +170,7 @@ class _AssignmentTile extends StatelessWidget {
                     Text(
                       _dueLabel(assignment),
                       style: AppFonts.regular(
-                        color: overdue ? AppTheme.danger : AppTheme.textMuted,
+                        color: overdue ? AppColors.danger : AppColors.textMuted,
                         fontSize: 12,
                       ),
                     ),
@@ -185,7 +185,7 @@ class _AssignmentTile extends StatelessWidget {
                   const SizedBox(height: 4),
                   const Icon(
                     Icons.chevron_right,
-                    color: AppTheme.textMuted,
+                    color: AppColors.textMuted,
                     size: 20,
                   ),
                 ],
@@ -224,7 +224,7 @@ class _MessageState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 42, color: AppTheme.textMuted),
+          Icon(icon, size: 42, color: AppColors.textMuted),
           const SizedBox(height: 12),
           Text(
             title,
@@ -235,7 +235,7 @@ class _MessageState extends StatelessWidget {
           Text(
             body,
             textAlign: TextAlign.center,
-            style: AppFonts.regular(color: AppTheme.textMuted),
+            style: AppFonts.regular(color: AppColors.textMuted),
           ),
           if (action != null) ...[
             const SizedBox(height: 16),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../services/api_client.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -91,14 +92,14 @@ class _QuizListScreenState extends State<QuizListScreen> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => Dialog(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.transparent,
         elevation: 0,
         child: Container(
           padding: const EdgeInsets.all(24.0),
           decoration: BoxDecoration(
-            color: AppTheme.background,
+            color: AppColors.background,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.border, width: 1),
+            border: Border.all(color: AppColors.border, width: 1),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -106,7 +107,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
               Text(
                 'Select Quiz Language',
                 style: Theme.of(dialogContext).textTheme.titleLarge?.copyWith(
-                  color: AppTheme.textPrimary,
+                  color: AppColors.textPrimary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -115,7 +116,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                 'This cannot be changed once the quiz starts.',
                 style: Theme.of(
                   dialogContext,
-                ).textTheme.bodySmall?.copyWith(color: AppTheme.secondaryGray),
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -152,14 +153,14 @@ class _QuizListScreenState extends State<QuizListScreen> {
   ) {
     return Container(
       decoration: BoxDecoration(
-        gradient: AppTheme.primaryGradient,
+        gradient: AppColors.primaryGradient,
         borderRadius: BorderRadius.circular(12),
       ),
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
+          backgroundColor: AppColors.transparent,
+          shadowColor: AppColors.transparent,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -168,7 +169,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
         child: Text(
           label,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: AppTheme.primaryWhite,
+            color: AppColors.onPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -179,13 +180,13 @@ class _QuizListScreenState extends State<QuizListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: AppColors.background,
       appBar: const CommonAppBar(title: 'Quiz'),
       body: Consumer<QuizProvider>(
         builder: (context, quizProvider, child) {
           if (quizProvider.isListLoading) {
             return const Center(
-              child: CircularProgressIndicator(color: AppTheme.gradientEnd),
+              child: CircularProgressIndicator(color: AppColors.primary),
             );
           }
 
@@ -195,7 +196,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
 
           return RefreshIndicator(
             onRefresh: quizProvider.fetchQuizList,
-            color: AppTheme.gradientEnd,
+            color: AppColors.primary,
             child: _buildList(context, quizProvider.quizList),
           );
         },
@@ -213,29 +214,29 @@ class _QuizListScreenState extends State<QuizListScreen> {
             const Icon(
               Icons.error_outline,
               size: 64,
-              color: AppTheme.secondaryGray,
+              color: AppColors.textMuted,
             ),
             const SizedBox(height: AppTheme.paddingMedium),
             Text(
               'Error Loading Quizzes',
               style: Theme.of(
                 context,
-              ).textTheme.headlineSmall?.copyWith(color: AppTheme.textPrimary),
+              ).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary),
             ),
             const SizedBox(height: AppTheme.paddingSmall),
             Text(
               quizProvider.listError,
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: AppTheme.secondaryGray),
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppTheme.paddingLarge),
             ElevatedButton(
               onPressed: quizProvider.fetchQuizList,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.gradientStart,
-                foregroundColor: AppTheme.onPrimary,
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.onPrimary,
               ),
               child: const Text('Retry'),
             ),
@@ -295,22 +296,18 @@ class _QuizListScreenState extends State<QuizListScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(AppTheme.paddingLarge),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceAlt,
+        color: AppColors.surfaceAlt,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppTheme.border, width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Column(
         children: [
-          const Icon(
-            Icons.quiz_outlined,
-            size: 56,
-            color: AppTheme.secondaryGray,
-          ),
+          const Icon(Icons.quiz_outlined, size: 56, color: AppColors.textMuted),
           const SizedBox(height: AppTheme.paddingMedium),
           Text(
             'No live quiz right now',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppTheme.textPrimary,
+              color: AppColors.textPrimary,
               fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.center,
@@ -320,7 +317,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
             'Check back later, or see upcoming and past quizzes below.',
             style: Theme.of(
               context,
-            ).textTheme.bodyMedium?.copyWith(color: AppTheme.secondaryGray),
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
             textAlign: TextAlign.center,
           ),
         ],
@@ -334,7 +331,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: AppTheme.textPrimary,
+          color: AppColors.textPrimary,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -352,7 +349,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(AppTheme.paddingMedium),
           decoration: BoxDecoration(
-            color: AppTheme.background,
+            color: AppColors.background,
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
             border: Border.all(color: _statusColor(quiz), width: 1),
           ),
@@ -365,7 +362,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                     child: Text(
                       quiz.title,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -380,21 +377,21 @@ class _QuizListScreenState extends State<QuizListScreen> {
                     : 'Knowledge quiz',
                 style: Theme.of(
                   context,
-                ).textTheme.labelSmall?.copyWith(color: AppTheme.primary),
+                ).textTheme.labelSmall?.copyWith(color: AppColors.primary),
               ),
               Text(
                 '${quiz.questionCount} question${quiz.questionCount == 1 ? '' : 's'}',
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: AppTheme.secondaryGray),
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
               ),
               if (quiz.isUpcoming && quiz.startDate != null) ...[
                 const SizedBox(height: 4),
                 Text(
                   'Starts ${_formatDate(quiz.startDate!)}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.secondaryGray,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
                 ),
               ],
               if (attempt != null) ...[
@@ -402,7 +399,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                 Text(
                   'Your score: ${attempt.score}/${attempt.totalQuestions} (${attempt.percentage}%)',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.primary,
+                    color: AppColors.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -415,9 +412,9 @@ class _QuizListScreenState extends State<QuizListScreen> {
   }
 
   Color _statusColor(QuizListItem quiz) {
-    if (quiz.isLive) return AppTheme.success;
-    if (quiz.isUpcoming) return AppTheme.warning;
-    return AppTheme.border;
+    if (quiz.isLive) return AppColors.success;
+    if (quiz.isUpcoming) return AppColors.warning;
+    return AppColors.border;
   }
 
   Widget _statusBadge(BuildContext context, QuizListItem quiz) {
@@ -428,7 +425,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
         : quiz.isUpcoming
         ? 'Upcoming'
         : 'Ended';
-    final color = quiz.hasAttempted ? AppTheme.primary : _statusColor(quiz);
+    final color = quiz.hasAttempted ? AppColors.primary : _statusColor(quiz);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

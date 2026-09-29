@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -64,7 +65,7 @@ class QuizResultsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: AppColors.background,
       appBar: CommonAppBar(
         title: 'Quiz Results',
         leading: onDone != null
@@ -79,11 +80,11 @@ class QuizResultsScreen extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(AppTheme.paddingLarge * 2),
               decoration: BoxDecoration(
-                gradient: AppTheme.primaryGradient,
+                gradient: AppColors.primaryGradient,
                 borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primary.withValues(alpha: 0.25),
+                    color: AppColors.primary.withValues(alpha: 0.25),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -94,13 +95,13 @@ class QuizResultsScreen extends StatelessWidget {
                   Icon(
                     _scoreIcon(percentage),
                     size: 80,
-                    color: AppTheme.primaryWhite,
+                    color: AppColors.onPrimary,
                   ),
                   const SizedBox(height: AppTheme.paddingMedium),
                   Text(
                     title,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppTheme.primaryWhite.withValues(alpha: 0.9),
+                      color: AppColors.onPrimary.withValues(alpha: 0.9),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -108,7 +109,7 @@ class QuizResultsScreen extends StatelessWidget {
                   Text(
                     '${percentage.toStringAsFixed(percentage % 1 == 0 ? 0 : 1)}%',
                     style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                      color: AppTheme.primaryWhite,
+                      color: AppColors.onPrimary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -116,7 +117,7 @@ class QuizResultsScreen extends StatelessWidget {
                   Text(
                     _scoreText(percentage),
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: AppTheme.primaryWhite,
+                      color: AppColors.onPrimary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -141,7 +142,7 @@ class QuizResultsScreen extends StatelessWidget {
                     'Correct',
                     _correctCount.toString(),
                     Icons.check_circle,
-                    AppTheme.success,
+                    AppColors.success,
                   ),
                 ),
                 const SizedBox(width: AppTheme.paddingMedium),
@@ -151,7 +152,7 @@ class QuizResultsScreen extends StatelessWidget {
                     'Wrong',
                     _wrongCount.toString(),
                     Icons.cancel,
-                    AppTheme.danger,
+                    AppColors.danger,
                   ),
                 ),
               ],
@@ -179,8 +180,8 @@ class QuizResultsScreen extends StatelessWidget {
                     style: AppFonts.bold(fontSize: 16),
                   ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.primary,
-                    side: const BorderSide(color: AppTheme.primary, width: 2),
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary, width: 2),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(
                         AppTheme.radiusMedium,
@@ -195,7 +196,7 @@ class QuizResultsScreen extends StatelessWidget {
                 'Completed on ${_formatDateTime(completedAt!)}',
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: AppTheme.secondaryGray),
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
               ),
           ],
         ),
@@ -213,18 +214,18 @@ class QuizResultsScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppTheme.paddingMedium),
       decoration: BoxDecoration(
-        color: AppTheme.background,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppTheme.border, width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Column(
         children: [
-          Icon(icon, color: iconColor ?? AppTheme.primary, size: 32),
+          Icon(icon, color: iconColor ?? AppColors.primary, size: 32),
           const SizedBox(height: AppTheme.paddingSmall),
           Text(
             value,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              color: AppTheme.textPrimary,
+              color: AppColors.textPrimary,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -233,7 +234,7 @@ class QuizResultsScreen extends StatelessWidget {
             label,
             style: Theme.of(
               context,
-            ).textTheme.bodySmall?.copyWith(color: AppTheme.secondaryGray),
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
           ),
         ],
       ),

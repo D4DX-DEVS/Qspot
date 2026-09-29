@@ -1,74 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'app_colors.dart';
 import 'app_fonts.dart';
 
 /// QSPOT learner theme: an ocean-teal learning anchor with coral and amber
 /// feedback accents on a quiet blue-white canvas.
 class AppTheme {
   AppTheme._();
-
-  // ---------------------------------------------------------------------------
-  // Brand palette
-  // ---------------------------------------------------------------------------
-
-  /// Deep ocean teal: a calm, high-contrast anchor for learning actions.
-  static const Color primary = Color(0xFF145A66);
-
-  /// Pressed / dark shade of [primary].
-  static const Color primaryDeep = Color(0xFF0C3D48);
-
-  /// Tint used for chips, selected rows and subtle brand washes.
-  static const Color primarySoft = Color(0xFFE3F1F0);
-
-  /// Coral highlight for warmth, progress moments, and friendly emphasis.
-  static const Color accent = Color(0xFFE97864);
-
-  /// Logo diamond amber. Small highlights only.
-  static const Color accentAmber = Color(0xFFF0B35B);
-
-  static const Color background = Color(0xFFF7FAFB);
-  static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceAlt = Color(0xFFEDF3F4);
-  static const Color textPrimary = Color(0xFF12252B);
-  static const Color textMuted = Color(0xFF5A6C72);
-  static const Color border = Color(0xFFD8E5E7);
-
-  /// Content colour for brand-filled surfaces.
-  static const Color onPrimary = Color(0xFFFFFFFF);
-
-  // Semantic status colours (kept distinct from the brand hues).
-  static const Color success = Color(0xFF1F7A4D);
-  static const Color danger = Color(0xFFB3261E);
-  static const Color warning = Color(0xFF9A5B00);
-
-  // ---------------------------------------------------------------------------
-  // Legacy aliases
-  //
-  // These names are referenced throughout the screens. They are kept so the
-  // existing widget code keeps compiling while resolving to light-theme values.
-  // ---------------------------------------------------------------------------
-
-  /// Scaffold background.
-  static const Color backgroundColor = background;
-
-  /// Content colour for brand fills and image overlays.
-  static const Color primaryWhite = onPrimary;
-
-  /// Muted / secondary text.
-  static const Color secondaryGray = textMuted;
-
-  /// Card and input surface.
-  static const Color darkGray = surface;
-
-  static const Color gradientStart = primary;
-  static const Color gradientEnd = primary;
-
-  /// Brand fill used for avatars, badges and logo fallbacks.
-  static const LinearGradient primaryGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [primary, primaryDeep],
-  );
 
   // ---------------------------------------------------------------------------
   // Spacing helpers
@@ -88,11 +26,11 @@ class AppTheme {
   static const double contentInset = 16.0;
   static const double sectionGap = 24.0;
   static final TextStyle sectionTitle = AppFonts.extraBold(
-    color: textPrimary,
+    color: AppColors.textPrimary,
     fontSize: 18,
   );
   static final TextStyle sectionIntro = AppFonts.regular(
-    color: textMuted,
+    color: AppColors.textMuted,
     fontSize: 14,
     height: 1.4,
   );
@@ -103,84 +41,111 @@ class AppTheme {
 
   static ThemeData get lightTheme {
     const colorScheme = ColorScheme.light(
-      primary: primary,
-      onPrimary: onPrimary,
-      primaryContainer: primarySoft,
-      onPrimaryContainer: primaryDeep,
-      secondary: accent,
-      onSecondary: onPrimary,
-      tertiary: accentAmber,
-      onTertiary: textPrimary,
-      surface: background,
-      onSurface: textPrimary,
-      surfaceContainerLowest: background,
-      surfaceContainerLow: surface,
-      surfaceContainer: surfaceAlt,
-      onSurfaceVariant: textMuted,
-      outline: border,
-      outlineVariant: border,
-      error: danger,
-      onError: onPrimary,
+      primary: AppColors.primary,
+      onPrimary: AppColors.onPrimary,
+      primaryContainer: AppColors.primarySoft,
+      onPrimaryContainer: AppColors.primaryDeep,
+      secondary: AppColors.accent,
+      onSecondary: AppColors.onPrimary,
+      tertiary: AppColors.accentAmber,
+      onTertiary: AppColors.textPrimary,
+      surface: AppColors.background,
+      onSurface: AppColors.textPrimary,
+      surfaceContainerLowest: AppColors.background,
+      surfaceContainerLow: AppColors.surface,
+      surfaceContainer: AppColors.surfaceAlt,
+      onSurfaceVariant: AppColors.textMuted,
+      outline: AppColors.border,
+      outlineVariant: AppColors.border,
+      error: AppColors.danger,
+      onError: AppColors.onPrimary,
     );
 
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       fontFamily: AppFonts.family,
-      scaffoldBackgroundColor: background,
+      scaffoldBackgroundColor: AppColors.background,
       colorScheme: colorScheme,
-      dividerColor: border,
+      dividerColor: AppColors.border,
 
       // App bar: white-ish surface with dark content, lifted off the
       // screen by a soft shadow (same when content scrolls under it).
       appBarTheme: AppBarTheme(
-        backgroundColor: background,
-        surfaceTintColor: Colors.transparent,
+        backgroundColor: AppColors.background,
+        surfaceTintColor: AppColors.transparent,
         elevation: 2,
         scrolledUnderElevation: 2,
-        shadowColor: textPrimary,
-        foregroundColor: textPrimary,
-        iconTheme: const IconThemeData(color: textPrimary),
-        titleTextStyle: AppFonts.semiBold(color: textPrimary, fontSize: 20),
-      ),
-
-      textTheme: TextTheme(
-        displayLarge: AppFonts.bold(color: textPrimary, fontSize: 32),
-        displayMedium: AppFonts.semiBold(color: textPrimary, fontSize: 28),
-        displaySmall: AppFonts.semiBold(color: textPrimary, fontSize: 24),
-        headlineLarge: AppFonts.semiBold(color: textPrimary, fontSize: 22),
-        headlineMedium: AppFonts.medium(color: textPrimary, fontSize: 20),
-        headlineSmall: AppFonts.medium(color: textPrimary, fontSize: 18),
-        titleLarge: AppFonts.semiBold(color: textPrimary, fontSize: 16),
-        titleMedium: AppFonts.medium(color: textPrimary, fontSize: 14),
-        titleSmall: AppFonts.medium(color: textMuted, fontSize: 12),
-        bodyLarge: AppFonts.regular(color: textPrimary, fontSize: 16),
-        bodyMedium: AppFonts.regular(color: textPrimary, fontSize: 14),
-        bodySmall: AppFonts.regular(color: textMuted, fontSize: 12),
-        labelLarge: AppFonts.medium(color: textPrimary, fontSize: 14),
-        labelMedium: AppFonts.medium(color: textMuted, fontSize: 12),
-        labelSmall: AppFonts.medium(color: textMuted, fontSize: 10),
-      ),
-
-      cardTheme: CardThemeData(
-        color: background,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        shadowColor: Colors.black.withValues(alpha: 0.06),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: border),
+        shadowColor: AppColors.textPrimary,
+        foregroundColor: AppColors.textPrimary,
+        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        titleTextStyle: AppFonts.semiBold(
+          color: AppColors.textPrimary,
+          fontSize: 20,
         ),
       ),
 
-      iconTheme: const IconThemeData(color: textPrimary, size: 24),
+      textTheme: TextTheme(
+        displayLarge: AppFonts.bold(color: AppColors.textPrimary, fontSize: 32),
+        displayMedium: AppFonts.semiBold(
+          color: AppColors.textPrimary,
+          fontSize: 28,
+        ),
+        displaySmall: AppFonts.semiBold(
+          color: AppColors.textPrimary,
+          fontSize: 24,
+        ),
+        headlineLarge: AppFonts.semiBold(
+          color: AppColors.textPrimary,
+          fontSize: 22,
+        ),
+        headlineMedium: AppFonts.medium(
+          color: AppColors.textPrimary,
+          fontSize: 20,
+        ),
+        headlineSmall: AppFonts.medium(
+          color: AppColors.textPrimary,
+          fontSize: 18,
+        ),
+        titleLarge: AppFonts.semiBold(
+          color: AppColors.textPrimary,
+          fontSize: 16,
+        ),
+        titleMedium: AppFonts.medium(
+          color: AppColors.textPrimary,
+          fontSize: 14,
+        ),
+        titleSmall: AppFonts.medium(color: AppColors.textMuted, fontSize: 12),
+        bodyLarge: AppFonts.regular(color: AppColors.textPrimary, fontSize: 16),
+        bodyMedium: AppFonts.regular(
+          color: AppColors.textPrimary,
+          fontSize: 14,
+        ),
+        bodySmall: AppFonts.regular(color: AppColors.textMuted, fontSize: 12),
+        labelLarge: AppFonts.medium(color: AppColors.textPrimary, fontSize: 14),
+        labelMedium: AppFonts.medium(color: AppColors.textMuted, fontSize: 12),
+        labelSmall: AppFonts.medium(color: AppColors.textMuted, fontSize: 10),
+      ),
+
+      cardTheme: CardThemeData(
+        color: AppColors.background,
+        surfaceTintColor: AppColors.transparent,
+        elevation: 0,
+        shadowColor: AppColors.black.withValues(alpha: 0.06),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.border),
+        ),
+      ),
+
+      iconTheme: const IconThemeData(color: AppColors.textPrimary, size: 24),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primary,
-          foregroundColor: onPrimary,
-          disabledBackgroundColor: surfaceAlt,
-          disabledForegroundColor: textMuted,
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.onPrimary,
+          disabledBackgroundColor: AppColors.surfaceAlt,
+          disabledForegroundColor: AppColors.textMuted,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -188,90 +153,93 @@ class AppTheme {
       ),
 
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: primary),
+        style: TextButton.styleFrom(foregroundColor: AppColors.primary),
       ),
 
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: primary,
-          side: const BorderSide(color: border),
+          foregroundColor: AppColors.primary,
+          side: const BorderSide(color: AppColors.border),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surface,
-        hintStyle: AppFonts.regular(color: textMuted),
-        labelStyle: AppFonts.regular(color: textMuted),
+        fillColor: AppColors.surface,
+        hintStyle: AppFonts.regular(color: AppColors.textMuted),
+        labelStyle: AppFonts.regular(color: AppColors.textMuted),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMedium),
-          borderSide: const BorderSide(color: border),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMedium),
-          borderSide: const BorderSide(color: border),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMedium),
-          borderSide: const BorderSide(color: primary, width: 1.4),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
         ),
       ),
 
       dialogTheme: DialogThemeData(
-        backgroundColor: background,
-        surfaceTintColor: Colors.transparent,
+        backgroundColor: AppColors.background,
+        surfaceTintColor: AppColors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusMedium),
-          side: const BorderSide(color: border),
+          side: const BorderSide(color: AppColors.border),
         ),
       ),
 
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: background,
-        selectedItemColor: primary,
-        unselectedItemColor: textMuted,
+        backgroundColor: AppColors.background,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.textMuted,
         type: BottomNavigationBarType.fixed,
       ),
 
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
-          (states) =>
-              states.contains(WidgetState.selected) ? primary : Colors.white,
+          (states) => states.contains(WidgetState.selected)
+              ? AppColors.primary
+              : AppColors.white,
         ),
         trackColor: WidgetStateProperty.resolveWith(
-          (states) =>
-              states.contains(WidgetState.selected) ? primarySoft : surfaceAlt,
+          (states) => states.contains(WidgetState.selected)
+              ? AppColors.primarySoft
+              : AppColors.surfaceAlt,
         ),
       ),
 
       progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color: primary,
-        linearTrackColor: surfaceAlt,
-        circularTrackColor: surfaceAlt,
+        color: AppColors.primary,
+        linearTrackColor: AppColors.surfaceAlt,
+        circularTrackColor: AppColors.surfaceAlt,
       ),
 
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: textPrimary,
-        contentTextStyle: AppFonts.regular(color: onPrimary),
-        actionTextColor: accentAmber,
+        backgroundColor: AppColors.textPrimary,
+        contentTextStyle: AppFonts.regular(color: AppColors.onPrimary),
+        actionTextColor: AppColors.accentAmber,
       ),
 
       radioTheme: RadioThemeData(
         fillColor: WidgetStateProperty.resolveWith(
-          (states) =>
-              states.contains(WidgetState.selected) ? primary : textMuted,
+          (states) => states.contains(WidgetState.selected)
+              ? AppColors.primary
+              : AppColors.textMuted,
         ),
       ),
 
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? primary
-              : Colors.transparent,
+              ? AppColors.primary
+              : AppColors.transparent,
         ),
-        side: const BorderSide(color: textMuted, width: 1.5),
-        checkColor: const WidgetStatePropertyAll(onPrimary),
+        side: const BorderSide(color: AppColors.textMuted, width: 1.5),
+        checkColor: const WidgetStatePropertyAll(AppColors.onPrimary),
       ),
     );
   }
@@ -285,7 +253,7 @@ class AppTheme {
     List<BoxShadow>? boxShadow,
   }) {
     return BoxDecoration(
-      gradient: primaryGradient,
+      gradient: AppColors.primaryGradient,
       borderRadius: borderRadius ?? BorderRadius.circular(radiusMedium),
       boxShadow: boxShadow,
     );
@@ -294,7 +262,7 @@ class AppTheme {
   /// Soft elevation for cards lying on the light surface.
   static List<BoxShadow> get cardShadow => [
     BoxShadow(
-      color: Colors.black.withValues(alpha: 0.05),
+      color: AppColors.black.withValues(alpha: 0.05),
       blurRadius: 8,
       offset: const Offset(0, 4),
     ),

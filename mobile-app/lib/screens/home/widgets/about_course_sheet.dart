@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../services/course_service.dart';
-import '../../../themes/app_theme.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
 
 /// "About this course" popup: close on the left, centred title, then the course
@@ -16,7 +16,7 @@ class AboutCourseSheet extends StatelessWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -47,12 +47,12 @@ class AboutCourseSheet extends StatelessWidget {
                         width: 40,
                         height: 40,
                         decoration: const BoxDecoration(
-                          color: AppTheme.surfaceAlt,
+                          color: AppColors.surfaceAlt,
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
                           Icons.close,
-                          color: AppTheme.textPrimary,
+                          color: AppColors.textPrimary,
                           size: 20,
                         ),
                       ),
@@ -61,7 +61,7 @@ class AboutCourseSheet extends StatelessWidget {
                   Text(
                     'About this course',
                     style: AppFonts.bold(
-                      color: AppTheme.textPrimary,
+                      color: AppColors.textPrimary,
                       fontSize: 17,
                     ),
                   ),
@@ -88,7 +88,7 @@ class AboutCourseSheet extends StatelessWidget {
                   Text(
                     course.title,
                     style: AppFonts.bold(
-                      color: AppTheme.textPrimary,
+                      color: AppColors.textPrimary,
                       fontSize: 22,
                       height: 1.25,
                     ),
@@ -98,7 +98,7 @@ class AboutCourseSheet extends StatelessWidget {
                     Text(
                       course.subtitle,
                       style: AppFonts.regular(
-                        color: AppTheme.textMuted,
+                        color: AppColors.textMuted,
                         fontSize: 14,
                         height: 1.4,
                       ),
@@ -109,7 +109,7 @@ class AboutCourseSheet extends StatelessWidget {
                     Text(
                       course.description,
                       style: AppFonts.regular(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontSize: 15,
                         height: 1.6,
                       ),
@@ -120,7 +120,7 @@ class AboutCourseSheet extends StatelessWidget {
                     Text(
                       'What you will learn in this course:',
                       style: AppFonts.bold(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontSize: 16,
                       ),
                     ),
@@ -136,7 +136,7 @@ class AboutCourseSheet extends StatelessWidget {
                               height: 6,
                               margin: const EdgeInsets.only(top: 8, right: 12),
                               decoration: const BoxDecoration(
-                                color: AppTheme.primary,
+                                color: AppColors.primary,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -144,7 +144,7 @@ class AboutCourseSheet extends StatelessWidget {
                               child: Text(
                                 point,
                                 style: AppFonts.regular(
-                                  color: AppTheme.textPrimary,
+                                  color: AppColors.textPrimary,
                                   fontSize: 15,
                                   height: 1.55,
                                 ),

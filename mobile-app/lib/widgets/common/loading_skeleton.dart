@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:qspot/themes/app_colors.dart';
 import 'package:qspot/themes/app_theme.dart';
 // import '../themes/app_theme.dart';
 
@@ -56,9 +57,9 @@ class _LoadingSkeletonState extends State<LoadingSkeleton>
                 BorderRadius.circular(AppTheme.radiusMedium),
             gradient: LinearGradient(
               colors: [
-                AppTheme.surfaceAlt,
-                AppTheme.border,
-                AppTheme.surfaceAlt,
+                AppColors.surfaceAlt,
+                AppColors.border,
+                AppColors.surfaceAlt,
               ],
               stops: [0.0, _animation.value, 1.0],
               begin: Alignment.topLeft,

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../model/subject_model.dart';
 import '../provider/subject_provider.dart';
 import '../widgets/subject_card.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import 'subject_videos_screen.dart';
@@ -34,13 +35,13 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: AppColors.background,
       appBar: const CommonAppBar(title: 'Learn'),
       body: Consumer2<SubjectProvider, VideoProvider>(
         builder: (context, subjectProvider, videoProvider, child) {
           if (subjectProvider.isLoading) {
             return const Center(
-              child: CircularProgressIndicator(color: AppTheme.gradientEnd),
+              child: CircularProgressIndicator(color: AppColors.primary),
             );
           }
 
@@ -54,19 +55,19 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
                     Icon(
                       Icons.error_outline,
                       size: 64,
-                      color: AppTheme.secondaryGray,
+                      color: AppColors.textMuted,
                     ),
                     const SizedBox(height: AppTheme.paddingMedium),
                     Text(
                       'Error Loading Subjects',
                       style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(color: AppTheme.textPrimary),
+                          ?.copyWith(color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: AppTheme.paddingSmall),
                     Text(
                       subjectProvider.errorMessage,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.secondaryGray,
+                        color: AppColors.textMuted,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -91,19 +92,19 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
                     Icon(
                       Icons.book_outlined,
                       size: 64,
-                      color: AppTheme.secondaryGray,
+                      color: AppColors.textMuted,
                     ),
                     const SizedBox(height: AppTheme.paddingMedium),
                     Text(
                       'No Subjects Available',
                       style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(color: AppTheme.textPrimary),
+                          ?.copyWith(color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: AppTheme.paddingSmall),
                     Text(
                       'Check back later for new subjects',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.secondaryGray,
+                        color: AppColors.textMuted,
                       ),
                     ),
                   ],
@@ -116,8 +117,8 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
 
           return RefreshIndicator(
             onRefresh: () => subjectProvider.refresh(),
-            backgroundColor: AppTheme.surface,
-            color: AppTheme.primary,
+            backgroundColor: AppColors.surface,
+            color: AppColors.primary,
             child: ListView.builder(
               padding: EdgeInsets.fromLTRB(
                 AppTheme.paddingMedium,
@@ -143,7 +144,7 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
                             '${group.course.title} course',
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(
-                                  color: AppTheme.textPrimary,
+                                  color: AppColors.textPrimary,
                                   fontWeight: FontWeight.w700,
                                 ),
                           ),

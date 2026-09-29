@@ -6,6 +6,7 @@ import '../../video/provider/video_provider.dart';
 import '../../../services/api_client.dart';
 import '../../video/widgets/video_card.dart';
 import '../widgets/chapter_guide_sheet.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../video/screens/video_reels_screen.dart';
@@ -105,7 +106,7 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: AppColors.background,
       appBar: CommonAppBar(title: widget.subject.displayName),
       body: _buildBody(),
     );
@@ -114,7 +115,7 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
   Widget _buildBody() {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: AppTheme.gradientEnd),
+        child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
 
@@ -125,16 +126,12 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.error_outline,
-                size: 64,
-                color: AppTheme.secondaryGray,
-              ),
+              Icon(Icons.error_outline, size: 64, color: AppColors.textMuted),
               const SizedBox(height: AppTheme.paddingMedium),
               Text(
                 'Error Loading Videos',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppTheme.textPrimary,
+                  color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: AppTheme.paddingSmall),
@@ -142,7 +139,7 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
                 _errorMessage,
                 style: Theme.of(
                   context,
-                ).textTheme.bodyMedium?.copyWith(color: AppTheme.secondaryGray),
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppTheme.paddingLarge),
@@ -163,13 +160,13 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
               Icon(
                 Icons.video_library_outlined,
                 size: 64,
-                color: AppTheme.secondaryGray,
+                color: AppColors.textMuted,
               ),
               const SizedBox(height: AppTheme.paddingMedium),
               Text(
                 'No Videos Found',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppTheme.textPrimary,
+                  color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: AppTheme.paddingSmall),
@@ -177,7 +174,7 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
                 'No videos available for ${widget.subject.displayName}',
                 style: Theme.of(
                   context,
-                ).textTheme.bodyMedium?.copyWith(color: AppTheme.secondaryGray),
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -188,8 +185,8 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
 
     return RefreshIndicator(
       onRefresh: _onRefresh,
-      backgroundColor: AppTheme.surface,
-      color: AppTheme.primary,
+      backgroundColor: AppColors.surface,
+      color: AppColors.primary,
       child: Column(
         children: [
           // Subject Header
@@ -200,7 +197,7 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
             decoration: AppTheme.gradientDecoration(),
             child: Row(
               children: [
-                Icon(Icons.book, color: AppTheme.primaryWhite, size: 24),
+                Icon(Icons.book, color: AppColors.onPrimary, size: 24),
                 const SizedBox(width: AppTheme.paddingSmall),
                 Expanded(
                   child: Column(
@@ -209,14 +206,14 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
                       Text(
                         widget.subject.displayName,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppTheme.primaryWhite,
+                          color: AppColors.onPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
                         '${_videos.length} lesson${_videos.length != 1 ? 's' : ''}',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.onPrimary.withValues(alpha: 0.85),
+                          color: AppColors.onPrimary.withValues(alpha: 0.85),
                         ),
                       ),
                     ],

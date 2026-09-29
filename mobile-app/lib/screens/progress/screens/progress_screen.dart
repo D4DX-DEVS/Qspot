@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../services/learning_progress_service.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -52,7 +53,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppColors.background,
       appBar: const CommonAppBar(title: 'Progress'),
       body: RefreshIndicator(onRefresh: _load, child: _buildBody()),
     );
@@ -79,7 +80,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
           const Icon(
             Icons.insights_outlined,
             size: 44,
-            color: AppTheme.textMuted,
+            color: AppColors.textMuted,
           ),
           const SizedBox(height: 14),
           Text(
@@ -91,7 +92,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
           Text(
             'Check your connection and try again.',
             textAlign: TextAlign.center,
-            style: AppFonts.regular(color: AppTheme.textMuted),
+            style: AppFonts.regular(color: AppColors.textMuted),
           ),
           const SizedBox(height: 18),
           OutlinedButton.icon(
@@ -145,8 +146,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
-        border: Border.all(color: AppTheme.border),
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.border),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -155,19 +156,19 @@ class _ProgressScreenState extends State<ProgressScreen> {
             Icons.local_fire_department_outlined,
             '${stats?.currentStreak ?? 0}',
             'day streak',
-            AppTheme.accent,
+            AppColors.accent,
           ),
           _stat(
             Icons.military_tech_outlined,
             '${stats?.level ?? 1}',
             'level',
-            AppTheme.primary,
+            AppColors.primary,
           ),
           _stat(
             Icons.bolt_outlined,
             '${stats?.xp ?? 0}',
             'XP',
-            AppTheme.warning,
+            AppColors.warning,
           ),
         ],
       ),
@@ -191,7 +192,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppFonts.regular(
-                    color: AppTheme.textMuted,
+                    color: AppColors.textMuted,
                     fontSize: 10.5,
                   ),
                 ),
@@ -212,8 +213,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
-        border: Border.all(color: AppTheme.border),
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.border),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -227,8 +228,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 CircularProgressIndicator(
                   value: percent,
                   strokeWidth: 8,
-                  backgroundColor: AppTheme.surfaceAlt,
-                  color: AppTheme.primary,
+                  backgroundColor: AppColors.surfaceAlt,
+                  color: AppColors.primary,
                 ),
                 Center(
                   child: Text(
@@ -251,7 +252,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                       ? 'Start your first lesson'
                       : '${data.videosCompleted} of ${data.videosTotal} started lessons complete',
                   style: AppFonts.regular(
-                    color: AppTheme.textMuted,
+                    color: AppColors.textMuted,
                     fontSize: 13,
                     height: 1.35,
                   ),
@@ -260,7 +261,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   const SizedBox(height: 7),
                   Text(
                     '${data.videosInProgress} in progress',
-                    style: AppFonts.bold(color: AppTheme.accent, fontSize: 12),
+                    style: AppFonts.bold(color: AppColors.accent, fontSize: 12),
                   ),
                 ],
               ],
@@ -301,7 +302,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
               const SizedBox(width: 10),
               Text(
                 '${item.completed}/${item.total}',
-                style: AppFonts.bold(color: AppTheme.textMuted, fontSize: 12),
+                style: AppFonts.bold(color: AppColors.textMuted, fontSize: 12),
               ),
             ],
           ),
@@ -311,8 +312,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
             child: LinearProgressIndicator(
               value: item.percent,
               minHeight: 6,
-              backgroundColor: AppTheme.surfaceAlt,
-              color: AppTheme.primary,
+              backgroundColor: AppColors.surfaceAlt,
+              color: AppColors.primary,
             ),
           ),
         ],
@@ -333,7 +334,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
               icon: item.isVideoQuiz
                   ? Icons.play_lesson_outlined
                   : Icons.edit_note_outlined,
-              color: item.isVideoQuiz ? AppTheme.accent : AppTheme.primary,
+              color: item.isVideoQuiz ? AppColors.accent : AppColors.primary,
             ),
           ),
           ..._lessonActivity(),
@@ -351,19 +352,19 @@ class _ProgressScreenState extends State<ProgressScreen> {
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
-            border: Border.all(color: AppTheme.border),
+            color: AppColors.surface,
+            border: Border.all(color: AppColors.border),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
             children: [
-              Icon(Icons.timeline_outlined, color: AppTheme.textMuted),
+              Icon(Icons.timeline_outlined, color: AppColors.textMuted),
               SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Your completed lessons and assessments will appear here.',
                   style: AppFonts.regular(
-                    color: AppTheme.textMuted,
+                    color: AppColors.textMuted,
                     height: 1.35,
                   ),
                 ),
@@ -392,7 +393,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
             icon: progress.completed
                 ? Icons.check_circle_outline
                 : Icons.play_circle_outline,
-            color: progress.completed ? AppTheme.success : AppTheme.accent,
+            color: progress.completed ? AppColors.success : AppColors.accent,
           );
         })
         .where((item) => item.date != null)
@@ -405,8 +406,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
-          border: Border.all(color: AppTheme.border),
+          color: AppColors.surface,
+          border: Border.all(color: AppColors.border),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -429,7 +430,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   Text(
                     item.kind,
                     style: AppFonts.bold(
-                      color: AppTheme.textMuted,
+                      color: AppColors.textMuted,
                       fontSize: 10.5,
                     ),
                   ),
@@ -444,7 +445,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   Text(
                     item.detail,
                     style: AppFonts.regular(
-                      color: AppTheme.textMuted,
+                      color: AppColors.textMuted,
                       fontSize: 12,
                     ),
                   ),
@@ -455,7 +456,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
               Text(
                 _dateLabel(item.date!),
                 style: AppFonts.regular(
-                  color: AppTheme.textMuted,
+                  color: AppColors.textMuted,
                   fontSize: 10.5,
                 ),
               ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../model/notification_model.dart';
 import '../provider/notification_provider.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -65,7 +66,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: AppColors.background,
       appBar: const CommonAppBar(title: 'Notifications'),
       body: Consumer<NotificationProvider>(
         builder: (context, notificationProvider, child) {
@@ -108,21 +109,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Container(
       margin: const EdgeInsets.all(AppTheme.paddingMedium),
       decoration: BoxDecoration(
-        color: AppTheme.background,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppTheme.border, width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: TextField(
         controller: _searchController,
         onChanged: _onSearchChanged,
-        style: AppFonts.regular(color: AppTheme.textPrimary),
+        style: AppFonts.regular(color: AppColors.textPrimary),
         decoration: InputDecoration(
           hintText: 'Search notifications...',
-          hintStyle: AppFonts.regular(color: AppTheme.secondaryGray),
-          prefixIcon: Icon(Icons.search, color: AppTheme.secondaryGray),
+          hintStyle: AppFonts.regular(color: AppColors.textMuted),
+          prefixIcon: Icon(Icons.search, color: AppColors.textMuted),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
-                  icon: Icon(Icons.clear, color: AppTheme.secondaryGray),
+                  icon: Icon(Icons.clear, color: AppColors.textMuted),
                   onPressed: () {
                     _searchController.clear();
                     _onSearchChanged('');
@@ -149,7 +150,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               return Text(
                 '${_filteredNotifications.length} notification${_filteredNotifications.length != 1 ? 's' : ''}',
                 style: AppFonts.regular(
-                  color: AppTheme.secondaryGray,
+                  color: AppColors.textMuted,
                   fontSize: 14,
                 ),
               );
@@ -163,8 +164,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget _buildNotificationsList() {
     return RefreshIndicator(
       onRefresh: _loadNotifications,
-      backgroundColor: AppTheme.surface,
-      color: AppTheme.primary,
+      backgroundColor: AppColors.surface,
+      color: AppColors.primary,
       child: ListView.builder(
         padding: const EdgeInsets.all(AppTheme.paddingMedium),
         itemCount: _filteredNotifications.length,
@@ -180,9 +181,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.paddingMedium),
       decoration: BoxDecoration(
-        color: AppTheme.background,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppTheme.border, width: 1),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: InkWell(
         onTap: () => _onNotificationTap(notification),
@@ -197,12 +198,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppTheme.primarySoft,
+                  color: AppColors.primarySoft,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.notifications,
-                  color: AppTheme.primary,
+                  color: AppColors.primary,
                   size: 20,
                 ),
               ),
@@ -217,7 +218,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     Text(
                       notification.title,
                       style: AppFonts.medium(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontSize: 16,
                       ),
                       maxLines: 1,
@@ -229,7 +230,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     Text(
                       notification.description,
                       style: AppFonts.regular(
-                        color: AppTheme.secondaryGray,
+                        color: AppColors.textMuted,
                         fontSize: 14,
                       ),
                       maxLines: 3,
@@ -241,7 +242,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     Text(
                       notification.formattedDate,
                       style: AppFonts.regular(
-                        color: AppTheme.secondaryGray,
+                        color: AppColors.textMuted,
                         fontSize: 12,
                       ),
                     ),
@@ -265,14 +266,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             Icon(
               Icons.notifications_none,
               size: 64,
-              color: AppTheme.secondaryGray,
+              color: AppColors.textMuted,
             ),
             const SizedBox(height: AppTheme.paddingMedium),
             Text(
               'No Notifications',
               style: Theme.of(
                 context,
-              ).textTheme.headlineSmall?.copyWith(color: AppTheme.textPrimary),
+              ).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppTheme.paddingSmall),
@@ -280,7 +281,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               'You\'re all caught up! Check back later for updates.',
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: AppTheme.secondaryGray),
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
               textAlign: TextAlign.center,
             ),
           ],
@@ -296,13 +297,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 64, color: AppTheme.secondaryGray),
+            Icon(Icons.search_off, size: 64, color: AppColors.textMuted),
             const SizedBox(height: AppTheme.paddingMedium),
             Text(
               'No Results Found',
               style: Theme.of(
                 context,
-              ).textTheme.headlineSmall?.copyWith(color: AppTheme.textPrimary),
+              ).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppTheme.paddingSmall),
@@ -310,7 +311,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               'Try searching with different keywords',
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: AppTheme.secondaryGray),
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
               textAlign: TextAlign.center,
             ),
           ],
@@ -326,13 +327,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: AppTheme.secondaryGray),
+            Icon(Icons.error_outline, size: 64, color: AppColors.textMuted),
             const SizedBox(height: AppTheme.paddingMedium),
             Text(
               'Something went wrong',
               style: Theme.of(
                 context,
-              ).textTheme.headlineSmall?.copyWith(color: AppTheme.textPrimary),
+              ).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppTheme.paddingSmall),
@@ -340,15 +341,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               errorMessage,
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: AppTheme.secondaryGray),
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppTheme.paddingLarge),
             ElevatedButton(
               onPressed: _loadNotifications,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.gradientStart,
-                foregroundColor: AppTheme.onPrimary,
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.onPrimary,
               ),
               child: const Text('Retry'),
             ),
@@ -369,7 +370,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -383,14 +384,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             children: [
               Text(
                 notification.title,
-                style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 19),
+                style: AppFonts.bold(
+                  color: AppColors.textPrimary,
+                  fontSize: 19,
+                ),
               ),
               const SizedBox(height: 8),
               if (notification.formattedDate.isNotEmpty)
                 Text(
                   notification.formattedDate,
                   style: AppFonts.regular(
-                    color: AppTheme.textMuted,
+                    color: AppColors.textMuted,
                     fontSize: 12.5,
                   ),
                 ),
@@ -398,7 +402,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               Text(
                 notification.description,
                 style: AppFonts.regular(
-                  color: AppTheme.textPrimary,
+                  color: AppColors.textPrimary,
                   fontSize: 15,
                   height: 1.5,
                 ),
@@ -409,8 +413,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 height: 50,
                 child: FilledButton(
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: AppTheme.onPrimary,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.onPrimary,
                     shape: const StadiumBorder(),
                   ),
                   onPressed: () => Navigator.of(sheetContext).pop(),

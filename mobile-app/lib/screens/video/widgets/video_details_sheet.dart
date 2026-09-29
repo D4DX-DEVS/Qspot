@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../services/video_progress_service.dart';
-import '../../../themes/app_theme.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
 import '../model/video_model.dart';
 import '../provider/video_provider.dart';
@@ -29,7 +29,7 @@ class VideoDetailsSheet extends StatefulWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -97,12 +97,12 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
                         width: 40,
                         height: 40,
                         decoration: const BoxDecoration(
-                          color: AppTheme.surfaceAlt,
+                          color: AppColors.surfaceAlt,
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
                           Icons.close,
-                          color: AppTheme.textPrimary,
+                          color: AppColors.textPrimary,
                           size: 20,
                         ),
                       ),
@@ -111,7 +111,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
                   Text(
                     'Episode details',
                     style: AppFonts.bold(
-                      color: AppTheme.textPrimary,
+                      color: AppColors.textPrimary,
                       fontSize: 17,
                     ),
                   ),
@@ -125,7 +125,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: AppFonts.regular(
-                  color: AppTheme.textMuted,
+                  color: AppColors.textMuted,
                   fontSize: 12.5,
                   height: 1.35,
                 ),
@@ -134,9 +134,9 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
             const SizedBox(height: 8),
             TabBar(
               controller: _tabs,
-              labelColor: AppTheme.primary,
-              unselectedLabelColor: AppTheme.textMuted,
-              indicatorColor: AppTheme.primary,
+              labelColor: AppColors.primary,
+              unselectedLabelColor: AppColors.textMuted,
+              indicatorColor: AppColors.primary,
               indicatorSize: TabBarIndicatorSize.tab,
               labelStyle: AppFonts.bold(fontSize: 14),
               unselectedLabelStyle: AppFonts.medium(fontSize: 14),
@@ -166,7 +166,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
           message,
           textAlign: TextAlign.center,
           style: AppFonts.regular(
-            color: AppTheme.textMuted,
+            color: AppColors.textMuted,
             fontSize: 14,
             height: 1.5,
           ),
@@ -188,7 +188,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
           Text(
             video.learnText,
             style: AppFonts.regular(
-              color: AppTheme.textPrimary,
+              color: AppColors.textPrimary,
               fontSize: 15,
               height: 1.55,
             ),
@@ -198,7 +198,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
           Text(
             'KEY POINTS',
             style: AppFonts.bold(
-              color: AppTheme.textMuted,
+              color: AppColors.textMuted,
               fontSize: 11.5,
               letterSpacing: 0.8,
             ),
@@ -215,13 +215,13 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
                     height: 22,
                     margin: const EdgeInsets.only(top: 1),
                     decoration: const BoxDecoration(
-                      color: AppTheme.primarySoft,
+                      color: AppColors.primarySoft,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       Icons.check,
                       size: 13,
-                      color: AppTheme.primary,
+                      color: AppColors.primary,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -229,7 +229,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
                     child: Text(
                       point,
                       style: AppFonts.regular(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontSize: 15,
                         height: 1.45,
                       ),
@@ -257,7 +257,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
       itemBuilder: (context, index) {
         final item = downloads[index];
         return Material(
-          color: AppTheme.surfaceAlt,
+          color: AppColors.surfaceAlt,
           borderRadius: BorderRadius.circular(14),
           child: InkWell(
             borderRadius: BorderRadius.circular(14),
@@ -273,12 +273,12 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: AppTheme.primarySoft,
+                      color: AppColors.primarySoft,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
                       Icons.download_outlined,
-                      color: AppTheme.primary,
+                      color: AppColors.primary,
                       size: 20,
                     ),
                   ),
@@ -287,7 +287,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
                     child: Text(
                       item.title,
                       style: AppFonts.semiBold(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontSize: 15,
                       ),
                     ),
@@ -295,7 +295,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
                   const Icon(
                     Icons.open_in_new,
                     size: 18,
-                    color: AppTheme.textMuted,
+                    color: AppColors.textMuted,
                   ),
                 ],
               ),
@@ -309,7 +309,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
   Widget _practiceTab() {
     if (_loadingQuestions) {
       return const Center(
-        child: CircularProgressIndicator(color: AppTheme.primary),
+        child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
     if (_questions.isEmpty) {
@@ -330,14 +330,14 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceAlt,
+                color: AppColors.surfaceAlt,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
                 children: [
                   const Icon(
                     Icons.lock_outline,
-                    color: AppTheme.textMuted,
+                    color: AppColors.textMuted,
                     size: 28,
                   ),
                   const SizedBox(width: 14),
@@ -346,7 +346,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
                       '${_questions.length} question${_questions.length == 1 ? '' : 's'} '
                       'on this episode',
                       style: AppFonts.semiBold(
-                        color: AppTheme.textPrimary,
+                        color: AppColors.textPrimary,
                         fontSize: 15,
                         height: 1.35,
                       ),
@@ -359,7 +359,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
             Text(
               'Finish watching to unlock the quiz.',
               style: AppFonts.regular(
-                color: AppTheme.textMuted,
+                color: AppColors.textMuted,
                 fontSize: 13,
                 height: 1.45,
               ),
@@ -377,14 +377,14 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.primarySoft,
+              color: AppColors.primarySoft,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
               children: [
                 const Icon(
                   Icons.quiz_outlined,
-                  color: AppTheme.primary,
+                  color: AppColors.primary,
                   size: 28,
                 ),
                 const SizedBox(width: 14),
@@ -393,7 +393,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
                     '${_questions.length} question${_questions.length == 1 ? '' : 's'} '
                     'on this episode',
                     style: AppFonts.semiBold(
-                      color: AppTheme.textPrimary,
+                      color: AppColors.textPrimary,
                       fontSize: 15,
                       height: 1.35,
                     ),
@@ -406,7 +406,7 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
           Text(
             'You finished this episode — try the questions below.',
             style: AppFonts.regular(
-              color: AppTheme.textMuted,
+              color: AppColors.textMuted,
               fontSize: 13,
               height: 1.45,
             ),
@@ -416,8 +416,8 @@ class _VideoDetailsSheetState extends State<VideoDetailsSheet>
             height: 52,
             child: FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: AppTheme.onPrimary,
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.onPrimary,
                 shape: const StadiumBorder(),
                 textStyle: AppFonts.bold(fontSize: 16),
               ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -100,7 +101,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppColors.background,
       appBar: CommonAppBar(
         title: 'My questions',
         actions: [
@@ -111,7 +112,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
             },
             child: Text(
               'Ask new',
-              style: AppFonts.bold(color: AppTheme.primary, fontSize: 15),
+              style: AppFonts.bold(color: AppColors.primary, fontSize: 15),
             ),
           ),
         ],
@@ -142,7 +143,9 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
             Expanded(
               child: _isLoading
                   ? const Center(
-                      child: CircularProgressIndicator(color: AppTheme.primary),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
                     )
                   : _errorMessage != null
                   ? _buildErrorState()
@@ -167,16 +170,16 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? AppTheme.primarySoft : AppTheme.surfaceAlt,
+          color: selected ? AppColors.primarySoft : AppColors.surfaceAlt,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? AppTheme.primary : AppTheme.border,
+            color: selected ? AppColors.primary : AppColors.border,
           ),
         ),
         child: Text(
           label,
           style: AppFonts.semiBold(
-            color: selected ? AppTheme.primary : AppTheme.textMuted,
+            color: selected ? AppColors.primary : AppColors.textMuted,
             fontSize: 13,
           ),
         ),
@@ -191,18 +194,18 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.cloud_off, size: 48, color: AppTheme.textMuted),
+            const Icon(Icons.cloud_off, size: 48, color: AppColors.textMuted),
             const SizedBox(height: 14),
             Text(
               'Could not load your questions',
-              style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 17),
+              style: AppFonts.bold(color: AppColors.textPrimary, fontSize: 17),
             ),
             const SizedBox(height: 6),
             Text(
               _errorMessage ?? '',
               textAlign: TextAlign.center,
               style: AppFonts.regular(
-                color: AppTheme.textMuted,
+                color: AppColors.textMuted,
                 fontSize: 13,
                 height: 1.4,
               ),
@@ -210,8 +213,8 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
             const SizedBox(height: 18),
             FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: AppTheme.onPrimary,
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.onPrimary,
                 shape: const StadiumBorder(),
               ),
               onPressed: _loadQuestions,
@@ -234,12 +237,12 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
             const Icon(
               Icons.forum_outlined,
               size: 48,
-              color: AppTheme.textMuted,
+              color: AppColors.textMuted,
             ),
             const SizedBox(height: 16),
             Text(
               filtered ? 'Nothing here' : 'There is nothing here yet',
-              style: AppFonts.bold(color: AppTheme.textPrimary, fontSize: 19),
+              style: AppFonts.bold(color: AppColors.textPrimary, fontSize: 19),
             ),
             const SizedBox(height: 10),
             Text(
@@ -248,7 +251,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
                   : 'Tap "Ask new" to ask your first question.',
               textAlign: TextAlign.center,
               style: AppFonts.regular(
-                color: AppTheme.textMuted,
+                color: AppColors.textMuted,
                 fontSize: 14,
                 height: 1.5,
               ),
@@ -264,7 +267,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
     if (questions.isEmpty) return _buildEmptyState();
 
     return RefreshIndicator(
-      color: AppTheme.primary,
+      color: AppColors.primary,
       onRefresh: _loadQuestions,
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -286,13 +289,13 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: hasAnswer ? AppTheme.primary : AppTheme.surfaceAlt,
+              color: hasAnswer ? AppColors.primary : AppColors.surfaceAlt,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
               hasAnswer ? 'Answered' : 'Waiting for an answer',
               style: AppFonts.bold(
-                color: hasAnswer ? AppTheme.onPrimary : AppTheme.textMuted,
+                color: hasAnswer ? AppColors.onPrimary : AppColors.textMuted,
                 fontSize: 11.5,
               ),
             ),
@@ -300,13 +303,13 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
           const SizedBox(height: 10),
           Text(
             question.subject,
-            style: AppFonts.bold(color: AppTheme.primary, fontSize: 13),
+            style: AppFonts.bold(color: AppColors.primary, fontSize: 13),
           ),
           const SizedBox(height: 4),
           Text(
             question.description,
             style: AppFonts.regular(
-              color: AppTheme.textPrimary,
+              color: AppColors.textPrimary,
               fontSize: 15,
               height: 1.5,
             ),
@@ -314,7 +317,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
           const SizedBox(height: 6),
           Text(
             _formatDate(question.createdAt),
-            style: AppFonts.regular(color: AppTheme.textMuted, fontSize: 12),
+            style: AppFonts.regular(color: AppColors.textMuted, fontSize: 12),
           ),
           if (hasAnswer) ...[
             const SizedBox(height: 14),
@@ -322,7 +325,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppTheme.primarySoft,
+                color: AppColors.primarySoft,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Column(
@@ -331,7 +334,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
                   Text(
                     question.answer!,
                     style: AppFonts.regular(
-                      color: AppTheme.textPrimary,
+                      color: AppColors.textPrimary,
                       fontSize: 15,
                       height: 1.5,
                     ),
@@ -341,7 +344,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
                     'Answered by ${question.answeredBy ?? 'the faculty'}'
                     '${question.answeredAt != null ? ' · ${_formatDate(question.answeredAt!)}' : ''}',
                     style: AppFonts.semiBold(
-                      color: AppTheme.primary,
+                      color: AppColors.primary,
                       fontSize: 12,
                     ),
                   ),
