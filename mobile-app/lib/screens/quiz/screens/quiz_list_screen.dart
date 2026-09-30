@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../services/api_client.dart';
 import '../../../themes/app_colors.dart';
+import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -81,9 +82,15 @@ class _QuizListScreenState extends State<QuizListScreen> {
         await quizProvider.fetchQuizList();
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      if (e.status == 409) {
+        AppSnackBar.show(
+          context,
+          message: 'You\'ve already taken this quiz',
+          color: AppColors.warningOrange,
+        );
+      } else {
+        AppSnackBar.show(context, message: e.message, color: AppColors.danger);
+      }
     }
   }
 

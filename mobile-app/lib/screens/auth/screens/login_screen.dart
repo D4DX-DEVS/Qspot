@@ -1,21 +1,30 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../provider/auth_provider.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
-import '../../../widgets/common/country_code_prefix.dart';
+import '../../../widgets/common/app_snack_bar.dart';
 import '../../../widgets/common/otp_input.dart';
+import '../widgets/arch_header.dart';
+import '../widgets/art/auth_art.dart';
+import '../widgets/art/mosque_skyline_painter.dart';
+import '../widgets/auth_back_button.dart';
+import '../widgets/auth_brand_mark.dart';
+import '../widgets/auth_headline.dart';
+import '../widgets/auth_link_row.dart';
+import '../widgets/auth_page_layout.dart';
+import '../widgets/auth_phone_field.dart';
+import '../widgets/auth_theme_scope.dart';
+import '../widgets/gradient_pill_button.dart';
 import 'registration_screen.dart';
 import '../../common/screens/main_navigation_screen.dart';
 import '../../faculty/screens/faculty_home_screen.dart';
 
 /// Sign-in screen: phone number -> WhatsApp OTP.
 ///
-/// Layout follows the flat, centred pattern used by the apps we took as
-/// reference: circular brand mark, one bold headline, soft filled inputs and a
-/// single full-width pill action per step.
+/// Logo and headline sit inside a pointed arch over a mosque skyline; light
+/// or dark follows the phone's setting (see [AuthThemeScope]).
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -40,143 +49,91 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          child: Center(
-            // Keeps the column phone-shaped on tablets and desktop instead of
-            // stretching the pill buttons across the whole window.
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Back arrow only after the code has been requested, so the
-                    // student can correct a mistyped number.
-                    if (_otpSent) _backButton() else const SizedBox(height: 44),
-                    const SizedBox(height: 28),
-                    _brandMark(),
-                    const SizedBox(height: 36),
-                    Text(
-                      _otpSent
-                          ? 'Check your WhatsApp'
-                          : 'Learn the Qur’ān,\none episode at a time.',
-                      textAlign: TextAlign.center,
-                      style: AppFonts.bold(
-                        color: AppColors.textPrimary,
+    final artHeight = (MediaQuery.sizeOf(context).height * 0.3).clamp(
+      170.0,
+      280.0,
+    );
+    return AuthThemeScope(
+      child: AuthPageLayout(
+        bottomArt: const AuthArt(painter: MosqueSkylinePainter.new),
+        bottomArtHeight: artHeight,
+        // The top of the scene is sky, so the links may sit over it.
+        bottomArtOverlap: artHeight * 0.4,
+        children: [
+          ArchHeader(
+            // Back arrow only after the code has been requested, so the
+            // student can correct a mistyped number.
+            leading: _otpSent
+                ? AuthBackButton(
+                    onPressed: () => setState(() {
+                      _otpSent = false;
+                      _otpController.clear();
+                    }),
+                  )
+                : null,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const AuthBrandMark(size: 150),
+                _otpSent
+                    ? AuthHeadline(
+                        title: 'Check your ',
+                        accent: 'WhatsApp',
+                        subtitle:
+                            'Enter the 6-digit code we sent to ${_phoneController.text}',
+                        textAlign: TextAlign.center,
                         fontSize: 26,
-                        height: 1.25,
+                      )
+                    : const AuthHeadline(
+                        title: 'Learn the ',
+                        accent: 'Qur’ān',
+                        trailing: ',\none episode at a time.',
+                        subtitle:
+                            'Sign in with your phone number to continue.\nWe will send a one-time code to your WhatsApp.',
+                        textAlign: TextAlign.center,
+                        fontSize: 26,
+                        subtitleFontSize: 13.5,
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      _otpSent
-                          ? 'Enter the 6-digit code we sent to ${_phoneController.text}'
-                          : 'Sign in with your phone number to continue.',
-                      textAlign: TextAlign.center,
-                      style: AppFonts.regular(
-                        color: AppColors.textMuted,
-                        fontSize: 15,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 36),
-                    if (!_otpSent) _phoneField() else _otpField(),
-                    const SizedBox(height: 24),
-                    _primaryButton(),
-                    const SizedBox(height: 16),
-                    Text(
-                      _otpSent
-                          ? 'Didn’t get the code? Tap Resend, or go back and check your number.'
-                          : 'We will send a one-time code to your WhatsApp.',
-                      textAlign: TextAlign.center,
-                      style: AppFonts.regular(
-                        color: AppColors.textMuted,
-                        fontSize: 12.5,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    if (!_otpSent) _registerRow(),
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              ),
+              ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _brandMark() {
-    return Center(
-      child: Container(
-        width: 176,
-        height: 176,
-        padding: const EdgeInsets.all(26),
-        decoration: const BoxDecoration(
-          color: AppColors.primarySoft,
-          shape: BoxShape.circle,
-        ),
-        // qspot-mark.png is Icon.png cropped to a tight square around the mark.
-        child: Image.asset('assets/icons/qspot-mark.png', fit: BoxFit.contain),
-      ),
-    );
-  }
-
-  Widget _backButton() {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: InkWell(
-        onTap: () => setState(() {
-          _otpSent = false;
-          _otpController.clear();
-        }),
-        customBorder: const CircleBorder(),
-        child: Container(
-          width: 44,
-          height: 44,
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceAlt,
-            shape: BoxShape.circle,
+          Form(
+            key: _formKey,
+            child: _otpSent
+                ? _otpField()
+                : AuthPhoneField(controller: _phoneController),
           ),
-          child: const Icon(
-            Icons.arrow_back,
-            color: AppColors.textPrimary,
-            size: 20,
+          const SizedBox(height: 20),
+          Consumer<AuthProvider>(
+            builder: (context, authProvider, child) => GradientPillButton(
+              label: _otpSent ? 'Verify OTP' : 'Send OTP',
+              isLoading: authProvider.isLoading,
+              onPressed: authProvider.isLoading
+                  ? null
+                  : (_otpSent ? _verifyOtp : _sendOtp),
+            ),
           ),
-        ),
+          const SizedBox(height: 16),
+          if (_otpSent)
+            Builder(
+              builder: (context) => Text(
+                'Didn’t get the code? Tap Resend, or go back and check your number.',
+                textAlign: TextAlign.center,
+                style: AppFonts.regular(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12.5,
+                  height: 1.4,
+                ),
+              ),
+            )
+          else
+            AuthLinkRow(
+              prompt: "Don't have an account?",
+              action: 'Register Now',
+              onTap: _navigateToRegistration,
+            ),
+        ],
       ),
-    );
-  }
-
-  Widget _phoneField() {
-    return TextFormField(
-      controller: _phoneController,
-      keyboardType: TextInputType.phone,
-      inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly,
-        LengthLimitingTextInputFormatter(10),
-      ],
-      style: AppFonts.regular(color: AppColors.textPrimary, fontSize: 16),
-      decoration: _fieldDecoration(
-        hint: 'Enter your phone number',
-        prefixIcon: const CountryCodePrefix(),
-      ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Please enter your phone number';
-        }
-        if (value.length != 10) {
-          return 'Please enter a valid 10-digit phone number';
-        }
-        return null;
-      },
     );
   }
 
@@ -191,127 +148,12 @@ class _LoginScreenState extends State<LoginScreen> {
             if (!auth.isLoading) _verifyOtp();
           },
         ),
-        const SizedBox(height: 14),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Didn’t receive OTP?',
-              style: AppFonts.regular(color: AppColors.textMuted, fontSize: 14),
-            ),
-            TextButton(
-              onPressed: _isResending ? null : _resendOtp,
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                minimumSize: const Size(0, 36),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Text(
-                _isResending ? 'Resending…' : 'Resend',
-                style: AppFonts.bold(
-                  color: AppColors.primary,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  InputDecoration _fieldDecoration({required String hint, Widget? prefixIcon}) {
-    final radius = BorderRadius.circular(14);
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: AppFonts.regular(color: AppColors.textMuted, fontSize: 15),
-      prefixIcon: prefixIcon,
-      prefixIconConstraints: const BoxConstraints(),
-      filled: true,
-      // White fill + visible outline so the field stands out from the
-      // off-white page before it is tapped.
-      fillColor: AppColors.surface,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-      border: OutlineInputBorder(
-        borderRadius: radius,
-        borderSide: const BorderSide(color: AppColors.border, width: 1.2),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: radius,
-        borderSide: const BorderSide(color: AppColors.border, width: 1.2),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: radius,
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.6),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: radius,
-        borderSide: const BorderSide(color: AppColors.danger, width: 1.2),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: radius,
-        borderSide: const BorderSide(color: AppColors.danger, width: 1.6),
-      ),
-    );
-  }
-
-  Widget _primaryButton() {
-    return Consumer<AuthProvider>(
-      builder: (context, authProvider, child) {
-        return SizedBox(
-          height: 54,
-          child: FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.onPrimary,
-              disabledBackgroundColor: AppColors.primary,
-              disabledForegroundColor: AppColors.onPrimary,
-              shape: const StadiumBorder(),
-              textStyle: AppFonts.bold(
-                fontSize: 16,
-              ),
-            ),
-            onPressed: authProvider.isLoading
-                ? null
-                : (_otpSent ? _verifyOtp : _sendOtp),
-            child: authProvider.isLoading
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.onPrimary,
-                    ),
-                  )
-                : Text(_otpSent ? 'Verify OTP' : 'Send OTP'),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _registerRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          "Don't have an account?",
-          style: AppFonts.regular(color: AppColors.textMuted, fontSize: 15),
-        ),
-        TextButton(
-          onPressed: _navigateToRegistration,
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            minimumSize: const Size(0, 36),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          child: Text(
-            'Register Now',
-            style: AppFonts.bold(
-              color: AppColors.primary,
-              fontSize: 15,
-            ),
-          ),
+        const SizedBox(height: 10),
+        AuthLinkRow(
+          prompt: 'Didn’t receive OTP?',
+          action: _isResending ? 'Resending…' : 'Resend',
+          onTap: _isResending ? null : _resendOtp,
+          showChevron: false,
         ),
       ],
     );
@@ -333,24 +175,18 @@ class _LoginScreenState extends State<LoginScreen> {
         _otpSent = true;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result['message'] ?? 'OTP sent successfully via WhatsApp',
-            style: AppFonts.regular(color: AppColors.onPrimary),
-          ),
-          backgroundColor: AppColors.primary,
-        ),
+      AppSnackBar.show(
+        context,
+        message: 'We\'ve sent a 6-digit OTP to your WhatsApp',
+        color: AppColors.success,
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result['message'] ?? 'Failed to send OTP',
-            style: AppFonts.regular(color: AppColors.onPrimary),
-          ),
-          backgroundColor: AppColors.danger,
-        ),
+      AppSnackBar.show(
+        context,
+        message:
+            result['message'] ??
+            'We couldn\'t send the OTP. Please try again.',
+        color: AppColors.danger,
       );
     }
   }
@@ -365,14 +201,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // The six-box OTP field has no FormField validator, so check it here.
     if (otp.length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Please enter the 6-digit OTP',
-            style: AppFonts.regular(color: AppColors.onPrimary),
-          ),
-          backgroundColor: AppColors.danger,
-        ),
+      AppSnackBar.show(
+        context,
+        message: 'Please enter all 6 digits of the OTP',
+        color: AppColors.warningOrange,
       );
       return;
     }
@@ -383,20 +215,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (result['success']) {
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => authProvider.user?.role == 'faculty'
-            ? const FacultyHomeScreen()
-            : const MainNavigationScreen()),
+        MaterialPageRoute(
+          builder: (context) => authProvider.user?.role == 'faculty'
+              ? const FacultyHomeScreen()
+              : const MainNavigationScreen(),
+        ),
         (Route<dynamic> route) => false,
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result['message'] ?? 'Invalid OTP',
-            style: AppFonts.regular(color: AppColors.onPrimary),
-          ),
-          backgroundColor: AppColors.danger,
-        ),
+      AppSnackBar.show(
+        context,
+        message:
+            result['message'] ??
+            'That OTP didn\'t work. Please check it and try again.',
+        color: AppColors.danger,
       );
     }
   }

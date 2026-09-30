@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../services/api_client.dart';
 import '../../../themes/app_colors.dart';
+import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../speaker/provider/speaker_provider.dart';
@@ -439,14 +440,10 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
 
   Future<void> _submitQuestion() async {
     if (_selectedFaculty == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Please select a faculty',
-            style: AppFonts.regular(color: AppColors.onPrimary),
-          ),
-          backgroundColor: AppColors.danger,
-        ),
+      AppSnackBar.show(
+        context,
+        message: 'Please choose a faculty to send your question to',
+        color: AppColors.warningOrange,
       );
       return;
     }
@@ -474,35 +471,21 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
             _isSubmitting = false;
           });
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Question submitted successfully!',
-                style: AppFonts.regular(color: AppColors.onPrimary),
-              ),
-              backgroundColor: AppColors.primary,
-              duration: Duration(seconds: 3),
-            ),
+          AppSnackBar.show(
+            context,
+            message: 'Your question has been sent to the faculty',
+            color: AppColors.success,
           );
         }
       } catch (e) {
         final message = e is ApiException
             ? e.message
-            : 'Failed to submit question';
+            : 'We couldn\'t send your question. Please try again.';
         if (mounted) {
           setState(() {
             _isSubmitting = false;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                message,
-                style: AppFonts.regular(color: AppColors.onPrimary),
-              ),
-              backgroundColor: AppColors.danger,
-              duration: const Duration(seconds: 3),
-            ),
-          );
+          AppSnackBar.show(context, message: message, color: AppColors.danger);
         }
       }
     }

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../../services/api_client.dart';
 import '../../../themes/app_colors.dart';
+import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -483,7 +484,6 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
   Future<void> _submit(QuizProvider quizProvider) async {
     setState(() => _submitting = true);
     final navigator = Navigator.of(context);
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     try {
       final attempt = await quizProvider.submitQuiz();
@@ -502,15 +502,17 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
       );
     } on ApiException catch (e) {
       if (!mounted) return;
-      scaffoldMessenger.showSnackBar(SnackBar(content: Text(e.message)));
+      AppSnackBar.show(context, message: e.message, color: AppColors.danger);
       if (e.status == 403) {
         // Quiz is no longer live — route back to the quiz list.
         navigator.pop();
       }
     } catch (e) {
       if (!mounted) return;
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('Failed to submit quiz')),
+      AppSnackBar.show(
+        context,
+        message: 'We couldn\'t submit your quiz. Please try again.',
+        color: AppColors.danger,
       );
     } finally {
       if (mounted) setState(() => _submitting = false);

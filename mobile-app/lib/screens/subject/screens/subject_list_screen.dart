@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../model/subject_model.dart';
 import '../provider/subject_provider.dart';
+import '../widgets/learn_banner_art.dart';
 import '../widgets/subject_card.dart';
-import '../../../themes/app_colors.dart';
+import '../widgets/subject_search_delegate.dart';
 import '../../../themes/app_theme.dart';
+import '../../../widgets/common/banner_headline.dart';
+import '../../../widgets/common/circle_icon_action.dart';
 import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/gradient_card.dart';
 import 'subject_videos_screen.dart';
 import '../../video/provider/video_provider.dart';
 
@@ -34,15 +38,24 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: const CommonAppBar(title: 'Learn'),
+      appBar: CommonAppBar(
+        title: 'Learn',
+        centerTitle: false,
+        actions: [
+          CircleIconAction(
+            icon: Icons.search_rounded,
+            tooltip: 'Search subjects',
+            onPressed: _openSearch,
+          ),
+          const SizedBox(width: 16),
+        ],
+      ),
       body: Consumer2<SubjectProvider, VideoProvider>(
         builder: (context, subjectProvider, videoProvider, child) {
           if (subjectProvider.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (subjectProvider.hasError) {
@@ -55,19 +68,19 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
                     Icon(
                       Icons.error_outline,
                       size: 64,
-                      color: AppColors.textMuted,
+                      color: scheme.onSurfaceVariant,
                     ),
                     const SizedBox(height: AppTheme.paddingMedium),
                     Text(
                       'Error Loading Subjects',
                       style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(color: AppColors.textPrimary),
+                          ?.copyWith(color: scheme.onSurface),
                     ),
                     const SizedBox(height: AppTheme.paddingSmall),
                     Text(
                       subjectProvider.errorMessage,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textMuted,
+                        color: scheme.onSurfaceVariant,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -92,19 +105,19 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
                     Icon(
                       Icons.book_outlined,
                       size: 64,
-                      color: AppColors.textMuted,
+                      color: scheme.onSurfaceVariant,
                     ),
                     const SizedBox(height: AppTheme.paddingMedium),
                     Text(
                       'No Subjects Available',
                       style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(color: AppColors.textPrimary),
+                          ?.copyWith(color: scheme.onSurface),
                     ),
                     const SizedBox(height: AppTheme.paddingSmall),
                     Text(
                       'Check back later for new subjects',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textMuted,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -117,18 +130,18 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
 
           return RefreshIndicator(
             onRefresh: () => subjectProvider.refresh(),
-            backgroundColor: AppColors.surface,
-            color: AppColors.primary,
             child: ListView.builder(
               padding: EdgeInsets.fromLTRB(
                 AppTheme.paddingMedium,
-                AppTheme.paddingMedium,
+                AppTheme.paddingSmall,
                 AppTheme.paddingMedium,
                 AppTheme.paddingMedium + MediaQuery.paddingOf(context).bottom,
               ),
-              itemCount: groups.length,
-              itemBuilder: (context, groupIndex) {
-                final group = groups[groupIndex];
+              // The banner sits above the course groups.
+              itemCount: groups.length + 1,
+              itemBuilder: (context, index) {
+                if (index == 0) return _banner();
+                final group = groups[index - 1];
                 return Padding(
                   padding: const EdgeInsets.only(bottom: AppTheme.paddingLarge),
                   child: Column(
@@ -144,7 +157,7 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
                             '${group.course.title} course',
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(
-                                  color: AppColors.textPrimary,
+                                  color: scheme.onSurface,
                                   fontWeight: FontWeight.w700,
                                 ),
                           ),
@@ -191,6 +204,29 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
           );
         },
       ),
+    );
+  }
+
+  Widget _banner() {
+    return const Padding(
+      padding: EdgeInsets.only(bottom: AppTheme.paddingLarge),
+      child: GradientCard(
+        minHeight: 118,
+        artSize: Size(150, 118),
+        art: LearnBannerArt(),
+        child: BannerHeadline(
+          title: 'Explore Subjects',
+          subtitle: 'Choose a course and start learning',
+          trailingWidth: 120,
+        ),
+      ),
+    );
+  }
+
+  void _openSearch() {
+    showSearch<void>(
+      context: context,
+      delegate: SubjectSearchDelegate(onSelected: _navigateToSubjectVideos),
     );
   }
 

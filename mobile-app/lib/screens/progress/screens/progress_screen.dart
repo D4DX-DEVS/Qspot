@@ -2,11 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../services/learning_progress_service.dart';
-import '../../../themes/app_colors.dart';
-import '../../../themes/app_theme.dart';
-import '../../../themes/app_fonts.dart';
+import '../../../themes/accent_tone.dart';
+import '../../../themes/home_palette.dart';
 import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/info_note_card.dart';
+import '../../../widgets/common/section_header.dart';
+import '../../../widgets/common/stat_tile.dart';
+import '../../../widgets/common/surface_card.dart';
 import '../../video/provider/video_provider.dart';
+import '../widgets/activity_tile.dart';
+import '../widgets/mastery_progress_row.dart';
+import '../widgets/mastery_ring_card.dart';
+import '../widgets/progress_unavailable_view.dart';
 
 typedef ProgressLoader = Future<LearningProgressData> Function();
 
@@ -53,7 +60,6 @@ class _ProgressScreenState extends State<ProgressScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: const CommonAppBar(title: 'Progress'),
       body: RefreshIndicator(onRefresh: _load, child: _buildBody()),
     );
@@ -71,204 +77,83 @@ class _ProgressScreenState extends State<ProgressScreen> {
     }
 
     final data = _data;
-    if (data == null) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(28),
-        children: [
-          const SizedBox(height: 140),
-          const Icon(
-            Icons.insights_outlined,
-            size: 44,
-            color: AppColors.textMuted,
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'Progress is unavailable',
-            textAlign: TextAlign.center,
-            style: AppFonts.extraBold(fontSize: 18),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Check your connection and try again.',
-            textAlign: TextAlign.center,
-            style: AppFonts.regular(color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 18),
-          OutlinedButton.icon(
-            onPressed: _load,
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Try again'),
-          ),
-        ],
-      );
-    }
+    if (data == null) return ProgressUnavailableView(onRetry: _load);
 
+    final palette = HomePalette.of(context);
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.fromLTRB(
         16,
-        8,
+        4,
         16,
         32 + MediaQuery.paddingOf(context).bottom,
       ),
       children: [
-        Text('Your learning, in view', style: AppTheme.sectionTitle),
-        const SizedBox(height: 5),
-        Text(
-          'Notice what is becoming familiar and choose your next step.',
-          style: AppTheme.sectionIntro,
+        const SectionHeader(
+          title: 'Your learning, in view',
+          subtitle: 'Notice what is becoming familiar and choose your next step.',
         ),
-        const SizedBox(height: 18),
-        _statsBand(data),
-        const SizedBox(height: 24),
-        _sectionTitle('Mastery'),
-        const SizedBox(height: 12),
-        _overallMastery(data),
+        const SizedBox(height: 16),
+        _statsBand(data, palette),
+        const SizedBox(height: 22),
+        const SectionHeader(title: 'Mastery'),
+        const SizedBox(height: 8),
+        MasteryRingCard(
+          percent: data.masteryPercent,
+          title: 'Lesson mastery',
+          detail: data.videosTotal == 0
+              ? 'Start your first lesson'
+              : '${data.videosCompleted} of ${data.videosTotal} started lessons complete',
+          highlight: data.videosInProgress > 0
+              ? '${data.videosInProgress} in progress'
+              : null,
+          highlightColor: palette.coral.color,
+        ),
         if (data.courses.isNotEmpty) ...[
-          const SizedBox(height: 24),
+          const SizedBox(height: 22),
           _masteryGroup('Courses', data.courses),
         ],
         if (data.subjects.isNotEmpty) ...[
-          const SizedBox(height: 24),
+          const SizedBox(height: 22),
           _masteryGroup('Chapters', data.subjects),
         ],
-        const SizedBox(height: 28),
-        _sectionTitle('Recent activity'),
-        const SizedBox(height: 12),
-        ..._recentActivity(data),
+        const SizedBox(height: 22),
+        const SectionHeader(title: 'Recent activity'),
+        const SizedBox(height: 8),
+        ..._recentActivity(data, palette),
       ],
     );
   }
 
-  Widget _statsBand(LearningProgressData data) {
+  Widget _statsBand(LearningProgressData data, HomePalette palette) {
     final stats = data.stats;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(8),
+    final tiles = [
+      StatTile(
+        icon: Icons.local_fire_department_outlined,
+        color: palette.coral.color,
+        value: '${stats?.currentStreak ?? 0}',
+        label: 'day streak',
       ),
-      child: Row(
-        children: [
-          _stat(
-            Icons.local_fire_department_outlined,
-            '${stats?.currentStreak ?? 0}',
-            'day streak',
-            AppColors.accent,
-          ),
-          _stat(
-            Icons.military_tech_outlined,
-            '${stats?.level ?? 1}',
-            'level',
-            AppColors.primary,
-          ),
-          _stat(
-            Icons.bolt_outlined,
-            '${stats?.xp ?? 0}',
-            'XP',
-            AppColors.warning,
-          ),
+      StatTile(
+        icon: Icons.military_tech_outlined,
+        color: palette.rose.color,
+        value: '${stats?.level ?? 1}',
+        label: 'level',
+      ),
+      StatTile(
+        icon: Icons.bolt_outlined,
+        color: palette.amber.color,
+        value: '${stats?.xp ?? 0}',
+        label: 'XP',
+      ),
+    ];
+    return Row(
+      children: [
+        for (var i = 0; i < tiles.length; i++) ...[
+          if (i > 0) const SizedBox(width: 10),
+          Expanded(child: tiles[i]),
         ],
-      ),
-    );
-  }
-
-  Widget _stat(IconData icon, String value, String label, Color color) {
-    return Expanded(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(width: 7),
-          Flexible(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(value, style: AppFonts.extraBold(fontSize: 15)),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppFonts.regular(
-                    color: AppColors.textMuted,
-                    fontSize: 10.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionTitle(String text) {
-    return Text(text, style: AppTheme.sectionTitle);
-  }
-
-  Widget _overallMastery(LearningProgressData data) {
-    final percent = data.masteryPercent;
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 84,
-            height: 84,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                CircularProgressIndicator(
-                  value: percent,
-                  strokeWidth: 8,
-                  backgroundColor: AppColors.surfaceAlt,
-                  color: AppColors.primary,
-                ),
-                Center(
-                  child: Text(
-                    '${(percent * 100).round()}%',
-                    style: AppFonts.extraBold(fontSize: 18),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 18),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Lesson mastery', style: AppFonts.extraBold(fontSize: 16)),
-                const SizedBox(height: 6),
-                Text(
-                  data.videosTotal == 0
-                      ? 'Start your first lesson'
-                      : '${data.videosCompleted} of ${data.videosTotal} started lessons complete',
-                  style: AppFonts.regular(
-                    color: AppColors.textMuted,
-                    fontSize: 13,
-                    height: 1.35,
-                  ),
-                ),
-                if (data.videosInProgress > 0) ...[
-                  const SizedBox(height: 7),
-                  Text(
-                    '${data.videosInProgress} in progress',
-                    style: AppFonts.bold(color: AppColors.accent, fontSize: 12),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -276,52 +161,30 @@ class _ProgressScreenState extends State<ProgressScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: AppFonts.extraBold(fontSize: 14)),
-        const SizedBox(height: 10),
-        ...items.map(_masteryRow),
+        SectionHeader(title: title),
+        const SizedBox(height: 8),
+        SurfaceCard(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 2),
+          child: Column(
+            children: [
+              for (final item in items)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: MasteryProgressRow(
+                    title: item.title,
+                    completed: item.completed,
+                    total: item.total,
+                    percent: item.percent,
+                  ),
+                ),
+            ],
+          ),
+        ),
       ],
     );
   }
 
-  Widget _masteryRow(MasteryItem item) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  item.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppFonts.bold(fontSize: 13.5),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                '${item.completed}/${item.total}',
-                style: AppFonts.bold(color: AppColors.textMuted, fontSize: 12),
-              ),
-            ],
-          ),
-          const SizedBox(height: 7),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: item.percent,
-              minHeight: 6,
-              backgroundColor: AppColors.surfaceAlt,
-              color: AppColors.primary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _recentActivity(LearningProgressData data) {
+  List<Widget> _recentActivity(LearningProgressData data, HomePalette palette) {
     final activities =
         <_ActivityRowData>[
           ...data.activities.map(
@@ -334,10 +197,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
               icon: item.isVideoQuiz
                   ? Icons.play_lesson_outlined
                   : Icons.edit_note_outlined,
-              color: item.isVideoQuiz ? AppColors.accent : AppColors.primary,
+              tone: item.isVideoQuiz ? palette.coral : palette.rose,
             ),
           ),
-          ..._lessonActivity(),
+          ..._lessonActivity(palette),
         ]..sort((a, b) {
           final aDate = a.date;
           final bDate = b.date;
@@ -349,36 +212,33 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
     if (activities.isEmpty) {
       return [
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.timeline_outlined, color: AppColors.textMuted),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Your completed lessons and assessments will appear here.',
-                  style: AppFonts.regular(
-                    color: AppColors.textMuted,
-                    height: 1.35,
-                  ),
-                ),
-              ),
-            ],
-          ),
+        InfoNoteCard(
+          icon: Icons.timeline_outlined,
+          tone: palette.slate,
+          message: 'Your completed lessons and assessments will appear here.',
         ),
       ];
     }
 
-    return activities.take(8).map(_activityRow).toList();
+    return activities
+        .take(8)
+        .map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: ActivityTile(
+              icon: item.icon,
+              tone: item.tone,
+              kind: item.kind,
+              title: item.title,
+              detail: item.detail,
+              dateLabel: item.date == null ? null : _dateLabel(item.date!),
+            ),
+          ),
+        )
+        .toList();
   }
 
-  List<_ActivityRowData> _lessonActivity() {
+  List<_ActivityRowData> _lessonActivity(HomePalette palette) {
     final videos = context.read<VideoProvider>();
     return videos.progressByVideo.entries
         .map((entry) {
@@ -393,77 +253,11 @@ class _ProgressScreenState extends State<ProgressScreen> {
             icon: progress.completed
                 ? Icons.check_circle_outline
                 : Icons.play_circle_outline,
-            color: progress.completed ? AppColors.success : AppColors.accent,
+            tone: progress.completed ? palette.mint : palette.coral,
           );
         })
         .where((item) => item.date != null)
         .toList();
-  }
-
-  Widget _activityRow(_ActivityRowData item) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          border: Border.all(color: AppColors.border),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: item.color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(item.icon, color: item.color, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.kind,
-                    style: AppFonts.bold(
-                      color: AppColors.textMuted,
-                      fontSize: 10.5,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    item.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppFonts.extraBold(fontSize: 13.5),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item.detail,
-                    style: AppFonts.regular(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (item.date != null)
-              Text(
-                _dateLabel(item.date!),
-                style: AppFonts.regular(
-                  color: AppColors.textMuted,
-                  fontSize: 10.5,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
   }
 
   String _dateLabel(DateTime date) {
@@ -478,7 +272,7 @@ class _ActivityRowData {
     required this.title,
     required this.detail,
     required this.icon,
-    required this.color,
+    required this.tone,
     this.date,
   });
 
@@ -486,6 +280,6 @@ class _ActivityRowData {
   final String title;
   final String detail;
   final IconData icon;
-  final Color color;
+  final AccentTone tone;
   final DateTime? date;
 }

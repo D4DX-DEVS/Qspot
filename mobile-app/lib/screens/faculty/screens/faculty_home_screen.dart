@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../../services/api_client.dart';
 import 'package:qspot/themes/app_colors.dart';
+import 'package:qspot/widgets/common/app_snack_bar.dart';
 
 class FacultyHomeScreen extends StatefulWidget {
   const FacultyHomeScreen({super.key});
@@ -85,10 +86,15 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
       );
       await _load();
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
+      if (mounted) {
+        AppSnackBar.show(
           context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+          message: e is ApiException
+              ? e.message
+              : 'We couldn\'t save your answer. Please try again.',
+          color: AppColors.danger,
+        );
+      }
     }
   }
 
@@ -222,10 +228,15 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
         ),
       );
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
+      if (mounted) {
+        AppSnackBar.show(
           context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+          message: e is ApiException
+              ? e.message
+              : 'We couldn\'t load the submissions. Please try again.',
+          color: AppColors.danger,
+        );
+      }
     }
   }
 
@@ -287,10 +298,15 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
         _load();
       }
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
+      if (mounted) {
+        AppSnackBar.show(
           context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+          message: e is ApiException
+              ? e.message
+              : 'We couldn\'t save the grade. Please try again.',
+          color: AppColors.danger,
+        );
+      }
     }
   }
 

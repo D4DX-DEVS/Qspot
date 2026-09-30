@@ -92,7 +92,7 @@ void main() {
     expect(find.text('Practice'), findsWidgets);
     expect(find.text('Progress'), findsWidgets);
     expect(find.text('Me'), findsWidgets);
-    expect(find.byIcon(Icons.today), findsOneWidget);
+    expect(find.byIcon(Icons.home_rounded), findsOneWidget);
     expect(find.byIcon(Icons.insights_outlined), findsOneWidget);
   });
 

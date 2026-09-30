@@ -3,9 +3,15 @@ import 'package:provider/provider.dart';
 
 import '../../../services/api_client.dart';
 import '../../../themes/app_colors.dart';
+import '../../../themes/home_palette.dart';
+import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/nav_list_card.dart';
+import '../../../widgets/common/section_header.dart';
+import '../../../widgets/common/soft_outline_button.dart';
+import '../widgets/profile_identity_card.dart';
 import '../../auth/model/user_model.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../../services/session.dart';
@@ -26,7 +32,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: const CommonAppBar(title: 'Me'),
       body: ListView(
         padding: EdgeInsets.fromLTRB(
@@ -36,17 +41,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           28 + MediaQuery.paddingOf(context).bottom,
         ),
         children: [
-          Text('Your learning space', style: AppTheme.sectionTitle),
-          const SizedBox(height: 5),
-          Text(
-            'Keep your saved work, questions, and preferences close.',
-            style: AppTheme.sectionIntro,
-          ),
-          const SizedBox(height: 18),
           _identity(context),
-          const SizedBox(height: AppTheme.sectionGap),
+          const SizedBox(height: 22),
           _shortcuts(context),
-          const SizedBox(height: 24),
+          const SizedBox(height: 22),
           _logout(context),
         ],
       ),
@@ -63,94 +61,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final classNumber = (user?.classNumber ?? '').trim();
         final language = user?.language ?? 'en';
 
-        return Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: AppColors.primarySoft,
-            borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  _initials(displayName),
-                  style: AppFonts.bold(
-                    color: AppColors.onPrimary,
-                    fontSize: 22,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppFonts.bold(
-                        color: AppColors.textPrimary,
-                        fontSize: 19,
-                      ),
-                    ),
-                    if (phone.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        phone,
-                        style: AppFonts.regular(
-                          color: AppColors.textMuted,
-                          fontSize: 13.5,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        if (classNumber.isNotEmpty) _pill('Class $classNumber'),
-                        _pill(language == 'ml' ? 'മലയാളം' : 'English'),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: () => _editProfile(context, user),
-                icon: const Icon(
-                  Icons.edit_outlined,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-                tooltip: 'Edit profile',
-              ),
-            ],
-          ),
+        return ProfileIdentityCard(
+          name: displayName,
+          phone: phone,
+          tags: [
+            if (classNumber.isNotEmpty) 'Class $classNumber',
+            language == 'ml' ? 'മലയാളം' : 'English',
+          ],
+          onEdit: () => _editProfile(context, user),
         );
       },
-    );
-  }
-
-  Widget _pill(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: AppFonts.bold(color: AppColors.primary, fontSize: 11.5),
-      ),
     );
   }
 
@@ -165,25 +85,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          backgroundColor: AppColors.background,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
           title: Text(
             'Edit profile',
-            style: AppFonts.medium(color: AppColors.textPrimary),
+            style: AppFonts.medium(
+              color: Theme.of(dialogContext).colorScheme.onSurface,
+            ),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                style: AppFonts.regular(color: AppColors.textPrimary),
+                style: AppFonts.regular(
+                  color: Theme.of(dialogContext).colorScheme.onSurface,
+                ),
                 decoration: const InputDecoration(labelText: 'Name'),
               ),
               TextField(
                 controller: classController,
-                style: AppFonts.regular(color: AppColors.textPrimary),
+                style: AppFonts.regular(
+                  color: Theme.of(dialogContext).colorScheme.onSurface,
+                ),
                 decoration: const InputDecoration(labelText: 'Class'),
               ),
               const SizedBox(height: 12),
@@ -191,7 +116,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Text(
                     'Language',
-                    style: AppFonts.regular(color: AppColors.textMuted),
+                    style: AppFonts.regular(
+                      color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const Spacer(),
                   ToggleButtons(
@@ -252,137 +179,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await authProvider.initialize();
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
+      AppSnackBar.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Profile updated')));
+        message: 'Your profile has been updated',
+        color: AppColors.success,
+      );
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not update profile: $e'),
-          backgroundColor: AppColors.danger,
-        ),
+      AppSnackBar.show(
+        context,
+        message: e is ApiException
+            ? e.message
+            : 'We couldn\'t update your profile. Please try again.',
+        color: AppColors.danger,
       );
     }
   }
 
   Widget _shortcuts(BuildContext context) {
+    final tone = HomePalette.of(context).rose;
+    void open(Widget screen) =>
+        Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+    final items = [
+      NavListCard(
+        icon: Icons.school_outlined,
+        tone: tone,
+        circleIcon: true,
+        subtitleLines: 2,
+        title: 'My courses',
+        subtitle: 'Choose the subjects you want to see',
+        onTap: () => _editCourses(context),
+      ),
+      NavListCard(
+        icon: Icons.help_outline,
+        tone: tone,
+        circleIcon: true,
+        subtitleLines: 2,
+        title: 'My Questions',
+        subtitle: 'Questions you asked and their answers',
+        onTap: () => open(const MyQuestionsScreen()),
+      ),
+      NavListCard(
+        icon: Icons.bookmark_border,
+        tone: tone,
+        circleIcon: true,
+        subtitleLines: 2,
+        title: 'Bookmarks',
+        subtitle: 'Episodes you saved for later',
+        onTap: () => open(const BookmarksScreen()),
+      ),
+      NavListCard(
+        icon: Icons.settings_outlined,
+        tone: tone,
+        circleIcon: true,
+        subtitleLines: 2,
+        title: 'Settings',
+        subtitle: 'Notifications, reminders and more',
+        onTap: () => open(const SettingsScreen()),
+      ),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: EdgeInsets.only(left: 4, bottom: 10),
-          child: Text(
-            'Your space',
-            style: AppFonts.extraBold(
-              color: AppColors.textPrimary,
-              fontSize: 15,
-            ),
-          ),
+        const SectionHeader(
+          title: 'Your learning space',
+          subtitle: 'Keep your saved work, questions, and preferences close.',
         ),
-        _shortcut(
-          context,
-          icon: Icons.school_outlined,
-          label: 'My courses',
-          subtitle: 'Choose the subjects you want to see',
-          onTap: () => _editCourses(context),
-        ),
-        _shortcut(
-          context,
-          icon: Icons.help_outline,
-          label: 'My Questions',
-          subtitle: 'Questions you asked and their answers',
-          builder: (_) => const MyQuestionsScreen(),
-        ),
-        _shortcut(
-          context,
-          icon: Icons.bookmark_border,
-          label: 'Bookmarks',
-          subtitle: 'Episodes you saved for later',
-          builder: (_) => const BookmarksScreen(),
-        ),
-        _shortcut(
-          context,
-          icon: Icons.settings_outlined,
-          label: 'Settings',
-          subtitle: 'Notifications, reminders and more',
-          builder: (_) => const SettingsScreen(),
-        ),
+        const SizedBox(height: 14),
+        for (final item in items)
+          Padding(padding: const EdgeInsets.only(bottom: 12), child: item),
       ],
-    );
-  }
-
-  Widget _shortcut(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String subtitle,
-    WidgetBuilder? builder,
-    VoidCallback? onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Material(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          onTap:
-              onTap ??
-              () =>
-                  Navigator.push(context, MaterialPageRoute(builder: builder!)),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: const BoxDecoration(
-                    color: AppColors.surfaceAlt,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, size: 19, color: AppColors.primary),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        label,
-                        style: AppFonts.semiBold(
-                          color: AppColors.textPrimary,
-                          fontSize: 15,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppFonts.regular(
-                          color: AppColors.textMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(
-                  Icons.chevron_right,
-                  color: AppColors.textMuted,
-                  size: 20,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -395,7 +261,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          backgroundColor: AppColors.background,
           title: const Text('My courses'),
           content: SizedBox(
             width: 360,
@@ -419,7 +284,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             subtitle: course.subtitle.isEmpty
                                 ? null
                                 : Text(course.subtitle),
-                            activeColor: AppColors.primary,
+                            activeColor: Theme.of(
+                              dialogContext,
+                            ).colorScheme.primary,
                             contentPadding: EdgeInsets.zero,
                           ),
                       ],
@@ -453,35 +320,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await auth.updateUser(UserModel.fromJson(userJson));
       }
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
+      AppSnackBar.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Courses updated')));
+        message: 'Your courses have been updated',
+        color: AppColors.success,
+      );
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
+      AppSnackBar.show(
         context,
-      ).showSnackBar(SnackBar(content: Text('Could not update courses: $e')));
+        message: e is ApiException
+            ? e.message
+            : 'We couldn\'t update your courses. Please try again.',
+        color: AppColors.danger,
+      );
     }
   }
 
   Widget _logout(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
-        return SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.danger,
-              side: BorderSide(color: AppColors.danger.withValues(alpha: 0.35)),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-              ),
-            ),
-            onPressed: () => _confirmLogout(context, authProvider),
-            icon: const Icon(Icons.logout, size: 18),
-            label: Text('Logout', style: AppFonts.bold()),
-          ),
+        return SoftOutlineButton(
+          label: 'Logout',
+          icon: Icons.logout_rounded,
+          expand: true,
+          onPressed: () => _confirmLogout(context, authProvider),
         );
       },
     );
@@ -491,24 +354,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.background,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         ),
         title: Text(
           'Logout',
-          style: AppFonts.medium(color: AppColors.textPrimary, fontSize: 19),
+          style: AppFonts.medium(
+            color: Theme.of(dialogContext).colorScheme.onSurface,
+            fontSize: 19,
+          ),
         ),
         content: Text(
           'Are you sure you want to logout?',
-          style: AppFonts.regular(color: AppColors.textMuted, fontSize: 15),
+          style: AppFonts.regular(
+            color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
+            fontSize: 15,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
             child: Text(
               'Cancel',
-              style: AppFonts.medium(color: AppColors.textPrimary),
+              style: AppFonts.medium(
+                color: Theme.of(dialogContext).colorScheme.onSurface,
+              ),
             ),
           ),
           ElevatedButton(
@@ -525,15 +395,5 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
-  }
-
-  String _initials(String name) {
-    final parts = name
-        .split(RegExp(r'\s+'))
-        .where((part) => part.isNotEmpty)
-        .take(2)
-        .map((part) => String.fromCharCode(part.runes.first).toUpperCase())
-        .join();
-    return parts.isEmpty ? '?' : parts;
   }
 }

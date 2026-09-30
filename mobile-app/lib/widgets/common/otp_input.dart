@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../themes/app_colors.dart';
 import '../../themes/app_theme.dart';
 import '../../themes/app_fonts.dart';
 
@@ -139,6 +138,7 @@ class _OtpInputState extends State<OtpInput> {
 
   Widget _box(int index) {
     final isFilled = _controllers[index].text.isNotEmpty;
+    final colors = Theme.of(context).colorScheme;
 
     return SizedBox(
       height: 58,
@@ -156,11 +156,13 @@ class _OtpInputState extends State<OtpInput> {
         maxLength: widget.length,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         onChanged: (value) => _handleChange(index, value),
-        style: AppFonts.semiBold(fontSize: 22, color: AppColors.textPrimary),
+        style: AppFonts.semiBold(fontSize: 22, color: colors.onSurface),
         decoration: InputDecoration(
           counterText: '',
           filled: true,
-          fillColor: isFilled ? AppColors.primarySoft : AppColors.surface,
+          fillColor: isFilled
+              ? colors.primaryContainer
+              : colors.surfaceContainerLow,
           contentPadding: EdgeInsets.zero,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
@@ -169,17 +171,17 @@ class _OtpInputState extends State<OtpInput> {
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
             borderSide: BorderSide(
-              color: isFilled ? AppColors.primary : AppColors.border,
+              color: isFilled ? colors.primary : colors.outline,
               width: isFilled ? 1.5 : 1,
             ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-            borderSide: const BorderSide(color: AppColors.primary, width: 2),
+            borderSide: BorderSide(color: colors.primary, width: 2),
           ),
           disabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-            borderSide: const BorderSide(color: AppColors.border),
+            borderSide: BorderSide(color: colors.outline),
           ),
         ),
       ),

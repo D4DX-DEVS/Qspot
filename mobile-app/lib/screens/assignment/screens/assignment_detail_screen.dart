@@ -4,7 +4,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:qspot/screens/assignment/model/assignment_model.dart';
 import 'package:qspot/screens/assignment/service/assignment_service.dart';
 import 'package:qspot/themes/app_colors.dart';
+import 'package:qspot/services/api_client.dart';
 import 'package:qspot/themes/app_fonts.dart';
+import 'package:qspot/widgets/common/app_snack_bar.dart';
 import 'package:qspot/widgets/common/common_app_bar.dart';
 
 class AssignmentDetailScreen extends StatefulWidget {
@@ -42,8 +44,10 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
   Future<void> _submit(AssignmentModel assignment) async {
     final text = _submissionController.text.trim();
     if (text.isEmpty && _attachments.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Write a few words before submitting.')),
+      AppSnackBar.show(
+        context,
+        message: 'Please write your answer or attach a file before submitting',
+        color: AppColors.warningOrange,
       );
       return;
     }
@@ -55,15 +59,21 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
         attachments: _attachments,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      AppSnackBar.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Assignment submitted')));
+        message: 'Your assignment has been submitted',
+        color: AppColors.success,
+      );
       Navigator.pop(context, true);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      AppSnackBar.show(
         context,
-      ).showSnackBar(SnackBar(content: Text('Could not submit: $error')));
+        message: error is ApiException
+            ? error.message
+            : 'We couldn\'t submit your assignment. Please try again.',
+        color: AppColors.danger,
+      );
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -87,8 +97,10 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
     final file = result.files.single;
     final bytes = file.bytes;
     if (bytes == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not read that audio file.')),
+      AppSnackBar.show(
+        context,
+        message: 'We couldn\'t open that audio file. Please try another one.',
+        color: AppColors.danger,
       );
       return;
     }
@@ -120,12 +132,11 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
 
   void _addAttachment(AssignmentModel assignment, AssignmentUpload file) {
     if (file.bytes.length > assignment.maxFileSizeBytes) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${file.name} is larger than ${(assignment.maxFileSizeBytes / (1024 * 1024)).ceil()} MB.',
-          ),
-        ),
+      AppSnackBar.show(
+        context,
+        message:
+            '${file.name} is too big. Please choose a file under ${(assignment.maxFileSizeBytes / (1024 * 1024)).ceil()} MB.',
+        color: AppColors.warningOrange,
       );
       return;
     }

@@ -10,6 +10,7 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 import '../../../services/video_progress_service.dart';
 import '../../../themes/app_colors.dart';
+import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -316,15 +317,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
     if (success && mounted) {
       final isBookmarked = bookmarkProvider.isBookmarkedSync(widget.video.id);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            isBookmarked ? 'Added to bookmarks' : 'Removed from bookmarks',
-            style: AppFonts.regular(color: AppColors.onPrimary),
-          ),
-          backgroundColor: AppColors.textPrimary,
-          duration: const Duration(seconds: 2),
-        ),
+      AppSnackBar.show(
+        context,
+        message: isBookmarked
+            ? 'Saved to your bookmarks'
+            : 'Removed from your bookmarks',
+        color: AppColors.success,
+        duration: const Duration(seconds: 2),
       );
     }
   }

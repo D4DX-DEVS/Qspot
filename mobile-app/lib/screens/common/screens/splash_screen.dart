@@ -4,12 +4,16 @@ import 'package:provider/provider.dart';
 
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../themes/auth_palette.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../faculty/screens/faculty_home_screen.dart';
 import 'main_navigation_screen.dart';
+import '../widgets/splash_artwork.dart';
 
-/// Brand splash: flat brand colour, the white QSPOT mark centred on it.
+/// Brand splash in the sign-in screens' style, following the phone's
+/// light/dark setting: cream with the colour logo in light mode, logo
+/// burgundy with the white logo in dark mode, over faded login-style artwork.
 ///
 /// Nothing else competes with the mark — the same idea as the reference apps
 /// that open on a single flat colour with their logo in the middle.
@@ -30,14 +34,22 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
-    // The splash sits on the dark brand colour, so the system bars need light
-    // icons to stay visible.
+    // Light icons on the dark-mode burgundy, dark icons on the light cream.
+    final isDark =
+        WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+        Brightness.dark;
     SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
+      SystemUiOverlayStyle(
         statusBarColor: AppColors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        systemNavigationBarColor: AppColors.primary,
-        systemNavigationBarIconBrightness: Brightness.light,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        // iOS reads the bar brightness instead: dark bar = light icons.
+        statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: isDark
+            ? AppColors.authBrand
+            : AppColors.authLightBackground,
+        systemNavigationBarIconBrightness: isDark
+            ? Brightness.light
+            : Brightness.dark,
       ),
     );
 
@@ -71,7 +83,7 @@ class _SplashScreenState extends State<SplashScreen>
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     await authProvider.initialize();
 
-    await Future.delayed(const Duration(milliseconds: 3000));
+    await Future.delayed(const Duration(milliseconds: 30000));
 
     if (!mounted) return;
 
@@ -82,6 +94,7 @@ class _SplashScreenState extends State<SplashScreen>
       SystemUiOverlayStyle(
         statusBarColor: AppColors.transparent,
         statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
         systemNavigationBarColor: AppColors.background,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
@@ -91,7 +104,9 @@ class _SplashScreenState extends State<SplashScreen>
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
             authProvider.isAuthenticated
-            ? (authProvider.user?.role == 'faculty' ? const FacultyHomeScreen() : const MainNavigationScreen())
+            ? (authProvider.user?.role == 'faculty'
+                  ? const FacultyHomeScreen()
+                  : const MainNavigationScreen())
             : const LoginScreen(),
         transitionDuration: const Duration(milliseconds: 500),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -110,6 +125,7 @@ class _SplashScreenState extends State<SplashScreen>
       SystemUiOverlayStyle(
         statusBarColor: AppColors.transparent,
         statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
         systemNavigationBarColor: AppColors.background,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
@@ -120,11 +136,20 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+    final palette = isDark ? AuthPalette.splash : AuthPalette.light;
+    const logoWidth = 210.0;
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: palette.background,
       body: SizedBox.expand(
         child: Stack(
           children: [
+            Positioned.fill(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SplashArtwork(palette: palette),
+              ),
+            ),
             Center(
               child: AnimatedBuilder(
                 animation: _animationController,
@@ -137,14 +162,18 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                   );
                 },
-                // qspot-mark-white.png is the white mark cropped to a tight
-                // square; the original asset is a large canvas with a small
-                // mark in the middle and would render almost invisibly.
+                // Full logo (mark, wordmark, tagline). The colour version's
+                // dark tagline needs the light background.
                 child: Image.asset(
-                  'assets/icons/qspot-mark-white.png',
-                  width: 148,
-                  height: 148,
+                  isDark
+                      ? 'assets/icons/sp-logo-white.png'
+                      : 'assets/icons/sp-logo.png',
+                  width: logoWidth,
                   fit: BoxFit.contain,
+                  // Decode near display size instead of the 2075 px source.
+                  cacheWidth:
+                      (logoWidth * MediaQuery.devicePixelRatioOf(context))
+                          .round(),
                 ),
               ),
             ),
@@ -164,7 +193,7 @@ class _SplashScreenState extends State<SplashScreen>
                     child: Text(
                       'Developed by D4DX Innovations LLP',
                       style: AppFonts.medium(
-                        color: AppColors.white70,
+                        color: isDark ? AppColors.white70 : palette.textMuted,
                         fontSize: 12,
                       ),
                     ),

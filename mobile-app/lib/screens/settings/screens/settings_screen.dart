@@ -6,6 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../widgets/common/app_snack_bar.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../common/screens/contact_us_screen.dart';
 import '../../question/screens/ask_question_screen.dart';
@@ -226,19 +227,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         .requestPermissions();
                     if (!hasPermission) {
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text(
-                              'Notification permission denied',
-                            ),
-                            backgroundColor: AppColors.danger,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                AppTheme.radiusSmall,
-                              ),
-                            ),
-                          ),
+                        AppSnackBar.show(
+                          context,
+                          message:
+                              'Please allow notifications in your phone settings to get daily reminders.',
+                          color: AppColors.warningOrange,
+                          duration: const Duration(seconds: 4),
                         );
                       }
                       return;
@@ -254,19 +248,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       setState(() {
                         _alarmEnabled = true;
                       });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
+                      AppSnackBar.show(
+                        context,
+                        message:
                             'Daily reminder set for ${_formatTime(_alarmHour, _alarmMinute)}',
-                          ),
-                          backgroundColor: AppColors.success,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              AppTheme.radiusSmall,
-                            ),
-                          ),
-                        ),
+                        color: AppColors.success,
                       );
                     }
                   } else {
@@ -276,17 +262,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _alarmEnabled = false;
                     });
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Daily reminder disabled'),
-                          backgroundColor: AppColors.textPrimary,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              AppTheme.radiusSmall,
-                            ),
-                          ),
-                        ),
+                      AppSnackBar.show(
+                        context,
+                        message: 'Daily reminder turned off',
+                        color: AppColors.success,
                       );
                     }
                   }
@@ -395,17 +374,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
 
       if (success && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Reminder updated to ${_formatTime(_alarmHour, _alarmMinute)}',
-            ),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-            ),
-          ),
+        AppSnackBar.show(
+          context,
+          message:
+              'Daily reminder moved to ${_formatTime(_alarmHour, _alarmMinute)}',
+          color: AppColors.success,
         );
       }
     }
@@ -1006,17 +979,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             Clipboard.setData(
                               const ClipboardData(text: 'mail@d4dx.co'),
                             );
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Email copied to clipboard',
-                                  style: AppFonts.regular(
-                                    color: AppColors.onPrimary,
-                                  ),
-                                ),
-                                backgroundColor: AppColors.primary,
-                                duration: Duration(seconds: 2),
-                              ),
+                            AppSnackBar.show(
+                              context,
+                              message: 'Email address copied',
+                              color: AppColors.success,
+                              duration: const Duration(seconds: 2),
                             );
                           },
                           icon: const Icon(
@@ -1066,15 +1033,10 @@ Thank you!''';
 
                 Clipboard.setData(ClipboardData(text: fullTemplate));
                 Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Email template copied to clipboard',
-                      style: AppFonts.regular(color: AppColors.onPrimary),
-                    ),
-                    backgroundColor: AppColors.primary,
-                    duration: Duration(seconds: 2),
-                  ),
+                AppSnackBar.show(
+                  context,
+                  message: 'Email copied. Paste it into your mail app to send.',
+                  color: AppColors.success,
                 );
               },
               style: ElevatedButton.styleFrom(

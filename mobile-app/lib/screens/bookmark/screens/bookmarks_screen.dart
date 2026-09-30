@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../video/model/video_model.dart';
 import '../provider/bookmark_provider.dart';
 import '../../../themes/app_colors.dart';
+import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -389,19 +390,12 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     );
     bookmarkProvider.removeBookmark(video.id).then((success) {
       if (!mounted || !success) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Bookmark removed',
-            style: AppFonts.regular(color: AppColors.onPrimary),
-          ),
-          backgroundColor: AppColors.textPrimary,
-          action: SnackBarAction(
-            label: 'Undo',
-            textColor: AppColors.accentAmber,
-            onPressed: () => bookmarkProvider.addBookmark(video),
-          ),
-        ),
+      AppSnackBar.show(
+        context,
+        message: 'Removed from your bookmarks',
+        color: AppColors.success,
+        actionLabel: 'Undo',
+        onAction: () => bookmarkProvider.addBookmark(video),
       );
     });
   }
@@ -449,14 +443,10 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     );
     bookmarkProvider.clearAllBookmarks().then((success) {
       if (!mounted || !success) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'All bookmarks cleared',
-            style: AppFonts.regular(color: AppColors.onPrimary),
-          ),
-          backgroundColor: AppColors.textPrimary,
-        ),
+      AppSnackBar.show(
+        context,
+        message: 'All your bookmarks have been removed',
+        color: AppColors.success,
       );
     });
   }

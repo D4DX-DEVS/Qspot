@@ -1,17 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../provider/auth_provider.dart';
 import '../../../themes/app_colors.dart';
-import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../services/course_service.dart';
-import '../../../widgets/common/country_code_prefix.dart';
+import '../../../widgets/common/app_snack_bar.dart';
+import '../widgets/art/auth_art.dart';
+import '../widgets/art/bottom_waves_painter.dart';
+import '../widgets/art/corner_wave_painter.dart';
+import '../widgets/art/mosque_skyline_painter.dart';
+import '../widgets/auth_back_button.dart';
+import '../widgets/auth_brand_mark.dart';
+import '../widgets/auth_headline.dart';
+import '../widgets/auth_page_layout.dart';
+import '../widgets/auth_phone_field.dart';
+import '../widgets/auth_text_field.dart';
+import '../widgets/auth_theme_scope.dart';
+import '../widgets/class_dropdown_field.dart';
+import '../widgets/consent_card.dart';
+import '../widgets/course_picker_card.dart';
+import '../widgets/date_picker_field.dart';
+import '../widgets/gradient_pill_button.dart';
 
-/// Create-account form. Same flat pattern as the sign-in screen: a circular
-/// back button, one bold heading, soft filled fields, and a single full-width
-/// pill action that stays disabled until the form is complete.
+/// Create-account form: back button, logo, one bold heading, themed fields
+/// and a gradient pill that stays faded until the form is complete. Light or
+/// dark follows the phone's setting (see [AuthThemeScope]).
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
 
@@ -22,10 +36,10 @@ class RegistrationScreen extends StatefulWidget {
 class _RegistrationScreenState extends State<RegistrationScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _classController = TextEditingController();
   final TextEditingController _consentNameController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+  String? _classNumber;
   DateTime? _dob;
   bool _hasConsent = false;
   String _consentBy = 'parent';
@@ -37,11 +51,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   void initState() {
     super.initState();
     _loadCourses();
-    for (final controller in [
-      _phoneController,
-      _nameController,
-      _classController,
-    ]) {
+    for (final controller in [_phoneController, _nameController]) {
       controller.addListener(_onFieldChanged);
     }
   }
@@ -59,11 +69,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   @override
   void dispose() {
-    for (final controller in [
-      _phoneController,
-      _nameController,
-      _classController,
-    ]) {
+    for (final controller in [_phoneController, _nameController]) {
       controller.removeListener(_onFieldChanged);
       controller.dispose();
     }
@@ -74,7 +80,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   bool get _isComplete =>
       _phoneController.text.trim().length == 10 &&
       _nameController.text.trim().length >= 3 &&
-      _classController.text.trim().isNotEmpty;
+      _classNumber != null;
 
   String _formatDob(DateTime date) {
     final month = date.month.toString().padLeft(2, '0');
@@ -89,6 +95,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       initialDate: _dob ?? DateTime(now.year - 12, now.month, now.day),
       firstDate: DateTime(now.year - 100),
       lastDate: now,
+      // This context sits above the page's AuthThemeScope, so re-apply it.
+      builder: (context, child) => AuthThemeScope(child: child!),
     );
     if (picked != null && mounted) {
       setState(() => _dob = picked);
@@ -97,394 +105,123 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _backButton(),
-                    const SizedBox(height: 28),
-                    Text(
-                      'Create your account',
-                      style: AppFonts.bold(
-                        color: AppColors.textPrimary,
-                        fontSize: 26,
-                        height: 1.25,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Your number signs you in, so there is no password to remember.',
-                      style: AppFonts.regular(
-                        color: AppColors.textMuted,
-                        fontSize: 15,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    TextFormField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(10),
-                      ],
-                      style: AppFonts.regular(
-                        color: AppColors.textPrimary,
-                        fontSize: 16,
-                      ),
-                      decoration: _fieldDecoration(
-                        hint: 'Phone number',
-                        prefixIcon: const CountryCodePrefix(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your phone number';
-                        }
-                        if (value.trim().length != 10) {
-                          return 'Please enter a valid 10 digit mobile number';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _nameController,
-                      textCapitalization: TextCapitalization.words,
-                      style: AppFonts.regular(
-                        color: AppColors.textPrimary,
-                        fontSize: 16,
-                      ),
-                      decoration: _fieldDecoration(
-                        hint: 'Full name',
-                        prefixIcon: const Icon(
-                          Icons.person_outline,
-                          color: AppColors.textMuted,
-                          size: 20,
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your name';
-                        }
-                        if (value.trim().length < 3) {
-                          return 'Name must be at least 3 characters';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _classController,
-                      style: AppFonts.regular(
-                        color: AppColors.textPrimary,
-                        fontSize: 16,
-                      ),
-                      decoration: _fieldDecoration(
-                        hint: 'Class (for example 9, 10, 11)',
-                        prefixIcon: const Icon(
-                          Icons.school_outlined,
-                          color: AppColors.textMuted,
-                          size: 20,
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your class';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _coursePicker(),
-                    const SizedBox(height: 16),
-                    _dobField(),
-                    const SizedBox(height: 16),
-                    _consentSection(),
-                    const SizedBox(height: 28),
-                    _submitButton(),
-                    const SizedBox(height: 16),
-                    Text(
-                      'We only use your number to sign you in.',
-                      textAlign: TextAlign.center,
-                      style: AppFonts.regular(
-                        color: AppColors.textMuted,
-                        fontSize: 12.5,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+    return AuthThemeScope(
+      child: AuthPageLayout(
+        topArt: const AuthArt(painter: CornerWavePainter.new),
+        topArtHeight: 230,
+        bottomArt: AuthArt(
+          painter: (palette) => palette.isDark
+              ? MosqueSkylinePainter(palette, showBookStand: false)
+              : BottomWavesPainter(palette),
+        ),
+        bottomArtHeight: 120,
+        children: [
+          Stack(
+            children: [
+              const AuthBrandMark(size: 116),
+              Positioned(
+                top: 0,
+                left: 0,
+                child: AuthBackButton(
+                  onPressed: () => Navigator.of(context).pop(),
                 ),
               ),
-            ),
+            ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _coursePicker() {
-    if (_coursesLoading) {
-      return const Align(
-        alignment: Alignment.centerLeft,
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 6),
-          child: LinearProgressIndicator(minHeight: 3),
-        ),
-      );
-    }
-    if (_courses.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Choose your courses',
-          style: AppFonts.bold(color: AppColors.textPrimary, fontSize: 15),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'You can choose more than one and change this later.',
-          style: AppFonts.regular(color: AppColors.textMuted, fontSize: 12.5),
-        ),
-        const SizedBox(height: 8),
-        Material(
-          color: AppColors.surface,
-          clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-            side: const BorderSide(color: AppColors.border),
+          const AuthHeadline(
+            title: 'Create your ',
+            accent: 'account',
+            subtitle:
+                'Your number signs you in, so there is no password to remember.',
+            fontSize: 28,
           ),
-          child: Column(
-            children: [
-              for (var i = 0; i < _courses.length; i++) ...[
-                CheckboxListTile(
-                  value: _selectedCourseIds.contains(_courses[i].id),
-                  onChanged: (selected) => setState(() {
-                    if (selected == true) {
-                      _selectedCourseIds.add(_courses[i].id);
+          const SizedBox(height: 24),
+          Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AuthPhoneField(
+                  controller: _phoneController,
+                  hint: 'Phone number',
+                  showPhoneIcon: true,
+                ),
+                const SizedBox(height: 14),
+                AuthTextField(
+                  controller: _nameController,
+                  hint: 'Full name',
+                  icon: Icons.person_outline_rounded,
+                  textCapitalization: TextCapitalization.words,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your name';
+                    }
+                    if (value.trim().length < 3) {
+                      return 'Name must be at least 3 characters';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 14),
+                ClassDropdownField(
+                  value: _classNumber,
+                  onChanged: (value) => setState(() => _classNumber = value),
+                ),
+                const SizedBox(height: 14),
+                CoursePickerCard(
+                  courses: _courses,
+                  selectedIds: _selectedCourseIds,
+                  isLoading: _coursesLoading,
+                  onToggle: (id, selected) => setState(() {
+                    if (selected) {
+                      _selectedCourseIds.add(id);
                     } else {
-                      _selectedCourseIds.remove(_courses[i].id);
+                      _selectedCourseIds.remove(id);
                     }
                   }),
-                  title: Text(_courses[i].title),
-                  subtitle: _courses[i].subtitle.isEmpty
-                      ? null
-                      : Text(_courses[i].subtitle),
-                  activeColor: AppColors.primary,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 10),
                 ),
-                if (i < _courses.length - 1)
-                  const Divider(height: 1, indent: 16, endIndent: 16),
+                if (_coursesLoading || _courses.isNotEmpty)
+                  const SizedBox(height: 14),
+                DatePickerField(
+                  hint: 'Date of birth (optional)',
+                  valueText: _dob != null ? _formatDob(_dob!) : null,
+                  onTap: _pickDob,
+                ),
+                const SizedBox(height: 14),
+                ConsentCard(
+                  value: _hasConsent,
+                  onChanged: (value) => setState(() => _hasConsent = value),
+                  consentBy: _consentBy,
+                  onConsentByChanged: (by) => setState(() => _consentBy = by),
+                  nameController: _consentNameController,
+                ),
+                const SizedBox(height: 24),
+                Consumer<AuthProvider>(
+                  builder: (context, authProvider, child) => GradientPillButton(
+                    label: 'Create account',
+                    isLoading: authProvider.isLoading,
+                    onPressed: _isComplete && !authProvider.isLoading
+                        ? _register
+                        : null,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Builder(
+                  builder: (context) => Text(
+                    'We only use your number to sign you in.',
+                    textAlign: TextAlign.center,
+                    style: AppFonts.regular(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 12.5,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
               ],
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _dobField() {
-    return InkWell(
-      onTap: _pickDob,
-      borderRadius: BorderRadius.circular(14),
-      child: InputDecorator(
-        decoration: _fieldDecoration(
-          hint: 'Date of birth (optional)',
-          prefixIcon: const Icon(
-            Icons.cake_outlined,
-            color: AppColors.textMuted,
-            size: 20,
-          ),
-        ),
-        child: Text(
-          _dob != null ? _formatDob(_dob!) : 'Date of birth (optional)',
-          style: AppFonts.regular(
-            color: _dob != null ? AppColors.textPrimary : AppColors.textMuted,
-            fontSize: _dob != null ? 16 : 15,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _consentSection() {
-    return Material(
-      color: AppColors.surfaceAlt,
-      borderRadius: BorderRadius.circular(14),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            CheckboxListTile(
-              value: _hasConsent,
-              onChanged: (value) =>
-                  setState(() => _hasConsent = value ?? false),
-              controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: EdgeInsets.zero,
-              activeColor: AppColors.primary,
-              title: Text(
-                'A parent/guardian or school has given consent',
-                style: AppFonts.regular(
-                  color: AppColors.textPrimary,
-                  fontSize: 14,
-                ),
-              ),
             ),
-            if (_hasConsent) ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: RadioListTile<String>(
-                      value: 'parent',
-                      groupValue: _consentBy,
-                      onChanged: (value) =>
-                          setState(() => _consentBy = value ?? 'parent'),
-                      contentPadding: EdgeInsets.zero,
-                      activeColor: AppColors.primary,
-                      title: Text(
-                        'Parent',
-                        style: AppFonts.regular(fontSize: 13),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: RadioListTile<String>(
-                      value: 'school',
-                      groupValue: _consentBy,
-                      onChanged: (value) =>
-                          setState(() => _consentBy = value ?? 'parent'),
-                      contentPadding: EdgeInsets.zero,
-                      activeColor: AppColors.primary,
-                      title: Text(
-                        'School',
-                        style: AppFonts.regular(fontSize: 13),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: TextFormField(
-                  controller: _consentNameController,
-                  style: AppFonts.regular(
-                    color: AppColors.textPrimary,
-                    fontSize: 15,
-                  ),
-                  decoration: _fieldDecoration(
-                    hint: _consentBy == 'parent'
-                        ? "Parent/guardian's name"
-                        : "School name",
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _backButton() {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: InkWell(
-        onTap: () => Navigator.of(context).pop(),
-        customBorder: const CircleBorder(),
-        child: Container(
-          width: 44,
-          height: 44,
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceAlt,
-            shape: BoxShape.circle,
           ),
-          child: const Icon(
-            Icons.arrow_back,
-            color: AppColors.textPrimary,
-            size: 20,
-          ),
-        ),
+        ],
       ),
-    );
-  }
-
-  InputDecoration _fieldDecoration({
-    required String hint,
-    Widget? prefixIcon,
-  }) {
-    final radius = BorderRadius.circular(14);
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: AppFonts.regular(color: AppColors.textMuted, fontSize: 15),
-      prefixIcon: prefixIcon,
-      filled: true,
-      // White fill + visible outline so fields stand out from the off-white
-      // page before they are tapped.
-      fillColor: AppColors.surface,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-      border: OutlineInputBorder(
-        borderRadius: radius,
-        borderSide: const BorderSide(color: AppColors.border, width: 1.2),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: radius,
-        borderSide: const BorderSide(color: AppColors.border, width: 1.2),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: radius,
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.6),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: radius,
-        borderSide: const BorderSide(color: AppColors.danger, width: 1.2),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: radius,
-        borderSide: const BorderSide(color: AppColors.danger, width: 1.6),
-      ),
-    );
-  }
-
-  Widget _submitButton() {
-    return Consumer<AuthProvider>(
-      builder: (context, authProvider, child) {
-        final enabled = _isComplete && !authProvider.isLoading;
-        return SizedBox(
-          height: 54,
-          child: FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.onPrimary,
-              disabledBackgroundColor: AppColors.surfaceAlt,
-              disabledForegroundColor: AppColors.textMuted,
-              shape: const StadiumBorder(),
-              textStyle: AppFonts.bold(fontSize: 16),
-            ),
-            onPressed: enabled ? _register : null,
-            child: authProvider.isLoading
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.onPrimary,
-                    ),
-                  )
-                : const Text('Create account'),
-          ),
-        );
-      },
     );
   }
 
@@ -505,7 +242,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     final result = await authProvider.register(
       phone: phone,
       name: _nameController.text.trim(),
-      classNumber: _classController.text.trim(),
+      classNumber: _classNumber!,
       dob: _dob != null ? _formatDob(_dob!) : null,
       consent: _hasConsent
           ? {
@@ -520,30 +257,22 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     if (!mounted) return;
 
     if (result['success']) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result['message'] ??
-                'Registration successful! Enter the OTP to continue.',
-            style: AppFonts.regular(color: AppColors.onPrimary),
-          ),
-          backgroundColor: AppColors.primary,
-          duration: const Duration(seconds: 3),
-        ),
+      AppSnackBar.show(
+        context,
+        message: 'Your account is ready! Sending your OTP now…',
+        color: AppColors.success,
       );
 
       // Registration does not return a token - hand the phone number back
       // to the login screen so it can request an OTP straight away.
       Navigator.pop(context, phone);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result['message'] ?? 'Registration failed',
-            style: AppFonts.regular(color: AppColors.onPrimary),
-          ),
-          backgroundColor: AppColors.danger,
-        ),
+      AppSnackBar.show(
+        context,
+        message:
+            result['message'] ??
+            'We couldn\'t create your account. Please try again.',
+        color: AppColors.danger,
       );
     }
   }

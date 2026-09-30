@@ -7,6 +7,7 @@ import '../../subject/screens/subject_list_screen.dart';
 import '../../practice/screens/practice_hub_screen.dart';
 import '../../../widgets/common/floating_nav_bar.dart';
 import '../../../widgets/common/floating_nav_bar_item.dart';
+import '../widgets/home_theme_scope.dart';
 
 /// Primary learner shell for the daily learning loop.
 class MainNavigationScreen extends StatefulWidget {
@@ -47,10 +48,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget build(BuildContext context) {
     if (_currentIndex >= _screens.length) _currentIndex = 0;
 
-    return Scaffold(
-      extendBody: true,
-      body: IndexedStack(index: _currentIndex, children: _screens),
-      bottomNavigationBar: _bottomBar(),
+    return HomeThemeScope(
+      child: Scaffold(
+        extendBody: true,
+        body: IndexedStack(index: _currentIndex, children: _screens),
+        bottomNavigationBar: _bottomBar(),
+      ),
     );
   }
 
@@ -60,8 +63,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       onTap: (index) => setState(() => _currentIndex = index),
       items: const [
         FloatingNavBarItem(
-          icon: Icons.today_outlined,
-          activeIcon: Icons.today,
+          icon: Icons.home_outlined,
+          activeIcon: Icons.home_rounded,
           label: 'Today',
         ),
         FloatingNavBarItem(

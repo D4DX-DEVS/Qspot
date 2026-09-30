@@ -8,6 +8,7 @@ import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../bookmark/provider/bookmark_provider.dart';
 import '../../schedule/service/alarm_service.dart';
+import '../../../widgets/common/app_snack_bar.dart';
 
 class VideoCard extends StatelessWidget {
   final VideoModel video;
@@ -36,15 +37,13 @@ class VideoCard extends StatelessWidget {
 
     if (success && context.mounted) {
       final isBookmarked = bookmarkProvider.isBookmarkedSync(video.id);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            isBookmarked ? 'Added to bookmarks' : 'Removed from bookmarks',
-            style: AppFonts.regular(color: AppColors.onPrimary),
-          ),
-          backgroundColor: AppColors.textPrimary,
-          duration: const Duration(seconds: 2),
-        ),
+      AppSnackBar.show(
+        context,
+        message: isBookmarked
+            ? 'Saved to your bookmarks'
+            : 'Removed from your bookmarks',
+        color: AppColors.success,
+        duration: const Duration(seconds: 2),
       );
     }
   }
@@ -61,28 +60,18 @@ class VideoCard extends StatelessWidget {
       );
 
       if (success && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Reminder set for ${video.upcomingDateFormatted}'),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-            ),
-          ),
+        AppSnackBar.show(
+          context,
+          message: 'Reminder set! We\'ll let you know when this video is out.',
+          color: AppColors.success,
         );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to set reminder: ${e.toString()}'),
-            backgroundColor: AppColors.danger,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-            ),
-          ),
+        AppSnackBar.show(
+          context,
+          message: 'We couldn\'t set the reminder. Please try again.',
+          color: AppColors.danger,
         );
       }
     }

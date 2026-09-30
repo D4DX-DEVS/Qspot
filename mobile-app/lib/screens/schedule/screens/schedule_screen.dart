@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../provider/schedule_provider.dart';
 import '../model/schedule_model.dart';
 import '../../../themes/app_colors.dart';
+import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -442,28 +443,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       );
 
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Reminder set for ${schedule.relativeTime}'),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-            ),
-          ),
+        AppSnackBar.show(
+          context,
+          message: 'Reminder set! We\'ll let you know when this session starts.',
+          color: AppColors.success,
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to set reminder: ${e.toString()}'),
-            backgroundColor: AppColors.danger,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-            ),
-          ),
+        AppSnackBar.show(
+          context,
+          message: 'We couldn\'t set the reminder. Please try again.',
+          color: AppColors.danger,
         );
       }
     }

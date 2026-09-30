@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../services/api_client.dart';
 import '../../../services/video_progress_service.dart';
 import '../../../themes/app_colors.dart';
+import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
@@ -210,11 +211,10 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
     }
 
     if (_submitError != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_submitError!),
-          backgroundColor: AppColors.danger,
-        ),
+      AppSnackBar.show(
+        context,
+        message: _submitError!,
+        color: AppColors.danger,
       );
     }
   }

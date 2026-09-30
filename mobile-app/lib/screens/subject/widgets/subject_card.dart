@@ -25,6 +25,7 @@ class SubjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Semantics(
       label: totalLessons > 0
           ? 'Open chapter ${subject.displayName}, $completedLessons of $totalLessons lessons complete'
@@ -35,24 +36,24 @@ class SubjectCard extends StatelessWidget {
         height: height,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          borderRadius: BorderRadius.circular(16),
           child: Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+              borderRadius: BorderRadius.circular(16),
               boxShadow: AppTheme.cardShadow,
             ),
             child: Stack(
               children: [
                 // Background Image
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                  borderRadius: BorderRadius.circular(16),
                   child: subject.imageUrl == null
                       ? Container(
-                          color: AppColors.surfaceAlt,
+                          color: scheme.primaryContainer,
                           child: Icon(
                             Icons.book,
                             size: 32,
-                            color: AppColors.textMuted,
+                            color: scheme.onSurfaceVariant,
                           ),
                         )
                       : CachedNetworkImage(
@@ -61,20 +62,20 @@ class SubjectCard extends StatelessWidget {
                           height: double.infinity,
                           fit: BoxFit.cover,
                           placeholder: (context, url) => Container(
-                            color: AppColors.surfaceAlt,
-                            child: const Center(
+                            color: scheme.primaryContainer,
+                            child: Center(
                               child: CircularProgressIndicator(
-                                color: AppColors.primary,
+                                color: scheme.primary,
                                 strokeWidth: 2,
                               ),
                             ),
                           ),
                           errorWidget: (context, url, error) => Container(
-                            color: AppColors.surfaceAlt,
+                            color: scheme.primaryContainer,
                             child: Icon(
                               Icons.book,
                               size: 32,
-                              color: AppColors.textMuted,
+                              color: scheme.onSurfaceVariant,
                             ),
                           ),
                         ),
@@ -83,7 +84,7 @@ class SubjectCard extends StatelessWidget {
                 // Gradient Overlay
                 Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                    borderRadius: BorderRadius.circular(16),
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,

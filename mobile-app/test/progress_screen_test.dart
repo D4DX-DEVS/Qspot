@@ -61,6 +61,7 @@ void main() {
     expect(find.text('Foundation course'), findsOneWidget);
     expect(find.text('Chapters'), findsOneWidget);
     expect(find.text('Recent activity'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Weekly checkpoint'), 200);
     expect(find.text('Weekly checkpoint'), findsOneWidget);
     expect(find.text('4/5 correct - 80%'), findsOneWidget);
   });

@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
-import '../../../themes/app_fonts.dart';
+import '../../../themes/home_palette.dart';
+import '../../../widgets/common/banner_headline.dart';
 import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/gradient_card.dart';
+import '../../../widgets/common/info_note_card.dart';
 import '../../assignment/screens/assignments_screen.dart';
+import '../../auth/widgets/art/auth_art.dart';
+import '../../auth/widgets/art/mosque_skyline_painter.dart';
 import '../../quiz/screens/quiz_list_screen.dart';
+import '../widgets/practice_action_card.dart';
 
 /// A single home for every assessed learning action.
 class PracticeHubScreen extends StatelessWidget {
@@ -13,8 +18,8 @@ class PracticeHubScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = HomePalette.of(context);
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: CommonAppBar(
         title: 'Practice',
         actions: [
@@ -26,6 +31,7 @@ class PracticeHubScreen extends StatelessWidget {
             ),
             icon: const Icon(Icons.history_rounded),
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: ListView(
@@ -36,11 +42,24 @@ class PracticeHubScreen extends StatelessWidget {
           32 + MediaQuery.paddingOf(context).bottom,
         ),
         children: [
-          const _PracticeIntro(),
+          GradientCard(
+            minHeight: 156,
+            artSize: const Size(150, 108),
+            art: AuthArt(
+              painter: (art) => MosqueSkylinePainter(art, showSkyline: false),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+            child: const BannerHeadline(
+              title: 'A calm place to try',
+              subtitle: 'Build confidence one small attempt at a time.',
+              titleSize: 22,
+              trailingWidth: 90,
+            ),
+          ),
           const SizedBox(height: 18),
-          _PracticeCard(
+          PracticeActionCard(
             icon: Icons.assignment_outlined,
-            color: AppColors.warning,
+            tone: palette.amber,
             title: 'Assignments',
             body:
                 'See what is due, submit your work, and read teacher feedback.',
@@ -50,10 +69,10 @@ class PracticeHubScreen extends StatelessWidget {
               MaterialPageRoute(builder: (_) => const AssignmentsScreen()),
             ),
           ),
-          const SizedBox(height: 12),
-          _PracticeCard(
-            icon: Icons.edit_note_outlined,
-            color: AppColors.accent,
+          const SizedBox(height: 14),
+          PracticeActionCard(
+            icon: Icons.edit_note_rounded,
+            tone: palette.coral,
             title: 'Quizzes and exams',
             body:
                 'Take a short knowledge quiz or show your skills in a practical exam.',
@@ -63,136 +82,14 @@ class PracticeHubScreen extends StatelessWidget {
               MaterialPageRoute(builder: (_) => const QuizListScreen()),
             ),
           ),
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.primarySoft,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.lightbulb_outline_rounded, color: AppColors.primary),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Practice is not a score board. It is a safe place to notice what you know next.',
-                    style: AppFonts.regular(
-                      color: AppColors.textPrimary,
-                      fontSize: 13,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          const SizedBox(height: 18),
+          InfoNoteCard(
+            icon: Icons.lightbulb_outline_rounded,
+            tone: palette.amber,
+            message:
+                'Practice is not a score board. It is a safe place to notice what you know next.',
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PracticeIntro extends StatelessWidget {
-  const _PracticeIntro();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('A calm place to try', style: AppTheme.sectionTitle),
-        const SizedBox(height: 5),
-        Text(
-          'Build confidence one small attempt at a time.',
-          style: AppTheme.sectionIntro,
-        ),
-      ],
-    );
-  }
-}
-
-class _PracticeCard extends StatelessWidget {
-  const _PracticeCard({
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.body,
-    required this.action,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final Color color;
-  final String title;
-  final String body;
-  final String action;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                ),
-                child: Icon(icon, color: color),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: AppFonts.extraBold(
-                        color: AppColors.textPrimary,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      body,
-                      style: AppFonts.regular(
-                        color: AppColors.textMuted,
-                        fontSize: 13,
-                        height: 1.35,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      action,
-                      style: AppFonts.extraBold(color: color, fontSize: 12.5),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.arrow_forward_rounded,
-                color: AppColors.textMuted,
-                size: 20,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

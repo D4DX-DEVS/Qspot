@@ -1,28 +1,32 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../services/today_service.dart';
-import '../../../services/video_progress_service.dart';
-import '../../../themes/app_colors.dart';
-import '../../../themes/app_fonts.dart';
-import '../../../widgets/common/common_app_bar.dart';
+import '../../../themes/home_palette.dart';
+import '../../../widgets/common/nav_list_card.dart';
+import '../../../widgets/common/section_header.dart';
+import '../../../widgets/common/shortcut_tile.dart';
+import '../../../widgets/common/stat_tile.dart';
 import '../../assignment/screens/assignments_screen.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../bookmark/provider/bookmark_provider.dart';
+import '../../common/widgets/home_theme_scope.dart';
 import '../../notification/provider/notification_provider.dart';
 import '../../notification/screens/notifications_screen.dart';
 import '../../profile/screens/profile_screen.dart';
 import '../../question/screens/ask_question_screen.dart';
 import '../../quiz/screens/quiz_list_screen.dart';
-import '../../subject/model/subject_model.dart';
 import '../../subject/provider/subject_provider.dart';
 import '../../subject/screens/subject_list_screen.dart';
 import '../../video/model/video_model.dart';
 import '../../video/provider/video_provider.dart';
 import '../../video/screens/video_reels_screen.dart';
+import '../widgets/continue_lesson_card.dart';
+import '../widgets/today_header.dart';
+import '../widgets/today_hero_card.dart';
+import '../widgets/today_sky_backdrop.dart';
 
 /// Task-first learner home. The legacy HomeScreen remains available for
 /// backwards-compatible deep links while the shell uses this redesign.
@@ -68,33 +72,23 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: CommonAppBar(
-        title: _greeting(),
-        centerTitle: false,
-        actions: _appBarActions(),
-      ),
       body: RefreshIndicator(
         onRefresh: _refresh,
-        color: AppColors.primary,
-        backgroundColor: AppColors.surface,
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            SliverToBoxAdapter(child: _header()),
+            SliverToBoxAdapter(child: _top()),
             SliverPadding(
               padding: EdgeInsets.fromLTRB(
                 16,
-                2,
+                14,
                 16,
                 32 + MediaQuery.paddingOf(context).bottom,
               ),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  _todayCard(),
-                  const SizedBox(height: 16),
                   _statsStrip(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
                   _shortcuts(),
                   _continueSection(),
                   _subjectsSection(),
@@ -108,415 +102,169 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
     );
   }
 
-  Widget _header() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-      child: Consumer<AuthProvider>(
-        builder: (context, auth, _) {
-          final name = (auth.user?.name ?? '').trim();
-          final first = name.isEmpty ? 'learner' : name.split(' ').first;
-          return Text(
-            'Ready for a small win, $first?',
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: AppFonts.extraBold(
-              color: AppColors.textPrimary,
-              fontSize: 20,
-            ),
-          );
-        },
-      ),
+  /// Greeting over the sky and skyline, with the hero card resting on the
+  /// bottom of the skyline.
+  Widget _top() {
+    final topInset = MediaQuery.paddingOf(context).top;
+    return Stack(
+      children: [
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          height: topInset + 250,
+          child: const TodaySkyBackdrop(),
+        ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(12, topInset + 14, 12, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: _header(),
+              ),
+              const SizedBox(height: 96),
+              _todayCard(),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
-  List<Widget> _appBarActions() {
-    return [
-      Consumer<NotificationProvider>(
-        builder: (context, notifications, _) => _headerIcon(
-          Icons.notifications_none_rounded,
-          'Notifications',
-          notifications.unreadCount,
-          () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-          ),
+  Widget _header() {
+    final auth = context.watch<AuthProvider>();
+    final notifications = context.watch<NotificationProvider>();
+    final name = (auth.user?.name ?? '').trim();
+    return TodayHeader(
+      greeting: _greeting(),
+      name: name.isEmpty ? 'Learner' : name,
+      unreadCount: notifications.unreadCount,
+      onNotifications: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+      ),
+      onProfile: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const HomeThemeScope(child: ProfileScreen()),
         ),
-      ),
-      const SizedBox(width: 2),
-      Consumer<AuthProvider>(
-        builder: (context, auth, _) {
-          final name = (auth.user?.name ?? 'Learner').trim();
-          return Semantics(
-            label: 'Open profile',
-            button: true,
-            child: InkWell(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ProfileScreen()),
-              ),
-              customBorder: const CircleBorder(),
-              child: CircleAvatar(
-                radius: 20,
-                backgroundColor: AppColors.primary,
-                child: Text(
-                  _initials(name),
-                  style: AppFonts.extraBold(color: AppColors.onPrimary),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-      const SizedBox(width: 12),
-    ];
-  }
-
-  Widget _headerIcon(
-    IconData icon,
-    String label,
-    int badge,
-    VoidCallback onTap,
-  ) {
-    return Semantics(
-      label: label,
-      button: true,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          IconButton(onPressed: onTap, tooltip: label, icon: Icon(icon)),
-          if (badge > 0)
-            Positioned(
-              right: 5,
-              top: 4,
-              child: Container(
-                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                padding: const EdgeInsets.all(3),
-                decoration: const BoxDecoration(
-                  color: AppColors.accent,
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  badge > 9 ? '9+' : '$badge',
-                  textAlign: TextAlign.center,
-                  style: AppFonts.extraBold(
-                    color: AppColors.white,
-                    fontSize: 9,
-                  ),
-                ),
-              ),
-            ),
-        ],
       ),
     );
   }
 
   Widget _todayCard() {
     final item = _today?.next;
-    final video = item == null
-        ? null
-        : context.read<VideoProvider>().getVideoById(item.id);
-    final hasItem = item != null && item.title.trim().isNotEmpty;
-    final urgent = item?.status == 'overdue';
-    return Container(
-      constraints: const BoxConstraints(minHeight: 186),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: urgent ? AppColors.accentDeep : AppColors.primary,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.15),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: hasItem ? _todayContent(item, video, urgent) : _emptyToday(),
-    );
-  }
-
-  Widget _todayContent(TodayLearningItem item, VideoModel? video, bool urgent) {
-    final kind = item.kind;
-    final isQuiz = kind == 'quiz';
-    final isAssignment = kind == 'assignment';
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(
-              urgent ? Icons.priority_high_rounded : Icons.wb_sunny_outlined,
-              color: AppColors.white.withValues(alpha: 0.85),
-              size: 18,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              _itemLabel(item),
-              style: AppFonts.extraBold(
-                color: AppColors.white.withValues(alpha: 0.85),
-                fontSize: 12,
-                letterSpacing: 0.3,
-              ),
-            ),
-            const Spacer(),
-            if (item.estimatedMinutes != null)
-              Text(
-                '${item.estimatedMinutes} min',
-                style: AppFonts.regular(
-                  color: AppColors.white.withValues(alpha: 0.72),
-                  fontSize: 12,
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Text(
-          item.title,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: AppFonts.extraBold(
-            color: AppColors.white,
-            fontSize: 21,
-            height: 1.18,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          _itemDescription(item),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: AppFonts.regular(
-            color: AppColors.white.withValues(alpha: 0.78),
-            fontSize: 13,
-            height: 1.35,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: () => _openTodayItem(item, video),
-                icon: Icon(
-                  isQuiz || isAssignment
-                      ? Icons.arrow_forward_rounded
-                      : Icons.play_arrow_rounded,
-                  size: 18,
-                ),
-                label: Text(urgent ? 'Handle now' : 'Start this'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.white,
-                  foregroundColor: urgent
-                      ? AppColors.accentDeep
-                      : AppColors.primary,
-                  minimumSize: const Size(0, 44),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-            ),
-            if (video?.thumbnailUrl.isNotEmpty == true) ...[
-              const SizedBox(width: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: CachedNetworkImage(
-                  imageUrl: video!.thumbnailUrl,
-                  width: 64,
-                  height: 48,
-                  fit: BoxFit.cover,
-                  errorWidget: (_, __, ___) => _mediaFallback(),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _emptyToday() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Row(
-          children: [
-            Flexible(
-              child: Text(
-                'Your next small win',
-                style: AppFonts.extraBold(color: AppColors.white, fontSize: 21),
-              ),
-            ),
-            SizedBox(width: 12),
-            Icon(Icons.auto_awesome_rounded, color: AppColors.white, size: 24),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Pick a short lesson and keep your rhythm gentle.',
-          style: AppFonts.regular(
-            color: AppColors.white.withValues(alpha: 0.78),
-            fontSize: 13,
-          ),
-        ),
-        const SizedBox(height: 16),
-        OutlinedButton.icon(
-          onPressed: _openLearn,
-          icon: const Icon(Icons.explore_outlined, size: 18),
-          label: const Text('Explore lessons'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.white,
-            side: BorderSide(color: AppColors.white.withValues(alpha: 0.55)),
-            minimumSize: const Size(0, 44),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        ),
-      ],
+    if (item == null || item.title.trim().isEmpty) {
+      return TodayHeroCard(
+        title: 'Your next small win',
+        description: 'Pick a short lesson and keep your rhythm gentle.',
+        actionLabel: 'Explore lessons',
+        actionIcon: Icons.menu_book_rounded,
+        onAction: _openLearn,
+        showSparkle: true,
+      );
+    }
+    final video = context.read<VideoProvider>().getVideoById(item.id);
+    final urgent = item.status == 'overdue';
+    final isTask = item.kind == 'quiz' || item.kind == 'assignment';
+    return TodayHeroCard(
+      eyebrow: _itemLabel(item),
+      meta: item.estimatedMinutes == null
+          ? null
+          : '${item.estimatedMinutes} min',
+      title: item.title,
+      description: _itemDescription(item),
+      actionLabel: urgent ? 'Handle now' : 'Start this',
+      actionIcon: isTask
+          ? Icons.edit_note_rounded
+          : Icons.play_circle_outline_rounded,
+      thumbnailUrl: video?.thumbnailUrl,
+      onAction: () => _openTodayItem(item, video),
     );
   }
 
   Widget _statsStrip() {
+    final palette = HomePalette.of(context);
     final provider = context.watch<VideoProvider>();
     final completed = provider.progressByVideo.values
         .where((p) => p.completed)
         .length;
     final total = provider.allVideos.where((v) => !v.isUpcoming).length;
     final nextCount = _today?.upcoming.length ?? 0;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+    final stats = [
+      StatTile(
+        icon: Icons.local_fire_department_outlined,
+        color: palette.coral.color,
+        value: '${_today?.currentStreak ?? 0}',
+        label: 'day streak',
       ),
-      child: Row(
-        children: [
-          _metric(
-            Icons.local_fire_department_outlined,
-            '${_today?.currentStreak ?? 0}',
-            'day streak',
-            AppColors.accent,
-          ),
-          _metric(
-            Icons.check_circle_outline,
-            '$completed/$total',
-            'lessons done',
-            AppColors.success,
-          ),
-          _metric(
-            Icons.event_note_outlined,
-            '$nextCount',
-            'coming up',
-            AppColors.warning,
-          ),
-        ],
+      StatTile(
+        icon: Icons.check_circle_outline_rounded,
+        color: palette.teal.color,
+        value: '$completed/$total',
+        label: 'lessons done',
       ),
-    );
-  }
-
-  Widget _metric(IconData icon, String value, String label, Color color) {
-    return Expanded(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(width: 7),
-          Flexible(
-            child: Column(
-              children: [
-                Text(
-                  value,
-                  style: AppFonts.extraBold(
-                    color: AppColors.textPrimary,
-                    fontSize: 15,
-                  ),
-                ),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppFonts.regular(
-                    color: AppColors.textMuted,
-                    fontSize: 10.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+      StatTile(
+        icon: Icons.event_note_outlined,
+        color: palette.amber.color,
+        value: '$nextCount',
+        label: 'coming up',
       ),
-    );
-  }
-
-  Widget _shortcuts() {
-    final actions = [
-      _Action(Icons.menu_book_outlined, 'Learn', _openLearn, AppColors.primary),
-      _Action(
-        Icons.edit_note_outlined,
-        'Practice',
-        _openPractice,
-        AppColors.accent,
-      ),
-      _Action(
-        Icons.assignment_outlined,
-        'Assignments',
-        _openAssignments,
-        AppColors.warning,
-      ),
-      _Action(Icons.help_outline_rounded, 'Ask', _openAsk, AppColors.success),
     ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        _sectionHeader('Your shortcuts', null),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            for (var i = 0; i < actions.length; i++) ...[
-              if (i > 0) const SizedBox(width: 10),
-              Expanded(child: _shortcut(actions[i])),
-            ],
-          ],
-        ),
+        for (var i = 0; i < stats.length; i++) ...[
+          if (i > 0) const SizedBox(width: 10),
+          Expanded(child: stats[i]),
+        ],
       ],
     );
   }
 
-  Widget _shortcut(_Action action) {
-    return Semantics(
-      label: action.label,
-      button: true,
-      child: InkWell(
-        onTap: action.onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
-          decoration: BoxDecoration(
-            color: action.color.withValues(alpha: 0.09),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: action.color.withValues(alpha: 0.15)),
-          ),
-          child: Column(
-            children: [
-              Icon(action.icon, color: action.color, size: 23),
-              const SizedBox(height: 8),
-              Text(
-                action.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: AppFonts.bold(
-                  color: AppColors.textPrimary,
-                  fontSize: 11,
-                ),
-              ),
-            ],
-          ),
-        ),
+  Widget _shortcuts() {
+    final palette = HomePalette.of(context);
+    final tiles = [
+      ShortcutTile(
+        icon: Icons.menu_book_rounded,
+        label: 'Learn',
+        tone: palette.rose,
+        onTap: _openLearn,
       ),
+      ShortcutTile(
+        icon: Icons.edit_note_rounded,
+        label: 'Practice',
+        tone: palette.coral,
+        onTap: _openPractice,
+      ),
+      ShortcutTile(
+        icon: Icons.assignment_outlined,
+        label: 'Assignments',
+        tone: palette.amber,
+        onTap: _openAssignments,
+      ),
+      ShortcutTile(
+        icon: Icons.help_outline_rounded,
+        label: 'Ask',
+        tone: palette.mint,
+        onTap: _openAsk,
+      ),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionHeader(title: 'Your shortcuts'),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            for (var i = 0; i < tiles.length; i++) ...[
+              if (i > 0) const SizedBox(width: 10),
+              Expanded(child: tiles[i]),
+            ],
+          ],
+        ),
+      ],
     );
   }
 
@@ -528,18 +276,34 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 16),
-            _sectionHeader('Pick up where you left off', _openLearn),
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
+            SectionHeader(
+              title: 'Pick up where you left off',
+              actionLabel: 'See all',
+              onAction: _openLearn,
+            ),
+            const SizedBox(height: 10),
             SizedBox(
-              height: 164,
+              height: 112,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
+                clipBehavior: Clip.none,
                 itemCount: items.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                separatorBuilder: (_, _) => const SizedBox(width: 10),
                 itemBuilder: (context, index) {
                   final video = items[index];
-                  return _continueCard(video, videos.progressFor(video.id));
+                  final progress = videos.progressFor(video.id);
+                  final percent = progress?.percent ?? 0;
+                  return ContinueLessonCard(
+                    title: video.displayTitle,
+                    subject: video.subjectName ?? 'Lesson',
+                    thumbnailUrl: video.thumbnailUrl,
+                    progress: percent,
+                    status: progress?.completed == true
+                        ? 'Completed'
+                        : '${(percent * 100).round()}% watched',
+                    onTap: () => _openVideo(video),
+                  );
                 },
               ),
             ),
@@ -549,91 +313,8 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
     );
   }
 
-  Widget _continueCard(VideoModel video, VideoProgressStatus? progress) {
-    final percent = progress?.percent ?? 0;
-    return SizedBox(
-      width: 212,
-      child: InkWell(
-        onTap: () => _openVideo(video),
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: CachedNetworkImage(
-                  imageUrl: video.thumbnailUrl,
-                  width: 72,
-                  height: 72,
-                  fit: BoxFit.cover,
-                  errorWidget: (_, __, ___) => _mediaFallback(),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      video.subjectName ?? 'Lesson',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppFonts.regular(
-                        color: AppColors.textMuted,
-                        fontSize: 10.5,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      video.displayTitle,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppFonts.bold(
-                        color: AppColors.textPrimary,
-                        fontSize: 12,
-                        height: 1.25,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: percent,
-                        minHeight: 4,
-                        backgroundColor: AppColors.surfaceAlt,
-                        valueColor: const AlwaysStoppedAnimation(
-                          AppColors.accent,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      progress?.completed == true
-                          ? 'Completed'
-                          : '${(percent * 100).round()}% watched',
-                      style: AppFonts.regular(
-                        color: AppColors.textMuted,
-                        fontSize: 10.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _subjectsSection() {
+    final palette = HomePalette.of(context);
     return Consumer<SubjectProvider>(
       builder: (context, subjects, _) {
         final items = subjects.subjects.take(6).toList();
@@ -641,12 +322,22 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 16),
-            _sectionHeader('Choose a subject', _openLearn),
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
+            SectionHeader(
+              title: 'Choose a subject',
+              actionLabel: 'See all',
+              onAction: _openLearn,
+            ),
+            const SizedBox(height: 10),
             for (var i = 0; i < items.length; i++) ...[
               if (i > 0) const SizedBox(height: 10),
-              _subjectCard(items[i]),
+              NavListCard(
+                icon: Icons.auto_stories_outlined,
+                tone: i.isEven ? palette.teal : palette.coral,
+                title: items[i].displayName,
+                subtitle: 'Open chapter',
+                onTap: _openLearn,
+              ),
             ],
           ],
         );
@@ -654,188 +345,41 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
     );
   }
 
-  Widget _subjectCard(SubjectModel subject) {
-    return SizedBox(
-      width: double.infinity,
-      height: 76,
-      child: InkWell(
-        onTap: _openLearn,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: const Icon(
-                  Icons.auto_stories_outlined,
-                  color: AppColors.primary,
-                  size: 19,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      subject.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppFonts.extraBold(
-                        color: AppColors.textPrimary,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Open chapter',
-                      style: AppFonts.regular(
-                        color: AppColors.textMuted,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.textMuted,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _upcomingSection() {
+    final palette = HomePalette.of(context);
     final items =
         _today?.upcoming.take(4).toList() ?? const <TodayLearningItem>[];
     if (items.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 16),
-        _sectionHeader('Due work', _openPractice),
-        const SizedBox(height: 12),
+        const SizedBox(height: 20),
+        SectionHeader(
+          title: 'Due work',
+          actionLabel: 'See all',
+          onAction: _openPractice,
+        ),
+        const SizedBox(height: 10),
         for (var i = 0; i < items.length; i++) ...[
           if (i > 0) const SizedBox(height: 10),
-          _upcomingRow(items[i]),
+          _upcomingCard(items[i], palette),
         ],
       ],
     );
   }
 
-  Widget _upcomingRow(TodayLearningItem item) {
-    final color = item.status == 'overdue'
-        ? AppColors.danger
-        : AppColors.primary;
-    return InkWell(
+  Widget _upcomingCard(TodayLearningItem item, HomePalette palette) {
+    final tone = item.status == 'overdue' ? palette.coral : palette.rose;
+    return NavListCard(
+      icon: _iconForKind(item.kind),
+      tone: tone,
+      title: item.title,
+      subtitle: _upcomingMeta(item),
+      subtitleColor: tone.color,
       onTap: () => _openTodayItem(
         item,
         context.read<VideoProvider>().getVideoById(item.id),
       ),
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(9),
-              ),
-              child: Icon(_iconForKind(item.kind), color: color, size: 18),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppFonts.bold(
-                      color: AppColors.textPrimary,
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    _upcomingMeta(item),
-                    style: AppFonts.semiBold(color: color, fontSize: 11),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: AppColors.textMuted,
-              size: 20,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Every section header shares one height so headers with and without
-  // "See all" sit the same distance from the content around them.
-  Widget _sectionHeader(String title, VoidCallback? onMore) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 40),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: AppFonts.extraBold(
-                color: AppColors.textPrimary,
-                fontSize: 18,
-              ),
-            ),
-          ),
-          if (onMore != null)
-            TextButton(
-              onPressed: onMore,
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                minimumSize: const Size(44, 40),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: const Text('See all'),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _mediaFallback() {
-    return Container(
-      color: AppColors.primaryDeep,
-      alignment: Alignment.center,
-      child: const Icon(Icons.play_lesson_outlined, color: AppColors.white),
     );
   }
 
@@ -911,7 +455,9 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
 
   void _openLearn() => Navigator.push(
     context,
-    MaterialPageRoute(builder: (_) => const SubjectListScreen()),
+    MaterialPageRoute(
+      builder: (_) => const HomeThemeScope(child: SubjectListScreen()),
+    ),
   );
 
   void _openPractice() => Navigator.push(
@@ -925,24 +471,4 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   );
 
   void _openAsk() => AskQuestionScreen.show(context);
-
-  String _initials(String name) {
-    final parts = name
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((p) => p.isNotEmpty)
-        .take(2)
-        .toList();
-    if (parts.isEmpty) return '?';
-    return parts.map((part) => part.substring(0, 1).toUpperCase()).join();
-  }
-}
-
-class _Action {
-  const _Action(this.icon, this.label, this.onTap, this.color);
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Color color;
 }
