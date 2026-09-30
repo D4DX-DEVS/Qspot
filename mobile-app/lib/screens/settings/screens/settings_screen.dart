@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
@@ -15,6 +14,7 @@ import '../../speaker/screens/faculties_screen.dart';
 import '../../schedule/service/alarm_service.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../../services/session.dart';
+import '../provider/settings_screen_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -25,52 +25,36 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final AlarmService _alarmService = AlarmService();
-  bool _alarmEnabled = false;
-  int _alarmHour = 18;
-  int _alarmMinute = 50;
-  bool _isLoading = true;
-  String _appVersion = '';
+  final SettingsScreenProvider _s = SettingsScreenProvider();
 
   @override
   void initState() {
     super.initState();
-    _loadAlarmSettings();
-    _loadAppVersion();
+    _s.loadAlarmSettings(_alarmService);
+    _s.loadAppVersion();
   }
 
-  Future<void> _loadAppVersion() async {
-    final info = await PackageInfo.fromPlatform();
-    if (!mounted) return;
-    setState(() {
-      _appVersion = '${info.version}+${info.buildNumber}';
-    });
-  }
-
-  Future<void> _loadAlarmSettings() async {
-    try {
-      final isEnabled = await _alarmService.isAlarmEnabled();
-      final time = await _alarmService.getSavedAlarmTime();
-
-      setState(() {
-        _alarmEnabled = isEnabled;
-        _alarmHour = time['hour']!;
-        _alarmMinute = time['minute']!;
-        _isLoading = false;
-      });
-    } catch (e) {
-      debugPrint('Error loading alarm settings: $e');
-      setState(() {
-        _isLoading = false;
-      });
-    }
+  @override
+  void dispose() {
+    _s.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _s,
+      child: Consumer<SettingsScreenProvider>(
+        builder: (_, s, __) => _buildPage(s),
+      ),
+    );
+  }
+
+  Widget _buildPage(SettingsScreenProvider s) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const CommonAppBar(title: 'Settings'),
-      body: _isLoading
+      body: s.isLoading
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.primary),
             )
@@ -219,7 +203,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               Switch(
-                value: _alarmEnabled,
+                value: _s.alarmEnabled,
                 onChanged: (value) async {
                   if (value) {
                     // Request permissions first
@@ -240,27 +224,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                     // Schedule alarm
                     final success = await _alarmService.scheduleAlarm(
-                      _alarmHour,
-                      _alarmMinute,
+                      _s.alarmHour,
+                      _s.alarmMinute,
                     );
 
                     if (success && context.mounted) {
-                      setState(() {
-                        _alarmEnabled = true;
-                      });
+                      _s.setAlarmEnabled(true);
                       AppSnackBar.show(
                         context,
                         message:
-                            'Daily reminder set for ${_formatTime(_alarmHour, _alarmMinute)}',
+                            'Daily reminder set for ${_formatTime(_s.alarmHour, _s.alarmMinute)}',
                         color: AppColors.success,
                       );
                     }
                   } else {
                     // Cancel alarm
                     await _alarmService.cancelAlarm();
-                    setState(() {
-                      _alarmEnabled = false;
-                    });
+                    _s.setAlarmEnabled(false);
                     if (context.mounted) {
                       AppSnackBar.show(
                         context,
@@ -281,12 +261,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Divider(color: AppColors.border, height: 1),
           const SizedBox(height: AppTheme.paddingMedium),
           InkWell(
-            onTap: _alarmEnabled ? () => _showTimePicker(context) : null,
+            onTap: _s.alarmEnabled ? () => _showTimePicker(context) : null,
             borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
             child: Container(
               padding: const EdgeInsets.all(AppTheme.paddingMedium),
               decoration: BoxDecoration(
-                color: _alarmEnabled
+                color: _s.alarmEnabled
                     ? AppColors.surfaceAlt
                     : AppColors.surfaceAlt.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
@@ -295,7 +275,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Icon(
                     Icons.schedule,
-                    color: _alarmEnabled
+                    color: _s.alarmEnabled
                         ? AppColors.primary
                         : AppColors.textMuted,
                     size: 24,
@@ -312,10 +292,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          _formatTime(_alarmHour, _alarmMinute),
+                          _formatTime(_s.alarmHour, _s.alarmMinute),
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(
-                                color: _alarmEnabled
+                                color: _s.alarmEnabled
                                     ? AppColors.textPrimary
                                     : AppColors.textMuted,
                                 fontWeight: FontWeight.bold,
@@ -324,7 +304,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                   ),
-                  if (_alarmEnabled)
+                  if (_s.alarmEnabled)
                     const Icon(
                       Icons.edit,
                       color: AppColors.textMuted,
@@ -342,7 +322,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _showTimePicker(BuildContext context) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay(hour: _alarmHour, minute: _alarmMinute),
+      initialTime: TimeOfDay(hour: _s.alarmHour, minute: _s.alarmMinute),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -362,22 +342,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     if (picked != null) {
-      setState(() {
-        _alarmHour = picked.hour;
-        _alarmMinute = picked.minute;
-      });
+      _s.setAlarmTime(picked.hour, picked.minute);
 
       // Reschedule alarm with new time
       final success = await _alarmService.scheduleAlarm(
-        _alarmHour,
-        _alarmMinute,
+        _s.alarmHour,
+        _s.alarmMinute,
       );
 
       if (success && context.mounted) {
         AppSnackBar.show(
           context,
           message:
-              'Daily reminder moved to ${_formatTime(_alarmHour, _alarmMinute)}',
+              'Daily reminder moved to ${_formatTime(_s.alarmHour, _s.alarmMinute)}',
           color: AppColors.success,
         );
       }
@@ -609,7 +586,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
               ),
               Text(
-                _appVersion.isNotEmpty ? _appVersion : '…',
+                _s.appVersion.isNotEmpty ? _s.appVersion : '…',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.primary,
                   fontWeight: FontWeight.w600,

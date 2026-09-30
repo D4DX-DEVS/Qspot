@@ -10,6 +10,7 @@ import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../provider/quiz_provider.dart';
+import '../provider/quiz_question_screen_provider.dart';
 import 'quiz_results_screen.dart';
 
 /// Shows the active quiz session, one question at a time. The display
@@ -25,15 +26,13 @@ class QuizQuestionScreen extends StatefulWidget {
 }
 
 class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
-  bool _submitting = false;
+  final QuizQuestionScreenProvider _q = QuizQuestionScreenProvider();
   Timer? _timer;
-  int? _remainingSeconds;
-  bool _timerStarted = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_timerStarted) {
+    if (!_q.timerStarted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _startTimerIfConfigured(context.read<QuizProvider>());
       });
@@ -43,11 +42,12 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _q.dispose();
     super.dispose();
   }
 
   void _startTimerIfConfigured(QuizProvider quizProvider) {
-    if (_timerStarted || !quizProvider.isQuizActive) return;
+    if (_q.timerStarted || !quizProvider.isQuizActive) return;
     final mode = quizProvider.timerMode;
     final overall = mode == 'overall' || mode == 'both'
         ? quizProvider.overallTimeLimit
@@ -57,35 +57,39 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
         : null;
     final initial = overall ?? perQuestion;
     if (initial == null || initial <= 0) return;
-    _timerStarted = true;
-    _remainingSeconds = initial;
+    _q.startTimer(initial);
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted || _remainingSeconds == null) return;
-      if (_remainingSeconds! <= 1) {
+      final remaining = _q.remainingSeconds;
+      if (!mounted || remaining == null) return;
+      if (remaining <= 1) {
         _timer?.cancel();
-        setState(() => _remainingSeconds = 0);
+        _q.setRemainingSeconds(0);
         _submit(quizProvider);
       } else {
-        setState(() => _remainingSeconds = _remainingSeconds! - 1);
+        _q.setRemainingSeconds(remaining - 1);
       }
     });
   }
 
   void _resetPerQuestionTimer(QuizProvider quizProvider) {
-    if (!_timerStarted || quizProvider.timerMode == 'overall') return;
+    if (!_q.timerStarted || quizProvider.timerMode == 'overall') return;
     final perQuestion = quizProvider.perQuestionTimeLimit;
     if (perQuestion != null && perQuestion > 0) {
-      setState(() => _remainingSeconds = perQuestion);
+      _q.setRemainingSeconds(perQuestion);
     }
-  }
-
-  String _timerLabel() {
-    final seconds = _remainingSeconds ?? 0;
-    return '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _q,
+      child: Consumer<QuizQuestionScreenProvider>(
+        builder: (_, q, __) => _buildPage(q),
+      ),
+    );
+  }
+
+  Widget _buildPage(QuizQuestionScreenProvider q) {
     return Consumer<QuizProvider>(
       builder: (context, quizProvider, child) {
         final locale = quizProvider.sessionLanguage;
@@ -103,7 +107,7 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
           ),
           body: totalQuestions == 0
               ? _buildEmptyState(context)
-              : _buildQuestionBody(context, quizProvider, locale),
+              : _buildQuestionBody(context, quizProvider, locale, q),
         );
       },
     );
@@ -157,6 +161,7 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
     BuildContext context,
     QuizProvider quizProvider,
     String locale,
+    QuizQuestionScreenProvider q,
   ) {
     final question = quizProvider.currentQuestion;
     if (question == null) {
@@ -187,14 +192,14 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
             minHeight: 4,
           ),
         ),
-        if (_remainingSeconds != null)
+        if (q.remainingSeconds != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
             child: Align(
               alignment: Alignment.centerRight,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: _remainingSeconds! <= 10
+                  color: q.remainingSeconds! <= 10
                       ? AppColors.danger.withValues(alpha: 0.12)
                       : AppColors.primarySoft,
                   borderRadius: BorderRadius.circular(8),
@@ -202,9 +207,9 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   child: Text(
-                    'Time ${_timerLabel()}',
+                    'Time ${q.timerLabel}',
                     style: AppFonts.bold(
-                      color: _remainingSeconds! <= 10
+                      color: q.remainingSeconds! <= 10
                           ? AppColors.danger
                           : AppColors.primary,
                     ),
@@ -400,7 +405,7 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                 ),
               ),
               ElevatedButton.icon(
-                onPressed: _submitting
+                onPressed: q.submitting
                     ? null
                     : () {
                         if (quizProvider.hasNextQuestion) {
@@ -482,7 +487,7 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
   }
 
   Future<void> _submit(QuizProvider quizProvider) async {
-    setState(() => _submitting = true);
+    _q.setSubmitting(true);
     final navigator = Navigator.of(context);
 
     try {
@@ -515,7 +520,7 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
         color: AppColors.danger,
       );
     } finally {
-      if (mounted) setState(() => _submitting = false);
+      if (mounted) _q.setSubmitting(false);
     }
   }
 }

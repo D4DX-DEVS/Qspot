@@ -10,6 +10,7 @@ import '../../video/model/video_model.dart';
 import '../../video/provider/video_provider.dart';
 import '../../video/screens/video_reels_screen.dart';
 import '../model/speaker_model.dart';
+import '../provider/faculties_screen_provider.dart';
 import '../provider/speaker_provider.dart';
 
 /// One full profile per faculty member, stacked so scrolling moves from one
@@ -23,22 +24,31 @@ class FacultiesScreen extends StatefulWidget {
 
 class _FacultiesScreenState extends State<FacultiesScreen> {
   final TextEditingController _searchController = TextEditingController();
-  bool _isSearching = false;
-  String _query = '';
+  final FacultiesScreenProvider _faculties = FacultiesScreenProvider();
 
   @override
   void dispose() {
     _searchController.dispose();
+    _faculties.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _faculties,
+      child: Consumer<FacultiesScreenProvider>(
+        builder: (_, search, __) => _buildPage(search),
+      ),
+    );
+  }
+
+  Widget _buildPage(FacultiesScreenProvider search) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: CommonAppBar(
         title: 'Faculties',
-        titleWidget: _isSearching
+        titleWidget: search.isSearching
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
@@ -48,21 +58,16 @@ class _FacultiesScreenState extends State<FacultiesScreen> {
                   hintStyle: AppFonts.regular(color: AppColors.textMuted),
                   border: InputBorder.none,
                 ),
-                onChanged: (value) => setState(() => _query = value.trim()),
+                onChanged: search.setQuery,
               )
             : null,
         actions: [
           IconButton(
-            tooltip: _isSearching ? 'Close search' : 'Search faculties',
-            icon: Icon(_isSearching ? Icons.close : Icons.search),
+            tooltip: search.isSearching ? 'Close search' : 'Search faculties',
+            icon: Icon(search.isSearching ? Icons.close : Icons.search),
             onPressed: () {
-              setState(() {
-                _isSearching = !_isSearching;
-                if (!_isSearching) {
-                  _searchController.clear();
-                  _query = '';
-                }
-              });
+              if (search.isSearching) _searchController.clear();
+              search.toggleSearching();
             },
           ),
         ],
@@ -88,9 +93,7 @@ class _FacultiesScreenState extends State<FacultiesScreen> {
           }
 
           final all = speakerProvider.speakers;
-          final faculties = _query.isEmpty
-              ? all
-              : all.where((speaker) => _matches(speaker, _query)).toList();
+          final faculties = search.filter(all);
 
           if (all.isEmpty) {
             return _message(
@@ -104,7 +107,7 @@ class _FacultiesScreenState extends State<FacultiesScreen> {
           if (faculties.isEmpty) {
             return _message(
               icon: Icons.search_off,
-              title: 'No match for "$_query"',
+              title: 'No match for "${search.query}"',
               subtitle: 'Try a different name.',
             );
           }
@@ -129,12 +132,6 @@ class _FacultiesScreenState extends State<FacultiesScreen> {
         },
       ),
     );
-  }
-
-  bool _matches(SpeakerModel speaker, String query) {
-    final needle = query.toLowerCase();
-    return speaker.name.toLowerCase().contains(needle) ||
-        speaker.designation.toLowerCase().contains(needle);
   }
 
   Widget _message({

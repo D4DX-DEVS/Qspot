@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../model/video_model.dart';
+import '../provider/video_list_screen_provider.dart';
 import '../provider/video_provider.dart';
 import '../widgets/video_card.dart';
 import '../../../themes/app_colors.dart';
@@ -21,7 +22,9 @@ class VideoListScreen extends StatefulWidget {
 }
 
 class _VideoListScreenState extends State<VideoListScreen> {
-  late bool _isSearching = widget.startInSearchMode;
+  late final VideoListScreenProvider _search = VideoListScreenProvider(
+    isSearching: widget.startInSearchMode,
+  );
   final TextEditingController _searchController = TextEditingController();
   VideoProvider? _videoProvider;
 
@@ -42,6 +45,7 @@ class _VideoListScreenState extends State<VideoListScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _search.dispose();
     // Clear search when leaving the screen
     _videoProvider?.clearSearch();
     super.dispose();
@@ -49,11 +53,20 @@ class _VideoListScreenState extends State<VideoListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _search,
+      child: Consumer<VideoListScreenProvider>(
+        builder: (_, search, __) => _buildPage(search),
+      ),
+    );
+  }
+
+  Widget _buildPage(VideoListScreenProvider search) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: CommonAppBar(
         title: 'All Videos',
-        titleWidget: _isSearching
+        titleWidget: search.isSearching
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
@@ -74,20 +87,18 @@ class _VideoListScreenState extends State<VideoListScreen> {
         actions: [
           IconButton(
             icon: Icon(
-              _isSearching ? Icons.close : Icons.search,
+              search.isSearching ? Icons.close : Icons.search,
               color: AppColors.textPrimary,
             ),
             onPressed: () {
-              setState(() {
-                _isSearching = !_isSearching;
-                if (!_isSearching) {
-                  _searchController.clear();
-                  Provider.of<VideoProvider>(
-                    context,
-                    listen: false,
-                  ).clearSearch();
-                }
-              });
+              search.toggleSearching();
+              if (!search.isSearching) {
+                _searchController.clear();
+                Provider.of<VideoProvider>(
+                  context,
+                  listen: false,
+                ).clearSearch();
+              }
             },
           ),
         ],

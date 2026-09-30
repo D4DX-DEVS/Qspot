@@ -18,6 +18,7 @@ import '../../video/screens/video_reels_screen.dart';
 import '../../video/screens/video_questions_screen.dart';
 import '../../subject/screens/subject_list_screen.dart';
 import '../../../services/course_service.dart';
+import '../provider/home_screen_provider.dart';
 import '../widgets/about_course_sheet.dart';
 import '../../notification/screens/notifications_screen.dart';
 import '../../profile/screens/profile_screen.dart';
@@ -72,8 +73,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<CourseModel> _courses = [];
-  TodayOverview? _todayOverview;
+  final HomeScreenProvider _home = HomeScreenProvider();
+
+  List<CourseModel> get _courses => _home.courses;
+  TodayOverview? get _todayOverview => _home.todayOverview;
 
   @override
   void initState() {
@@ -86,9 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Courses the app is running, shown as an "About this course" card.
   Future<void> _loadCourses() async {
-    final courses = await CourseService.fetchActive();
-    if (!mounted) return;
-    setState(() => _courses = courses);
+    await _home.loadCourses();
   }
 
   Widget _buildCoursesSection() {
@@ -254,7 +255,22 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
+  void dispose() {
+    _home.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _home,
+      child: Consumer<HomeScreenProvider>(
+        builder: (_, home, __) => _buildPage(),
+      ),
+    );
+  }
+
+  Widget _buildPage() {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: CommonAppBar(
@@ -641,8 +657,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadTodayOverview() async {
-    final overview = await TodayService.fetch();
-    if (mounted) setState(() => _todayOverview = overview);
+    await _home.loadTodayOverview();
   }
 
   _TodayItemKind _kindForRemote(TodayLearningItem item) {

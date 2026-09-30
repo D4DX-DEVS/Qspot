@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../services/api_client.dart';
 import '../../../services/video_progress_service.dart';
@@ -10,6 +11,7 @@ import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../model/video_model.dart';
+import '../provider/video_questions_screen_provider.dart';
 
 /// The questions attached to a video, asked once the video has been watched.
 ///
@@ -87,24 +89,23 @@ class VideoQuestionsScreen extends StatefulWidget {
 }
 
 class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
-  int _index = 0;
-  final Map<String, int> _answers = {};
-  bool _submitting = false;
-  VideoQuizResult? _result;
-  String? _submitError;
+  late final VideoQuestionsScreenProvider _q;
   Timer? _timer;
-  int? _remainingSeconds;
 
   @override
   void initState() {
     super.initState();
-    _result = widget.priorResult;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _startTimer());
+    _q = VideoQuestionsScreenProvider(priorResult: widget.priorResult);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _startTimer();
+    });
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _q.dispose();
     super.dispose();
   }
 
@@ -115,14 +116,15 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
         ? widget.settings.overallTimeLimit
         : (mode == 'per-question' ? widget.settings.perQuestionTimeLimit : null);
     if (initial == null || initial <= 0) return;
-    _remainingSeconds = initial;
+    _q.setRemainingSeconds(initial);
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted || _remainingSeconds == null) return;
-      if (_remainingSeconds! <= 1) {
+      final remaining = _q.remainingSeconds;
+      if (!mounted || remaining == null) return;
+      if (remaining <= 1) {
         _timer?.cancel();
         _submit();
       } else {
-        setState(() => _remainingSeconds = _remainingSeconds! - 1);
+        _q.decrementRemaining();
       }
     });
   }
@@ -130,27 +132,29 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
   void _resetPerQuestionTimer() {
     if (widget.settings.timerMode == 'overall') return;
     final seconds = widget.settings.perQuestionTimeLimit;
-    if (seconds != null && seconds > 0) setState(() => _remainingSeconds = seconds);
+    if (seconds != null && seconds > 0) _q.setRemainingSeconds(seconds);
   }
 
-  String _timerLabel() {
-    final seconds = _remainingSeconds ?? 0;
+  String _timerLabel(VideoQuestionsScreenProvider q) {
+    final seconds = q.remainingSeconds ?? 0;
     return '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
   }
 
   bool get _isReview => widget.priorResult != null;
-  bool get _isLast => _index == widget.questions.length - 1;
+  bool _isLast(VideoQuestionsScreenProvider q) =>
+      q.index == widget.questions.length - 1;
 
-  int? get _selected => _answers[widget.questions[_index].id];
+  int? _selected(VideoQuestionsScreenProvider q) =>
+      q.answerFor(widget.questions[q.index].id);
 
   void _choose(int optionIndex) {
-    setState(() => _answers[widget.questions[_index].id] = optionIndex);
+    _q.choose(widget.questions[_q.index].id, optionIndex);
   }
 
   Future<void> _next() async {
-    if (_selected == null) return;
-    if (!_isLast) {
-      setState(() => _index += 1);
+    if (_selected(_q) == null) return;
+    if (!_isLast(_q)) {
+      _q.nextQuestion();
       _resetPerQuestionTimer();
       return;
     }
@@ -158,18 +162,8 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
   }
 
   Future<void> _submit() async {
-    setState(() {
-      _submitting = true;
-      _submitError = null;
-    });
-    final answers = widget.questions
-        .map(
-          (q) => {
-            'questionId': q.id,
-            'attemptedAnswer': (_answers[q.id] ?? -1).toString(),
-          },
-        )
-        .toList();
+    _q.startSubmit();
+    final answers = _q.answersPayload(widget.questions);
 
     try {
       final result = await VideoProgressService.submit(
@@ -178,10 +172,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
         locale: widget.locale,
       );
       if (!mounted) return;
-      setState(() {
-        _submitting = false;
-        _result = result;
-      });
+      _q.finishSubmit(result);
     } on ApiException catch (e) {
       // 403 = "watch the video first" (shouldn't normally be reachable —
       // Practice is gated on completed), 409 = already attempted elsewhere
@@ -191,29 +182,20 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
           widget.videoId,
         );
         if (!mounted) return;
-        setState(() {
-          _submitting = false;
-          _result = prior;
-        });
+        _q.finishSubmit(prior);
         return;
       }
       if (!mounted) return;
-      setState(() {
-        _submitting = false;
-        _submitError = e.message;
-      });
+      _q.failSubmit(e.message);
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _submitting = false;
-        _submitError = 'Could not save your answers. Please try again.';
-      });
+      _q.failSubmit('Could not save your answers. Please try again.');
     }
 
-    if (_submitError != null && mounted) {
+    if (_q.submitError != null && mounted) {
       AppSnackBar.show(
         context,
-        message: _submitError!,
+        message: _q.submitError!,
         color: AppColors.danger,
       );
     }
@@ -221,18 +203,27 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      // The result view carries its own close button, like the reference popups.
-      appBar: _result != null
-          ? null
-          : const CommonAppBar(title: 'Video questions'),
-      body: _result != null ? _buildResult() : _buildQuestion(),
+    return ChangeNotifierProvider.value(
+      value: _q,
+      child: Consumer<VideoQuestionsScreenProvider>(
+        builder: (_, q, __) => _buildPage(q),
+      ),
     );
   }
 
-  Widget _buildResult() {
-    final result = _result!;
+  Widget _buildPage(VideoQuestionsScreenProvider q) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      // The result view carries its own close button, like the reference popups.
+      appBar: q.result != null
+          ? null
+          : const CommonAppBar(title: 'Video questions'),
+      body: q.result != null ? _buildResult(q) : _buildQuestion(q),
+    );
+  }
+
+  Widget _buildResult(VideoQuestionsScreenProvider q) {
+    final result = q.result!;
     final headline = result.percentage >= 80
         ? 'Way to go!'
         : result.percentage >= 50
@@ -397,14 +388,14 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
     );
   }
 
-  Widget _buildQuestion() {
+  Widget _buildQuestion(VideoQuestionsScreenProvider q) {
     if (widget.questions.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
 
-    final question = widget.questions[_index];
+    final question = widget.questions[q.index];
     final options = question.optionsFor(widget.locale);
 
     return Column(
@@ -423,26 +414,26 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
-                  value: (_index + 1) / widget.questions.length,
+                  value: (q.index + 1) / widget.questions.length,
                   minHeight: 6,
                   backgroundColor: AppColors.surfaceAlt,
                   valueColor: const AlwaysStoppedAnimation(AppColors.primary),
                 ),
               ),
               const SizedBox(height: 16),
-              if (_remainingSeconds != null)
+              if (q.remainingSeconds != null)
                 Align(
                   alignment: Alignment.centerRight,
                   child: Text(
-                    'Time ${_timerLabel()}',
+                    'Time ${_timerLabel(q)}',
                     style: AppFonts.bold(
-                      color: _remainingSeconds! <= 10 ? AppColors.danger : AppColors.primary,
+                      color: q.remainingSeconds! <= 10 ? AppColors.danger : AppColors.primary,
                     ),
                   ),
                 ),
-              if (_remainingSeconds != null) const SizedBox(height: 10),
+              if (q.remainingSeconds != null) const SizedBox(height: 10),
               Text(
-                'Question ${_index + 1} of ${widget.questions.length}',
+                'Question ${q.index + 1} of ${widget.questions.length}',
                 style: AppFonts.medium(
                   color: AppColors.textMuted,
                   fontSize: 12,
@@ -468,7 +459,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
             itemCount: options.length,
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, i) {
-              final selected = _selected == i;
+              final selected = _selected(q) == i;
               return InkWell(
                 onTap: () => _choose(i),
                 borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
@@ -531,11 +522,11 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
                   borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                 ),
               ),
-              onPressed: _selected == null || _submitting ? null : _next,
+              onPressed: _selected(q) == null || q.submitting ? null : _next,
               child: Text(
-                _submitting
+                q.submitting
                     ? 'Saving...'
-                    : _isLast
+                    : _isLast(q)
                     ? 'Submit'
                     : 'Next',
               ),

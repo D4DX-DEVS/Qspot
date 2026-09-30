@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../../services/api_client.dart';
+import '../provider/faculty_home_screen_provider.dart';
 import 'package:qspot/themes/app_colors.dart';
 import 'package:qspot/widgets/common/app_snack_bar.dart';
 
@@ -11,11 +13,7 @@ class FacultyHomeScreen extends StatefulWidget {
 }
 
 class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
-  List<dynamic> _questions = const [];
-  List<dynamic> _content = const [];
-  List<dynamic> _assignments = const [];
-  bool _loading = true;
-  String? _error;
+  final FacultyHomeScreenProvider _f = FacultyHomeScreenProvider();
 
   @override
   void initState() {
@@ -23,34 +21,13 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
     _load();
   }
 
-  Future<void> _load() async {
-    if (mounted)
-      setState(() {
-        _loading = true;
-        _error = null;
-      });
-    try {
-      final results = await Future.wait([
-        ApiClient.get('/api/faculty/questions'),
-        ApiClient.get('/api/faculty/content'),
-        ApiClient.get('/api/faculty/assignments'),
-      ]);
-      if (mounted)
-        setState(() {
-          _questions = results[0] is List ? results[0] : const [];
-          _content = results[1] is List ? results[1] : const [];
-          _assignments = results[2] is List ? results[2] : const [];
-          _loading = false;
-          _error = null;
-        });
-    } catch (e) {
-      if (mounted)
-        setState(() {
-          _error = e.toString();
-          _loading = false;
-        });
-    }
+  @override
+  void dispose() {
+    _f.dispose();
+    super.dispose();
   }
+
+  Future<void> _load() => _f.load();
 
   Future<void> _answer(Map<String, dynamic> question) async {
     final controller = TextEditingController(
@@ -106,12 +83,12 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
         style: Theme.of(context).textTheme.headlineSmall,
       ),
       const SizedBox(height: 12),
-      if (_questions.isEmpty)
+      if (_f.questions.isEmpty)
         const Padding(
           padding: EdgeInsets.only(top: 50),
           child: Center(child: Text('No questions yet')),
         ),
-      ..._questions.map((raw) {
+      ..._f.questions.map((raw) {
         final q = Map<String, dynamic>.from(raw as Map);
         final student = q['user'] is Map ? q['user']['name'] : 'Student';
         final answered =
@@ -142,8 +119,8 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
     children: [
       Text('Your lessons', style: Theme.of(context).textTheme.headlineSmall),
       const SizedBox(height: 12),
-      if (_content.isEmpty) const Text('No lessons assigned yet.'),
-      ..._content.map((raw) {
+      if (_f.content.isEmpty) const Text('No lessons assigned yet.'),
+      ..._f.content.map((raw) {
         final item = Map<String, dynamic>.from(raw as Map);
         final subject = item['subject'] is Map ? item['subject']['name'] : '';
         final status = item['isPublished'] == true ? 'Published' : 'Draft';
@@ -166,8 +143,8 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
         style: Theme.of(context).textTheme.headlineSmall,
       ),
       const SizedBox(height: 12),
-      if (_assignments.isEmpty) const Text('No assignments assigned yet.'),
-      ..._assignments.map((raw) {
+      if (_f.assignments.isEmpty) const Text('No assignments assigned yet.'),
+      ..._f.assignments.map((raw) {
         final item = Map<String, dynamic>.from(raw as Map);
         return Card(
           child: ListTile(
@@ -311,7 +288,14 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => DefaultTabController(
+  Widget build(BuildContext context) => ChangeNotifierProvider.value(
+    value: _f,
+    child: Consumer<FacultyHomeScreenProvider>(
+      builder: (_, f, __) => _buildPage(f),
+    ),
+  );
+
+  Widget _buildPage(FacultyHomeScreenProvider f) => DefaultTabController(
     length: 3,
     child: Scaffold(
       appBar: CommonAppBar(
@@ -327,10 +311,10 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
           ],
         ),
       ),
-      body: _loading
+      body: f.loading
           ? const Center(child: CircularProgressIndicator())
-          : _error != null
-          ? Center(child: Text(_error!))
+          : f.error != null
+          ? Center(child: Text(f.error!))
           : RefreshIndicator(
               onRefresh: _load,
               child: TabBarView(

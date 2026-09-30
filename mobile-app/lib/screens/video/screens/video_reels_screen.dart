@@ -15,6 +15,7 @@ import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../bookmark/provider/bookmark_provider.dart';
 import '../model/video_model.dart';
+import '../provider/video_reels_screen_provider.dart';
 import '../provider/video_provider.dart';
 import '../widgets/video_details_sheet.dart';
 import '../widgets/learn_note_sheet.dart';
@@ -72,8 +73,6 @@ class _ReelState {
   vp.VideoPlayerController? direct;
   ChewieController? chewie;
   WebViewController? web;
-  VideoProgressStatus? progress;
-  bool ready = false;
   Timer? directTicker;
 
   int lastPosition = 0;
@@ -91,7 +90,7 @@ class _ReelState {
 
 class _VideoReelsScreenState extends State<VideoReelsScreen> {
   late final PageController _pageController;
-  late int _index;
+  late final VideoReelsScreenProvider _reels;
 
   final Map<int, _ReelState> _states = {};
   final Map<int, VoidCallback> _listeners = {};
@@ -99,24 +98,24 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
   @override
   void initState() {
     super.initState();
-    _index = widget.initialIndex;
-    _pageController = PageController(initialPage: _index);
+    _reels = VideoReelsScreenProvider(initialIndex: widget.initialIndex);
+    _pageController = PageController(initialPage: _reels.index);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _activate(_index);
+      _activate(_reels.index);
     });
   }
 
   @override
   void dispose() {
-    final state = _states[_index];
-    if (state != null && state.ready) {
+    final state = _states[_reels.index];
+    if (state != null && _reels.isReady(_reels.index)) {
       final position =
           state.youtube?.value.position.inSeconds ??
           state.direct?.value.position.inSeconds;
       if (position != null) {
-        unawaited(_sendHeartbeat(_index, position));
+        unawaited(_sendHeartbeat(_reels.index, position));
       }
     }
 
@@ -128,6 +127,7 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
     _listeners.clear();
     _states.clear();
     _pageController.dispose();
+    _reels.dispose();
 
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
@@ -160,7 +160,7 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
           ..setNavigationDelegate(
             NavigationDelegate(
               onPageFinished: (_) {
-                if (mounted) setState(() => state.ready = true);
+                if (mounted) _reels.markReady(index);
               },
               onWebResourceError: (error) {
                 debugPrint('Reels WebView error: ${error.description}');
@@ -218,12 +218,12 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
       if (!mounted) return;
       state.chewie = ChewieController(
         videoPlayerController: controller,
-        autoPlay: _states[_index] == state,
+        autoPlay: _states[_reels.index] == state,
         looping: false,
         aspectRatio: video.playerAspectRatio,
         showControls: true,
       );
-      setState(() => state.ready = true);
+      _reels.markReady(index);
       state.directTicker = Timer.periodic(const Duration(seconds: 1), (_) {
         _onDirectTick(index);
       });
@@ -262,7 +262,7 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
     if (state == null) return;
 
     final controller = state.youtube;
-    if (controller == null || !state.ready) return;
+    if (controller == null || !_reels.isReady(index)) return;
 
     final position = controller.value.position.inSeconds;
     final delta = position - state.lastPosition;
@@ -297,8 +297,8 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
   }
 
   void _onPageChanged(int index) {
-    final previous = _index;
-    setState(() => _index = index);
+    final previous = _reels.index;
+    _reels.setIndex(index);
 
     final previousState = _states[previous];
     previousState?.youtube?.pause();
@@ -313,11 +313,14 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
   // ------------------------------------------------------------- watch state
 
   Future<void> _loadProgress(int index) async {
-    final state = _stateFor(index);
+    // Called while a page is being built (via _stateFor); let that build
+    // finish before notifying listeners.
+    await Future<void>.value();
+    if (!mounted) return;
     final videoProvider = Provider.of<VideoProvider>(context, listen: false);
     final cached = videoProvider.progressFor(widget.videos[index].id);
     if (cached != null && mounted) {
-      setState(() => state.progress = cached);
+      _reels.setProgress(index, cached);
     }
   }
 
@@ -341,7 +344,7 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
     );
 
     if (!mounted || status == null) return;
-    setState(() => state.progress = status);
+    _reels.setProgress(index, status);
 
     if (!mounted) return;
     Provider.of<VideoProvider>(context, listen: false).applyProgress(status);
@@ -423,8 +426,7 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
   }
 
   void _openPractice(int index) {
-    final state = _stateFor(index);
-    if (state.progress?.completed != true) return;
+    if (_reels.progressFor(index)?.completed != true) return;
     VideoQuestionsScreen.open(context, widget.videos[index]);
   }
 
@@ -464,6 +466,15 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _reels,
+      child: Consumer<VideoReelsScreenProvider>(
+        builder: (_, reels, __) => _buildFeed(reels),
+      ),
+    );
+  }
+
+  Widget _buildFeed(VideoReelsScreenProvider reels) {
     return Scaffold(
       backgroundColor: AppColors.black,
       body: PageView.builder(
@@ -471,19 +482,20 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
         scrollDirection: Axis.vertical,
         itemCount: widget.videos.length,
         onPageChanged: _onPageChanged,
-        itemBuilder: (context, index) => _buildPage(index),
+        itemBuilder: (context, index) => _buildPage(reels, index),
       ),
     );
   }
 
-  Widget _buildPage(int index) {
+  Widget _buildPage(VideoReelsScreenProvider reels, int index) {
     final video = widget.videos[index];
     final state = _stateFor(index);
+    final progress = reels.progressFor(index);
 
     return Stack(
       fit: StackFit.expand,
       children: [
-        _videoLayer(index, video, state),
+        _videoLayer(reels, index, video, state),
 
         Positioned(
           left: 0,
@@ -532,7 +544,7 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
                       ),
                     ),
                   ),
-                if (state.progress?.completed == true)
+                if (progress?.completed == true)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -619,7 +631,7 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
                   children: [
                     _detailsChip('Learn', 0, video),
                     _detailsChip('Downloads', 1, video),
-                    _practiceChip(index, state),
+                    _practiceChip(reels, index),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -645,14 +657,14 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
                     fontSize: 12.5,
                   ),
                 ),
-                if (state.progress != null &&
-                    !state.progress!.completed &&
-                    state.progress!.percent > 0) ...[
+                if (progress != null &&
+                    !progress.completed &&
+                    progress.percent > 0) ...[
                   const SizedBox(height: 12),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(3),
                     child: LinearProgressIndicator(
-                      value: state.progress!.percent,
+                      value: progress.percent,
                       minHeight: 3,
                       backgroundColor: AppColors.white24,
                       valueColor: const AlwaysStoppedAnimation(AppColors.white),
@@ -667,10 +679,15 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
     );
   }
 
-  Widget _videoLayer(int index, VideoModel video, _ReelState state) {
+  Widget _videoLayer(
+    VideoReelsScreenProvider reels,
+    int index,
+    VideoModel video,
+    _ReelState state,
+  ) {
     if (video.isLiveVideo) {
       if (state.web == null) return const SizedBox.shrink();
-      return state.ready
+      return reels.isReady(index)
           ? WebViewWidget(controller: state.web!)
           : const Center(
               child: CircularProgressIndicator(color: AppColors.white),
@@ -699,8 +716,8 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
             showVideoProgressIndicator: false,
             onReady: () {
               if (!mounted) return;
-              setState(() => state.ready = true);
-              if (_states[_index] == state) controller.play();
+              _reels.markReady(index);
+              if (_states[_reels.index] == state) controller.play();
             },
             onEnded: (_) {
               final total = controller.value.metaData.duration.inSeconds;
@@ -712,7 +729,7 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
     }
 
     // Direct (CDN) video: video_player + chewie (M16).
-    if (!state.ready || state.chewie == null) {
+    if (!reels.isReady(index) || state.chewie == null) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.white),
       );
@@ -780,8 +797,8 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
 
   /// Practice unlocks only once `progress.completed == true` for this video
   /// (M19) — no local heuristic decides this.
-  Widget _practiceChip(int index, _ReelState state) {
-    final unlocked = state.progress?.completed == true;
+  Widget _practiceChip(VideoReelsScreenProvider reels, int index) {
+    final unlocked = reels.progressFor(index)?.completed == true;
     return _chip(
       'Practice',
       unlocked ? () => _openPractice(index) : null,

@@ -6,9 +6,8 @@ import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../speaker/provider/speaker_provider.dart';
-import '../model/question_model.dart';
+import '../provider/ask_question_screen_provider.dart';
 import '../../speaker/model/speaker_model.dart';
-import '../service/question_service.dart';
 import 'my_questions_screen.dart';
 
 class AskQuestionScreen extends StatefulWidget {
@@ -33,18 +32,27 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  SpeakerModel? _selectedFaculty;
-  bool _isSubmitting = false;
+  final AskQuestionScreenProvider _state = AskQuestionScreenProvider();
 
   @override
   void dispose() {
     _subjectController.dispose();
     _descriptionController.dispose();
+    _state.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _state,
+      child: Consumer<AskQuestionScreenProvider>(
+        builder: (_, state, __) => _buildPage(state),
+      ),
+    );
+  }
+
+  Widget _buildPage(AskQuestionScreenProvider state) {
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.86,
       child: Container(
@@ -171,7 +179,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<SpeakerModel>(
                                   isExpanded: true,
-                                  value: _selectedFaculty,
+                                  value: state.selectedFaculty,
                                   hint: Text(
                                     'Choose a faculty',
                                     style: AppFonts.regular(
@@ -202,11 +210,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                       ),
                                     );
                                   }).toList(),
-                                  onChanged: (SpeakerModel? newValue) {
-                                    setState(() {
-                                      _selectedFaculty = newValue;
-                                    });
-                                  },
+                                  onChanged: state.selectFaculty,
                                 ),
                               ),
                             ),
@@ -342,7 +346,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                               width: double.infinity,
                               height: 56,
                               child: ElevatedButton(
-                                onPressed: _isSubmitting
+                                onPressed: state.isSubmitting
                                     ? null
                                     : _submitQuestion,
                                 style: ElevatedButton.styleFrom(
@@ -357,7 +361,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                   ),
                                   elevation: 0,
                                 ),
-                                child: _isSubmitting
+                                child: state.isSubmitting
                                     ? const SizedBox(
                                         width: 24,
                                         height: 24,
@@ -439,7 +443,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
   }
 
   Future<void> _submitQuestion() async {
-    if (_selectedFaculty == null) {
+    if (_state.selectedFaculty == null) {
       AppSnackBar.show(
         context,
         message: 'Please choose a faculty to send your question to',
@@ -449,27 +453,19 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
     }
 
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isSubmitting = true;
-      });
+      _state.startSubmitting();
 
       try {
-        final question = QuestionModel(
+        await _state.submit(
           subject: _subjectController.text.trim(),
           description: _descriptionController.text.trim(),
-          faculty: _selectedFaculty!.id,
         );
-
-        await QuestionService.submit(question);
 
         if (mounted) {
           // Clear the form
           _subjectController.clear();
           _descriptionController.clear();
-          setState(() {
-            _selectedFaculty = null;
-            _isSubmitting = false;
-          });
+          _state.finishSubmitting(clearFaculty: true);
 
           AppSnackBar.show(
             context,
@@ -482,9 +478,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
             ? e.message
             : 'We couldn\'t send your question. Please try again.';
         if (mounted) {
-          setState(() {
-            _isSubmitting = false;
-          });
+          _state.finishSubmitting();
           AppSnackBar.show(context, message: message, color: AppColors.danger);
         }
       }

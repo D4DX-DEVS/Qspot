@@ -23,6 +23,7 @@ import '../../subject/screens/subject_list_screen.dart';
 import '../../video/model/video_model.dart';
 import '../../video/provider/video_provider.dart';
 import '../../video/screens/video_reels_screen.dart';
+import '../provider/redesigned_home_screen_provider.dart';
 import '../widgets/continue_lesson_card.dart';
 import '../widgets/today_header.dart';
 import '../widgets/today_hero_card.dart';
@@ -38,7 +39,9 @@ class RedesignedHomeScreen extends StatefulWidget {
 }
 
 class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
-  TodayOverview? _today;
+  final RedesignedHomeScreenProvider _home = RedesignedHomeScreenProvider();
+
+  TodayOverview? get _today => _home.today;
 
   @override
   void initState() {
@@ -57,8 +60,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   }
 
   Future<void> _loadToday() async {
-    final result = await TodayService.fetch();
-    if (mounted) setState(() => _today = result);
+    await _home.loadToday();
   }
 
   Future<void> _refresh() async {
@@ -70,7 +72,22 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   }
 
   @override
+  void dispose() {
+    _home.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _home,
+      child: Consumer<RedesignedHomeScreenProvider>(
+        builder: (_, home, __) => _buildPage(),
+      ),
+    );
+  }
+
+  Widget _buildPage() {
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: _refresh,
