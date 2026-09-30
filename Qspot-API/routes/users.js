@@ -209,7 +209,6 @@ router.post('/login/request-otp', async (req, res) => {
     }
 
     const isTestPhone =
-      process.env.NODE_ENV !== 'production' &&
       process.env.TEST_LOGIN &&
       normalizedPhone === normalizePhone(process.env.TEST_LOGIN);
 
@@ -240,7 +239,6 @@ router.post('/login/verify', async (req, res) => {
     const testLogin = process.env.TEST_LOGIN ? normalizePhone(process.env.TEST_LOGIN) : null;
     const testOtp = process.env.TEST_OTP;
     const isTestLogin =
-      process.env.NODE_ENV !== 'production' &&
       testLogin && testOtp &&
       normalizedPhone === testLogin &&
       code === testOtp;
@@ -255,8 +253,8 @@ router.post('/login/verify', async (req, res) => {
     let user = await User.findOne({ phone: normalizedPhone });
     if (!user && isTestLogin) {
       // Dev convenience: the documented test login should work on a fresh
-      // database without registering by hand. Gated on TEST_LOGIN/TEST_OTP and
-      // on NODE_ENV !== 'production', so it can never create users in prod.
+      // database without registering by hand. Gated on TEST_LOGIN/TEST_OTP, so
+      // it only ever creates that one test number.
       user = await User.create({
         phone: normalizedPhone,
         name: process.env.TEST_LOGIN_NAME || 'Test Student',
