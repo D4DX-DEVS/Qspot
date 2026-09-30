@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../themes/home_palette.dart';
 import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/soft_icon_tile.dart';
+import '../../common/widgets/home_theme_scope.dart';
 import '../model/user_question_model.dart';
 import '../provider/my_questions_screen_provider.dart';
 import 'ask_question_screen.dart';
@@ -32,17 +34,19 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: _state,
-      child: Consumer<MyQuestionsScreenProvider>(
-        builder: (_, state, __) => _buildPage(state),
+    return HomeThemeScope(
+      child: ChangeNotifierProvider.value(
+        value: _state,
+        child: Consumer<MyQuestionsScreenProvider>(
+          builder: (context, state, _) => _buildPage(context, state),
+        ),
       ),
     );
   }
 
-  Widget _buildPage(MyQuestionsScreenProvider state) {
+  Widget _buildPage(BuildContext context, MyQuestionsScreenProvider state) {
+    final p = HomePalette.of(context);
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: CommonAppBar(
         title: 'My questions',
         actions: [
@@ -53,9 +57,10 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
             },
             child: Text(
               'Ask new',
-              style: AppFonts.bold(color: AppColors.primary, fontSize: 15),
+              style: AppFonts.bold(color: p.brand, fontSize: 15),
             ),
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: SafeArea(
@@ -67,18 +72,21 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
                 child: Row(
                   children: [
                     _filterButton(
+                      p,
                       state,
                       'All',
                       state.filter == QuestionFilter.all,
                     ),
                     const SizedBox(width: 8),
                     _filterButton(
+                      p,
                       state,
                       'Answered',
                       state.filter == QuestionFilter.answered,
                     ),
                     const SizedBox(width: 8),
                     _filterButton(
+                      p,
                       state,
                       'Pending',
                       state.filter == QuestionFilter.pending,
@@ -89,14 +97,10 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
 
             Expanded(
               child: state.isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
-                    )
+                  ? const Center(child: CircularProgressIndicator())
                   : state.errorMessage != null
-                  ? _buildErrorState(state)
-                  : _buildQuestionsList(state),
+                  ? _buildErrorState(p, state)
+                  : _buildQuestionsList(p, state),
             ),
           ],
         ),
@@ -105,6 +109,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
   }
 
   Widget _filterButton(
+    HomePalette p,
     MyQuestionsScreenProvider state,
     String label,
     bool selected,
@@ -119,16 +124,14 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primarySoft : AppColors.surfaceAlt,
+          color: selected ? p.brandSoft : p.card,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
-          ),
+          border: Border.all(color: selected ? p.brand : p.cardBorder),
         ),
         child: Text(
           label,
           style: AppFonts.semiBold(
-            color: selected ? AppColors.primary : AppColors.textMuted,
+            color: selected ? p.brand : p.textMuted,
             fontSize: 13,
           ),
         ),
@@ -136,25 +139,25 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
     );
   }
 
-  Widget _buildErrorState(MyQuestionsScreenProvider state) {
+  Widget _buildErrorState(HomePalette p, MyQuestionsScreenProvider state) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.paddingLarge),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.cloud_off, size: 48, color: AppColors.textMuted),
+            Icon(Icons.cloud_off, size: 48, color: p.textMuted),
             const SizedBox(height: 14),
             Text(
               'Could not load your questions',
-              style: AppFonts.bold(color: AppColors.textPrimary, fontSize: 17),
+              style: AppFonts.bold(color: p.text, fontSize: 17),
             ),
             const SizedBox(height: 6),
             Text(
               state.errorMessage ?? '',
               textAlign: TextAlign.center,
               style: AppFonts.regular(
-                color: AppColors.textMuted,
+                color: p.textMuted,
                 fontSize: 13,
                 height: 1.4,
               ),
@@ -162,8 +165,8 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
             const SizedBox(height: 18),
             FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.onPrimary,
+                backgroundColor: p.brand,
+                foregroundColor: p.card,
                 shape: const StadiumBorder(),
               ),
               onPressed: _state.loadQuestions,
@@ -175,7 +178,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
     );
   }
 
-  Widget _buildEmptyState(MyQuestionsScreenProvider state) {
+  Widget _buildEmptyState(HomePalette p, MyQuestionsScreenProvider state) {
     final filtered = state.filter != QuestionFilter.all;
     return Center(
       child: Padding(
@@ -183,15 +186,16 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.forum_outlined,
-              size: 48,
-              color: AppColors.textMuted,
+            SoftIconTile(
+              icon: Icons.forum_outlined,
+              tone: p.rose,
+              size: 84,
+              circle: true,
             ),
             const SizedBox(height: 16),
             Text(
               filtered ? 'Nothing here' : 'There is nothing here yet',
-              style: AppFonts.bold(color: AppColors.textPrimary, fontSize: 19),
+              style: AppFonts.bold(color: p.text, fontSize: 19),
             ),
             const SizedBox(height: 10),
             Text(
@@ -200,7 +204,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
                   : 'Tap "Ask new" to ask your first question.',
               textAlign: TextAlign.center,
               style: AppFonts.regular(
-                color: AppColors.textMuted,
+                color: p.textMuted,
                 fontSize: 14,
                 height: 1.5,
               ),
@@ -211,22 +215,22 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
     );
   }
 
-  Widget _buildQuestionsList(MyQuestionsScreenProvider state) {
+  Widget _buildQuestionsList(HomePalette p, MyQuestionsScreenProvider state) {
     final questions = state.filteredQuestions;
-    if (questions.isEmpty) return _buildEmptyState(state);
+    if (questions.isEmpty) return _buildEmptyState(p, state);
 
     return RefreshIndicator(
-      color: AppColors.primary,
       onRefresh: _state.loadQuestions,
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         itemCount: questions.length,
-        itemBuilder: (context, index) => _buildQuestionCard(questions[index]),
+        itemBuilder: (context, index) =>
+            _buildQuestionCard(p, questions[index]),
       ),
     );
   }
 
-  Widget _buildQuestionCard(UserQuestion question) {
+  Widget _buildQuestionCard(HomePalette p, UserQuestion question) {
     final hasAnswer = question.answer != null && question.answer!.isNotEmpty;
 
     return Padding(
@@ -238,13 +242,13 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: hasAnswer ? AppColors.primary : AppColors.surfaceAlt,
+              color: hasAnswer ? p.brand : p.amber.soft,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
               hasAnswer ? 'Answered' : 'Waiting for an answer',
               style: AppFonts.bold(
-                color: hasAnswer ? AppColors.onPrimary : AppColors.textMuted,
+                color: hasAnswer ? p.card : p.amber.color,
                 fontSize: 11.5,
               ),
             ),
@@ -252,21 +256,17 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
           const SizedBox(height: 10),
           Text(
             question.subject,
-            style: AppFonts.bold(color: AppColors.primary, fontSize: 13),
+            style: AppFonts.bold(color: p.brand, fontSize: 13),
           ),
           const SizedBox(height: 4),
           Text(
             question.description,
-            style: AppFonts.regular(
-              color: AppColors.textPrimary,
-              fontSize: 15,
-              height: 1.5,
-            ),
+            style: AppFonts.regular(color: p.text, fontSize: 15, height: 1.5),
           ),
           const SizedBox(height: 6),
           Text(
             _formatDate(question.createdAt),
-            style: AppFonts.regular(color: AppColors.textMuted, fontSize: 12),
+            style: AppFonts.regular(color: p.textMuted, fontSize: 12),
           ),
           if (hasAnswer) ...[
             const SizedBox(height: 14),
@@ -274,7 +274,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.primarySoft,
+                color: p.brandSoft,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Column(
@@ -283,7 +283,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
                   Text(
                     question.answer!,
                     style: AppFonts.regular(
-                      color: AppColors.textPrimary,
+                      color: p.text,
                       fontSize: 15,
                       height: 1.5,
                     ),
@@ -292,10 +292,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
                   Text(
                     'Answered by ${question.answeredBy ?? 'the faculty'}'
                     '${question.answeredAt != null ? ' · ${_formatDate(question.answeredAt!)}' : ''}',
-                    style: AppFonts.semiBold(
-                      color: AppColors.primary,
-                      fontSize: 12,
-                    ),
+                    style: AppFonts.semiBold(color: p.brand, fontSize: 12),
                   ),
                 ],
               ),

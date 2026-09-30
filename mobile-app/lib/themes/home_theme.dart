@@ -46,6 +46,8 @@ class HomeTheme {
       scaffoldBackgroundColor: p.background,
       canvasColor: p.card,
       dividerColor: p.cardBorder,
+      // Highlighted row in open menus (e.g. dropdowns).
+      focusColor: p.brandSoft,
       appBarTheme: AppBarTheme(
         backgroundColor: p.background,
         surfaceTintColor: AppColors.transparent,

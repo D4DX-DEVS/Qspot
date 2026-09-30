@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../themes/home_palette.dart';
 import '../../../widgets/common/gradient_card.dart';
 import '../../../widgets/common/hero_tag_pill.dart';
 import '../../../widgets/common/initials_avatar.dart';
@@ -38,7 +39,7 @@ class ProfileIdentityCard extends StatelessWidget {
                 InitialsAvatar(
                   name: name,
                   size: 68,
-                  color: AppColors.primaryDeep,
+                  gradient: HomePalette.of(context).heroGradient,
                   ringWidth: 2.5,
                 ),
                 const SizedBox(width: 16),
