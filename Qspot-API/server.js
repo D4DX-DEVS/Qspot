@@ -15,6 +15,11 @@ const path = require('path');
 
 const app = express();
 
+// DigitalOcean App Platform sits in front of the API as a proxy. Trust that one
+// hop so req.ip is the real client IP and the OTP rate limit is per user,
+// not one shared bucket for everyone.
+app.set('trust proxy', 1);
+
 // Windows resolver fails MongoDB SRV lookups; force a resolver that supports them.
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
