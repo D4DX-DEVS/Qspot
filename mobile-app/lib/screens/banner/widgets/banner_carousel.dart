@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../model/banner_model.dart';
+import '../provider/banner_carousel_provider.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
@@ -17,10 +19,25 @@ class BannerCarousel extends StatefulWidget {
 }
 
 class _BannerCarouselState extends State<BannerCarousel> {
-  int _currentIndex = 0;
+  final BannerCarouselProvider _carousel = BannerCarouselProvider();
+
+  @override
+  void dispose() {
+    _carousel.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _carousel,
+      child: Consumer<BannerCarouselProvider>(
+        builder: (_, carousel, __) => _buildPage(carousel),
+      ),
+    );
+  }
+
+  Widget _buildPage(BannerCarouselProvider carousel) {
     debugPrint(
       '🎠 [BANNER CAROUSEL] Building with ${widget.banners.length} banners',
     );
@@ -48,11 +65,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
             autoPlayCurve: Curves.fastOutSlowIn,
             enlargeCenterPage: true,
             viewportFraction: 0.9,
-            onPageChanged: (index, reason) {
-              setState(() {
-                _currentIndex = index;
-              });
-            },
+            onPageChanged: (index, reason) => carousel.setIndex(index),
           ),
           items: widget.banners.map((banner) {
             return Builder(
@@ -64,7 +77,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
         ),
         if (widget.banners.length > 1) ...[
           const SizedBox(height: AppTheme.paddingSmall),
-          _buildIndicators(),
+          _buildIndicators(carousel),
         ],
       ],
     );
@@ -117,17 +130,17 @@ class _BannerCarouselState extends State<BannerCarousel> {
     );
   }
 
-  Widget _buildIndicators() {
+  Widget _buildIndicators(BannerCarouselProvider carousel) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: widget.banners.asMap().entries.map((entry) {
         return Container(
-          width: _currentIndex == entry.key ? 24 : 8,
+          width: carousel.currentIndex == entry.key ? 24 : 8,
           height: 8,
           margin: const EdgeInsets.symmetric(horizontal: 4.0),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(4),
-            color: _currentIndex == entry.key
+            color: carousel.currentIndex == entry.key
                 ? AppColors.primary
                 : AppColors.textMuted.withValues(alpha: 0.4),
           ),

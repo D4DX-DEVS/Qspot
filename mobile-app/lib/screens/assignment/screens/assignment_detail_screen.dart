@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'package:qspot/screens/assignment/model/assignment_model.dart';
+import 'package:qspot/screens/assignment/provider/assignment_detail_provider.dart';
 import 'package:qspot/screens/assignment/service/assignment_service.dart';
 import 'package:qspot/themes/app_colors.dart';
 import 'package:qspot/services/api_client.dart';
@@ -19,9 +21,7 @@ class AssignmentDetailScreen extends StatefulWidget {
 
 class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
   late final TextEditingController _submissionController;
-  late Future<AssignmentModel> _assignment;
-  bool _submitting = false;
-  final List<AssignmentUpload> _attachments = [];
+  late final AssignmentDetailProvider _detail;
   final ImagePicker _imagePicker = ImagePicker();
 
   @override
@@ -30,20 +30,19 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
     _submissionController = TextEditingController(
       text: widget.assignment.submissionText,
     );
-    _assignment = AssignmentService.fetchOne(
-      widget.assignment.id,
-    ).catchError((_) => widget.assignment);
+    _detail = AssignmentDetailProvider(widget.assignment);
   }
 
   @override
   void dispose() {
     _submissionController.dispose();
+    _detail.dispose();
     super.dispose();
   }
 
   Future<void> _submit(AssignmentModel assignment) async {
     final text = _submissionController.text.trim();
-    if (text.isEmpty && _attachments.isEmpty) {
+    if (text.isEmpty && _detail.attachments.isEmpty) {
       AppSnackBar.show(
         context,
         message: 'Please write your answer or attach a file before submitting',
@@ -51,12 +50,12 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
       );
       return;
     }
-    setState(() => _submitting = true);
+    _detail.setSubmitting(true);
     try {
       await AssignmentService.submit(
         assignment.id,
         text: text,
-        attachments: _attachments,
+        attachments: _detail.attachments,
       );
       if (!mounted) return;
       AppSnackBar.show(
@@ -75,7 +74,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
         color: AppColors.danger,
       );
     } finally {
-      if (mounted) setState(() => _submitting = false);
+      if (mounted) _detail.setSubmitting(false);
     }
   }
 
@@ -140,7 +139,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
       );
       return;
     }
-    setState(() => _attachments.add(file));
+    _detail.addAttachment(file);
   }
 
   static String _audioMime(String? extension) {
@@ -166,10 +165,17 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ChangeNotifierProvider.value(
+    value: _detail,
+    child: Consumer<AssignmentDetailProvider>(
+      builder: (_, detail, __) => _buildPage(detail),
+    ),
+  );
+
+  Widget _buildPage(AssignmentDetailProvider detail) => Scaffold(
     appBar: const CommonAppBar(title: 'Assignment'),
     body: FutureBuilder<AssignmentModel>(
-      future: _assignment,
+      future: detail.assignment,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -302,14 +308,12 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                 onCamera: () => _pickPhoto(assignment, ImageSource.camera),
                 onGallery: () => _pickPhoto(assignment, ImageSource.gallery),
               ),
-              if (_attachments.isNotEmpty) ...[
+              if (detail.attachments.isNotEmpty) ...[
                 const SizedBox(height: 10),
-                ..._attachments.asMap().entries.map(
+                ...detail.attachments.asMap().entries.map(
                   (entry) => _PendingAttachment(
                     file: entry.value,
-                    onRemove: () => setState(
-                      () => _attachments.removeAt(entry.key),
-                    ),
+                    onRemove: () => detail.removeAttachmentAt(entry.key),
                   ),
                 ),
               ],
@@ -317,8 +321,10 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
               SizedBox(
                 height: 48,
                 child: FilledButton.icon(
-                  onPressed: _submitting ? null : () => _submit(assignment),
-                  icon: _submitting
+                  onPressed: detail.submitting
+                      ? null
+                      : () => _submit(assignment),
+                  icon: detail.submitting
                       ? const SizedBox(
                           width: 18,
                           height: 18,
@@ -328,7 +334,9 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                           ),
                         )
                       : const Icon(Icons.send_outlined),
-                  label: Text(_submitting ? 'Sending...' : 'Submit assignment'),
+                  label: Text(
+                    detail.submitting ? 'Sending...' : 'Submit assignment',
+                  ),
                 ),
               ),
               const SizedBox(height: 12),

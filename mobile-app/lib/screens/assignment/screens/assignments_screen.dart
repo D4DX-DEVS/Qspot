@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:qspot/screens/assignment/model/assignment_model.dart';
+import 'package:qspot/screens/assignment/provider/assignments_screen_provider.dart';
 import 'package:qspot/screens/assignment/screens/assignment_detail_screen.dart';
-import 'package:qspot/screens/assignment/service/assignment_service.dart';
 import 'package:qspot/themes/app_colors.dart';
 import 'package:qspot/themes/app_fonts.dart';
 import 'package:qspot/widgets/common/common_app_bar.dart';
@@ -14,26 +15,31 @@ class AssignmentsScreen extends StatefulWidget {
 }
 
 class _AssignmentsScreenState extends State<AssignmentsScreen> {
-  late Future<List<AssignmentModel>> _assignments;
+  final AssignmentsScreenProvider _list = AssignmentsScreenProvider();
 
   @override
-  void initState() {
-    super.initState();
-    _assignments = AssignmentService.fetchAll();
+  void dispose() {
+    _list.dispose();
+    super.dispose();
   }
 
-  Future<void> _reload() async {
-    final request = AssignmentService.fetchAll();
-    setState(() => _assignments = request);
-    await request;
-  }
+  Future<void> _reload() => _list.reload();
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _list,
+      child: Consumer<AssignmentsScreenProvider>(
+        builder: (_, list, __) => _buildPage(list),
+      ),
+    );
+  }
+
+  Widget _buildPage(AssignmentsScreenProvider list) {
     return Scaffold(
       appBar: const CommonAppBar(title: 'Assignments'),
       body: FutureBuilder<List<AssignmentModel>>(
-        future: _assignments,
+        future: list.assignments,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../model/subject_model.dart';
-import '../../video/model/video_model.dart';
+import '../provider/subject_videos_screen_provider.dart';
 import '../../video/provider/video_provider.dart';
-import '../../../services/api_client.dart';
 import '../../video/widgets/video_card.dart';
 import '../widgets/chapter_guide_sheet.dart';
 import '../../../themes/app_colors.dart';
@@ -21,9 +20,14 @@ class SubjectVideosScreen extends StatefulWidget {
 }
 
 class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
-  List<VideoModel> _videos = [];
-  bool _isLoading = true;
-  String _errorMessage = '';
+  final SubjectVideosScreenProvider _subjectVideos =
+      SubjectVideosScreenProvider();
+
+  @override
+  void dispose() {
+    _subjectVideos.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -49,54 +53,16 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
     });
   }
 
-  // Fetches only this subject's videos server-side (`?subject=<id>`) instead
-  // of downloading the full catalogue and filtering client-side (M12).
   Future<void> _loadSubjectVideos() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
-
-    try {
-      final body = await ApiClient.get(
-        '/api/videos',
-        query: {'subject': widget.subject.id},
-      );
-      final List<dynamic> videosJson = body is List ? body : const [];
-      final videos = videosJson
-          .whereType<Map>()
-          .map((json) => VideoModel.fromJson(Map<String, dynamic>.from(json)))
-          .toList();
-
-      // Episodes within a subject ordered by their `order` field (R4), not
-      // creation time.
-      videos.sort((a, b) {
-        final byOrder = a.order.compareTo(b.order);
-        if (byOrder != 0) return byOrder;
-        return b.datePublished.compareTo(a.datePublished);
-      });
-
-      debugPrint(
-        '📚 [SUBJECT VIDEOS] Loaded ${videos.length} for ${widget.subject.id}',
-      );
-
-      if (!mounted) return;
-      setState(() {
-        _videos = videos;
-        _isLoading = false;
-      });
-
+    await _subjectVideos.loadSubjectVideos(
+      widget.subject.id,
       // Watch status for these videos comes from the account (fetched once
       // per session by VideoProvider), not local storage.
-      await Provider.of<VideoProvider>(context, listen: false).loadProgress();
-    } catch (e) {
-      debugPrint('📚 [SUBJECT VIDEOS] Error: $e');
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = 'Failed to load videos: $e';
-        _isLoading = false;
-      });
-    }
+      onLoaded: () async {
+        if (!mounted) return;
+        await Provider.of<VideoProvider>(context, listen: false).loadProgress();
+      },
+    );
   }
 
   Future<void> _onRefresh() async {
@@ -105,21 +71,31 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: CommonAppBar(title: widget.subject.displayName),
-      body: _buildBody(),
+    return ChangeNotifierProvider.value(
+      value: _subjectVideos,
+      child: Consumer<SubjectVideosScreenProvider>(
+        builder: (_, subjectVideos, __) => _buildPage(subjectVideos),
+      ),
     );
   }
 
-  Widget _buildBody() {
-    if (_isLoading) {
+  Widget _buildPage(SubjectVideosScreenProvider subjectVideos) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: CommonAppBar(title: widget.subject.displayName),
+      body: _buildBody(subjectVideos),
+    );
+  }
+
+  Widget _buildBody(SubjectVideosScreenProvider subjectVideos) {
+    final videos = subjectVideos.videos;
+    if (subjectVideos.isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
 
-    if (_errorMessage.isNotEmpty) {
+    if (subjectVideos.errorMessage.isNotEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(AppTheme.paddingLarge),
@@ -136,7 +112,7 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
               ),
               const SizedBox(height: AppTheme.paddingSmall),
               Text(
-                _errorMessage,
+                subjectVideos.errorMessage,
                 style: Theme.of(
                   context,
                 ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
@@ -150,7 +126,7 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
       );
     }
 
-    if (_videos.isEmpty) {
+    if (videos.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(AppTheme.paddingLarge),
@@ -211,7 +187,7 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
                         ),
                       ),
                       Text(
-                        '${_videos.length} lesson${_videos.length != 1 ? 's' : ''}',
+                        '${videos.length} lesson${videos.length != 1 ? 's' : ''}',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.onPrimary.withValues(alpha: 0.85),
                         ),
@@ -235,9 +211,9 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
                 mainAxisSpacing: AppTheme.paddingMedium,
                 childAspectRatio: 0.75,
               ),
-              itemCount: _videos.length,
+              itemCount: videos.length,
               itemBuilder: (context, index) {
-                final video = _videos[index];
+                final video = videos[index];
                 return VideoCard(
                   video: video,
                   progress: Provider.of<VideoProvider>(
@@ -255,6 +231,6 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
   }
 
   void _openReels(int index) {
-    VideoReelsScreen.open(context, _videos, initialIndex: index);
+    VideoReelsScreen.open(context, _subjectVideos.videos, initialIndex: index);
   }
 }

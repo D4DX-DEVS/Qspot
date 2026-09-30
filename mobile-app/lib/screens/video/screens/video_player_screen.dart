@@ -16,6 +16,7 @@ import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../bookmark/provider/bookmark_provider.dart';
 import '../model/video_model.dart';
+import '../provider/video_player_screen_provider.dart';
 import '../provider/video_provider.dart';
 import '../widgets/learn_note_sheet.dart';
 import '../widgets/video_details_sheet.dart';
@@ -35,13 +36,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   vp.VideoPlayerController? _directController;
   ChewieController? _chewieController;
   WebViewController? _webViewController;
-  bool _isPlayerReady = false;
-  bool _isFullScreen = false;
+  final VideoPlayerScreenProvider _playback = VideoPlayerScreenProvider();
   bool _isLiveStream = false;
   bool _isDirect = false;
 
   // Server-side watch state for this video.
-  VideoProgressStatus? _progress;
   int _lastKnownPosition = 0;
   int _pendingWatchedSeconds = 0;
   int _lastHeartbeatAt = -1;
@@ -119,7 +118,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           backgroundColor: AppColors.surfaceAlt,
         ),
       );
-      setState(() => _isPlayerReady = true);
+      _playback.setPlayerReady(true);
       _directTicker = Timer.periodic(const Duration(seconds: 1), (_) {
         _onDirectTick();
       });
@@ -157,9 +156,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (String url) {
-            setState(() {
-              _isPlayerReady = true;
-            });
+            if (!mounted) return;
+            _playback.setPlayerReady(true);
           },
           onWebResourceError: (WebResourceError error) {
             debugPrint('WebView error: ${error.description}');
@@ -182,7 +180,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   void _onYoutubeTick() {
-    if (_isPlayerReady && mounted && _youtubeController != null) {
+    if (_playback.isPlayerReady && mounted && _youtubeController != null) {
       final position = _youtubeController!.value.position.inSeconds;
 
       // Only forward playback counts. A seek makes delta jump far beyond the
@@ -221,7 +219,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     );
 
     if (!mounted || status == null) return;
-    setState(() => _progress = status);
+    _playback.setProgress(status);
 
     // Apply immediately so "Jump back in" / progress bars elsewhere update
     // without waiting for an app restart (fixes M13).
@@ -304,7 +302,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   void _openPractice() {
-    if (_progress?.completed != true) return;
+    if (_playback.progress?.completed != true) return;
     VideoQuestionsScreen.open(context, widget.video);
   }
 
@@ -331,7 +329,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   @override
   void dispose() {
     // Save final progress before disposing.
-    if (_isPlayerReady && !_isLiveStream) {
+    if (_playback.isPlayerReady && !_isLiveStream) {
       if (_youtubeController != null) {
         _saveProgress(_youtubeController!.value.position.inSeconds);
       } else if (_directController?.value.isInitialized == true) {
@@ -350,11 +348,21 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       DeviceOrientation.portraitDown,
     ]);
 
+    _playback.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _playback,
+      child: Consumer<VideoPlayerScreenProvider>(
+        builder: (_, playback, __) => _buildPage(playback),
+      ),
+    );
+  }
+
+  Widget _buildPage(VideoPlayerScreenProvider playback) {
     if (_isLiveStream && _webViewController != null) {
       return _buildLiveStreamPlayer();
     }
@@ -370,18 +378,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
     return YoutubePlayerBuilder(
       onExitFullScreen: () {
-        setState(() {
-          _isFullScreen = false;
-        });
+        _playback.setFullScreen(false);
         SystemChrome.setPreferredOrientations([
           DeviceOrientation.portraitUp,
           DeviceOrientation.portraitDown,
         ]);
       },
       onEnterFullScreen: () {
-        setState(() {
-          _isFullScreen = true;
-        });
+        _playback.setFullScreen(true);
       },
       player: YoutubePlayer(
         controller: _youtubeController!,
@@ -395,9 +399,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           backgroundColor: AppColors.surfaceAlt,
         ),
         onReady: () {
-          setState(() {
-            _isPlayerReady = true;
-          });
+          _playback.setPlayerReady(true);
         },
         onEnded: (metaData) {
           if (_youtubeController != null) {
@@ -411,7 +413,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   Widget _buildDirectPlayerScreen() {
-    if (!_isPlayerReady || _chewieController == null) {
+    if (!_playback.isPlayerReady || _chewieController == null) {
       return const Scaffold(
         backgroundColor: AppColors.black,
         body: Center(
@@ -468,7 +470,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     () => Navigator.of(context).pop(),
                   ),
                   const Spacer(),
-                  if (_progress?.completed == true)
+                  if (_playback.progress?.completed == true)
                     Container(
                       margin: const EdgeInsets.only(right: 8),
                       padding: const EdgeInsets.symmetric(
@@ -557,14 +559,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                       fontSize: 12.5,
                     ),
                   ),
-                  if (_progress != null &&
-                      !_progress!.completed &&
-                      _progress!.percent > 0) ...[
+                  if (_playback.progress != null &&
+                      !_playback.progress!.completed &&
+                      _playback.progress!.percent > 0) ...[
                     const SizedBox(height: 12),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(3),
                       child: LinearProgressIndicator(
-                        value: _progress!.percent,
+                        value: _playback.progress!.percent,
                         minHeight: 3,
                         backgroundColor: AppColors.white24,
                         valueColor: const AlwaysStoppedAnimation(
@@ -592,9 +594,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   /// The Practice chip is disabled until the video is marked complete on the
-  /// server (M19) — no local heuristic decides this, only `_progress`.
+  /// server (M19) — no local heuristic decides this, only the server progress.
   Widget _practiceChip() {
-    final unlocked = _progress?.completed == true;
+    final unlocked = _playback.progress?.completed == true;
     return _chip(
       'Practice',
       unlocked ? _openPractice : null,
@@ -645,7 +647,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   Widget _buildLiveStreamPlayer() {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: _isFullScreen
+      appBar: _playback.isFullScreen
           ? null
           : CommonAppBar(
               title: widget.video.displayTitle,
@@ -671,11 +673,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                 ),
                 IconButton(
                   onPressed: () {
-                    setState(() {
-                      _isFullScreen = !_isFullScreen;
-                    });
+                    _playback.toggleFullScreen();
                     SystemChrome.setPreferredOrientations(
-                      _isFullScreen
+                      _playback.isFullScreen
                           ? [
                               DeviceOrientation.landscapeLeft,
                               DeviceOrientation.landscapeRight,
@@ -687,7 +687,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     );
                   },
                   icon: Icon(
-                    _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                    _playback.isFullScreen
+                        ? Icons.fullscreen_exit
+                        : Icons.fullscreen,
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -696,11 +698,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       body: Column(
         children: [
           Expanded(
-            flex: _isFullScreen ? 1 : 3,
+            flex: _playback.isFullScreen ? 1 : 3,
             child: Container(
               width: double.infinity,
               decoration: const BoxDecoration(color: AppColors.black),
-              child: _isPlayerReady
+              child: _playback.isPlayerReady
                   ? WebViewWidget(controller: _webViewController!)
                   : const Center(
                       child: CircularProgressIndicator(
@@ -709,7 +711,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     ),
             ),
           ),
-          if (!_isFullScreen)
+          if (!_playback.isFullScreen)
             Expanded(
               flex: 2,
               child: SingleChildScrollView(

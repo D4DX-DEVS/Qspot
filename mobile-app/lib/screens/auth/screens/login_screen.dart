@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../provider/auth_provider.dart';
+import '../provider/login_form_provider.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/app_snack_bar.dart';
@@ -36,14 +37,13 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
-  bool _otpSent = false;
-  bool _isResending = false;
+  final LoginFormProvider _form = LoginFormProvider();
 
   @override
   void dispose() {
     _phoneController.dispose();
     _otpController.dispose();
+    _form.dispose();
     super.dispose();
   }
 
@@ -53,6 +53,15 @@ class _LoginScreenState extends State<LoginScreen> {
       170.0,
       280.0,
     );
+    return ChangeNotifierProvider.value(
+      value: _form,
+      child: Consumer<LoginFormProvider>(
+        builder: (_, form, __) => _buildPage(form, artHeight),
+      ),
+    );
+  }
+
+  Widget _buildPage(LoginFormProvider form, double artHeight) {
     return AuthThemeScope(
       child: AuthPageLayout(
         bottomArt: const AuthArt(painter: MosqueSkylinePainter.new),
@@ -63,19 +72,19 @@ class _LoginScreenState extends State<LoginScreen> {
           ArchHeader(
             // Back arrow only after the code has been requested, so the
             // student can correct a mistyped number.
-            leading: _otpSent
+            leading: form.otpSent
                 ? AuthBackButton(
-                    onPressed: () => setState(() {
-                      _otpSent = false;
+                    onPressed: () {
                       _otpController.clear();
-                    }),
+                      form.setOtpSent(false);
+                    },
                   )
                 : null,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const AuthBrandMark(size: 150),
-                _otpSent
+                form.otpSent
                     ? AuthHeadline(
                         title: 'Check your ',
                         accent: 'WhatsApp',
@@ -99,22 +108,22 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           Form(
             key: _formKey,
-            child: _otpSent
-                ? _otpField()
+            child: form.otpSent
+                ? _otpField(form)
                 : AuthPhoneField(controller: _phoneController),
           ),
           const SizedBox(height: 20),
           Consumer<AuthProvider>(
             builder: (context, authProvider, child) => GradientPillButton(
-              label: _otpSent ? 'Verify OTP' : 'Send OTP',
+              label: form.otpSent ? 'Verify OTP' : 'Send OTP',
               isLoading: authProvider.isLoading,
               onPressed: authProvider.isLoading
                   ? null
-                  : (_otpSent ? _verifyOtp : _sendOtp),
+                  : (form.otpSent ? _verifyOtp : _sendOtp),
             ),
           ),
           const SizedBox(height: 16),
-          if (_otpSent)
+          if (form.otpSent)
             Builder(
               builder: (context) => Text(
                 'Didn’t get the code? Tap Resend, or go back and check your number.',
@@ -137,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _otpField() {
+  Widget _otpField(LoginFormProvider form) {
     return Column(
       children: [
         OtpInput(
@@ -151,8 +160,8 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 10),
         AuthLinkRow(
           prompt: 'Didn’t receive OTP?',
-          action: _isResending ? 'Resending…' : 'Resend',
-          onTap: _isResending ? null : _resendOtp,
+          action: form.isResending ? 'Resending…' : 'Resend',
+          onTap: form.isResending ? null : _resendOtp,
           showChevron: false,
         ),
       ],
@@ -171,9 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (result['success']) {
-      setState(() {
-        _otpSent = true;
-      });
+      _form.setOtpSent(true);
 
       AppSnackBar.show(
         context,
@@ -234,15 +241,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _resendOtp() async {
-    setState(() {
-      _isResending = true;
-    });
+    _form.setResending(true);
 
     await _sendOtp();
 
-    setState(() {
-      _isResending = false;
-    });
+    _form.setResending(false);
   }
 
   Future<void> _navigateToRegistration() async {
@@ -256,9 +259,7 @@ class _LoginScreenState extends State<LoginScreen> {
     // on success we drop the student straight into the OTP step for the
     // number they just registered with.
     if (registeredPhone != null && registeredPhone.isNotEmpty) {
-      setState(() {
-        _phoneController.text = registeredPhone;
-      });
+      _phoneController.text = registeredPhone;
       await _sendOtp();
     }
   }

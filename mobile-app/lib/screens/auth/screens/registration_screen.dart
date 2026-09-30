@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../provider/auth_provider.dart';
+import '../provider/registration_form_provider.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
-import '../../../services/course_service.dart';
 import '../../../widgets/common/app_snack_bar.dart';
 import '../widgets/art/auth_art.dart';
 import '../widgets/art/bottom_waves_painter.dart';
@@ -39,72 +39,57 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final TextEditingController _consentNameController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  String? _classNumber;
-  DateTime? _dob;
-  bool _hasConsent = false;
-  String _consentBy = 'parent';
-  List<CourseModel> _courses = const [];
-  final Set<String> _selectedCourseIds = <String>{};
-  bool _coursesLoading = true;
+  final RegistrationFormProvider _form = RegistrationFormProvider();
 
   @override
   void initState() {
     super.initState();
-    _loadCourses();
-    for (final controller in [_phoneController, _nameController]) {
-      controller.addListener(_onFieldChanged);
-    }
+    _form.loadCourses();
+    _phoneController.addListener(_onPhoneChanged);
+    _nameController.addListener(_onNameChanged);
   }
 
-  Future<void> _loadCourses() async {
-    final courses = await CourseService.fetchActive();
-    if (!mounted) return;
-    setState(() {
-      _courses = courses;
-      _coursesLoading = false;
-    });
-  }
+  void _onPhoneChanged() => _form.setPhone(_phoneController.text);
 
-  void _onFieldChanged() => setState(() {});
+  void _onNameChanged() => _form.setName(_nameController.text);
 
   @override
   void dispose() {
-    for (final controller in [_phoneController, _nameController]) {
-      controller.removeListener(_onFieldChanged);
-      controller.dispose();
-    }
+    _phoneController.removeListener(_onPhoneChanged);
+    _nameController.removeListener(_onNameChanged);
+    _phoneController.dispose();
+    _nameController.dispose();
     _consentNameController.dispose();
+    _form.dispose();
     super.dispose();
-  }
-
-  bool get _isComplete =>
-      _phoneController.text.trim().length == 10 &&
-      _nameController.text.trim().length >= 3 &&
-      _classNumber != null;
-
-  String _formatDob(DateTime date) {
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-    return '${date.year}-$month-$day';
   }
 
   Future<void> _pickDob() async {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: _dob ?? DateTime(now.year - 12, now.month, now.day),
+      initialDate: _form.dob ?? DateTime(now.year - 12, now.month, now.day),
       firstDate: DateTime(now.year - 100),
       lastDate: now,
       // This context sits above the page's AuthThemeScope, so re-apply it.
       builder: (context, child) => AuthThemeScope(child: child!),
     );
     if (picked != null && mounted) {
-      setState(() => _dob = picked);
+      _form.setDob(picked);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _form,
+      child: Consumer<RegistrationFormProvider>(
+        builder: (_, form, __) => _buildPage(form),
+      ),
+    );
+  }
+
+  Widget _buildPage(RegistrationFormProvider form) {
     return AuthThemeScope(
       child: AuthPageLayout(
         topArt: const AuthArt(painter: CornerWavePainter.new),
@@ -164,35 +149,31 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 14),
                 ClassDropdownField(
-                  value: _classNumber,
-                  onChanged: (value) => setState(() => _classNumber = value),
+                  value: form.classNumber,
+                  onChanged: form.setClassNumber,
                 ),
                 const SizedBox(height: 14),
                 CoursePickerCard(
-                  courses: _courses,
-                  selectedIds: _selectedCourseIds,
-                  isLoading: _coursesLoading,
-                  onToggle: (id, selected) => setState(() {
-                    if (selected) {
-                      _selectedCourseIds.add(id);
-                    } else {
-                      _selectedCourseIds.remove(id);
-                    }
-                  }),
+                  courses: form.courses,
+                  selectedIds: form.selectedCourseIds,
+                  isLoading: form.coursesLoading,
+                  onToggle: form.toggleCourse,
                 ),
-                if (_coursesLoading || _courses.isNotEmpty)
+                if (form.coursesLoading || form.courses.isNotEmpty)
                   const SizedBox(height: 14),
                 DatePickerField(
                   hint: 'Date of birth (optional)',
-                  valueText: _dob != null ? _formatDob(_dob!) : null,
+                  valueText: form.dob != null
+                      ? form.formatDob(form.dob!)
+                      : null,
                   onTap: _pickDob,
                 ),
                 const SizedBox(height: 14),
                 ConsentCard(
-                  value: _hasConsent,
-                  onChanged: (value) => setState(() => _hasConsent = value),
-                  consentBy: _consentBy,
-                  onConsentByChanged: (by) => setState(() => _consentBy = by),
+                  value: form.hasConsent,
+                  onChanged: form.setHasConsent,
+                  consentBy: form.consentBy,
+                  onConsentByChanged: form.setConsentBy,
                   nameController: _consentNameController,
                 ),
                 const SizedBox(height: 24),
@@ -200,7 +181,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   builder: (context, authProvider, child) => GradientPillButton(
                     label: 'Create account',
                     isLoading: authProvider.isLoading,
-                    onPressed: _isComplete && !authProvider.isLoading
+                    onPressed: form.isComplete && !authProvider.isLoading
                         ? _register
                         : null,
                   ),
@@ -242,16 +223,16 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     final result = await authProvider.register(
       phone: phone,
       name: _nameController.text.trim(),
-      classNumber: _classNumber!,
-      dob: _dob != null ? _formatDob(_dob!) : null,
-      consent: _hasConsent
+      classNumber: _form.classNumber!,
+      dob: _form.dob != null ? _form.formatDob(_form.dob!) : null,
+      consent: _form.hasConsent
           ? {
-              'by': _consentBy,
+              'by': _form.consentBy,
               if (_consentNameController.text.trim().isNotEmpty)
                 'name': _consentNameController.text.trim(),
             }
           : null,
-      courseIds: _selectedCourseIds.toList(),
+      courseIds: _form.selectedCourseIds.toList(),
     );
 
     if (!mounted) return;

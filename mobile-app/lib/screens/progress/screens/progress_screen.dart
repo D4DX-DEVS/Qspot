@@ -10,6 +10,7 @@ import '../../../widgets/common/section_header.dart';
 import '../../../widgets/common/stat_tile.dart';
 import '../../../widgets/common/surface_card.dart';
 import '../../video/provider/video_provider.dart';
+import '../provider/progress_screen_provider.dart';
 import '../widgets/activity_tile.dart';
 import '../widgets/mastery_progress_row.dart';
 import '../widgets/mastery_ring_card.dart';
@@ -27,46 +28,46 @@ class ProgressScreen extends StatefulWidget {
 }
 
 class _ProgressScreenState extends State<ProgressScreen> {
-  late final ProgressLoader _loadData;
-  LearningProgressData? _data;
-  bool _loading = true;
+  late final ProgressScreenProvider _progress;
 
   @override
   void initState() {
     super.initState();
-    _loadData = widget.loadData ?? LearningProgressService.fetch;
+    _progress = ProgressScreenProvider(
+      widget.loadData ?? LearningProgressService.fetch,
+    );
     _load();
   }
 
   Future<void> _load() async {
-    setState(() {
-      _loading = true;
-    });
-    try {
-      final data = await _loadData();
-      if (!mounted) return;
-      setState(() {
-        _data = data;
-        _loading = false;
-      });
-    } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-      });
-    }
+    await _progress.load();
+  }
+
+  @override
+  void dispose() {
+    _progress.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const CommonAppBar(title: 'Progress'),
-      body: RefreshIndicator(onRefresh: _load, child: _buildBody()),
+    return ChangeNotifierProvider.value(
+      value: _progress,
+      child: Consumer<ProgressScreenProvider>(
+        builder: (_, progress, __) => _buildPage(progress),
+      ),
     );
   }
 
-  Widget _buildBody() {
-    if (_loading && _data == null) {
+  Widget _buildPage(ProgressScreenProvider progress) {
+    return Scaffold(
+      appBar: const CommonAppBar(title: 'Progress'),
+      body: RefreshIndicator(onRefresh: _load, child: _buildBody(progress)),
+    );
+  }
+
+  Widget _buildBody(ProgressScreenProvider progress) {
+    if (progress.loading && progress.data == null) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         children: const [
@@ -76,7 +77,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
       );
     }
 
-    final data = _data;
+    final data = progress.data;
     if (data == null) return ProgressUnavailableView(onRetry: _load);
 
     final palette = HomePalette.of(context);

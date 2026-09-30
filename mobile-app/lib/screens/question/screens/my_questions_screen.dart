@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:provider/provider.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
-import '../../auth/service/auth_service.dart';
-import '../../../utils/api_urls.dart';
+import '../model/user_question_model.dart';
+import '../provider/my_questions_screen_provider.dart';
 import 'ask_question_screen.dart';
-
-enum _QuestionFilter { all, answered, pending }
 
 class MyQuestionsScreen extends StatefulWidget {
   const MyQuestionsScreen({super.key});
@@ -19,87 +16,31 @@ class MyQuestionsScreen extends StatefulWidget {
 }
 
 class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
-  List<UserQuestion> _questions = [];
-  bool _isLoading = true;
-  String? _errorMessage;
-  _QuestionFilter _filter = _QuestionFilter.all;
-
-  List<UserQuestion> get _filteredQuestions {
-    switch (_filter) {
-      case _QuestionFilter.answered:
-        return _questions
-            .where((q) => q.answer != null && q.answer!.isNotEmpty)
-            .toList();
-      case _QuestionFilter.pending:
-        return _questions
-            .where((q) => q.answer == null || q.answer!.isEmpty)
-            .toList();
-      case _QuestionFilter.all:
-        return _questions;
-    }
-  }
+  final MyQuestionsScreenProvider _state = MyQuestionsScreenProvider();
 
   @override
   void initState() {
     super.initState();
-    _loadQuestions();
+    _state.loadQuestions();
   }
 
-  Future<void> _loadQuestions() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final authService = AuthService();
-      final token = await authService.getSavedToken();
-
-      if (token == null || token.isEmpty) {
-        throw Exception('Please login to view your questions');
-      }
-
-      final uri = Uri.parse('${ApiUrls.baseUrl}/api/user/my-questions');
-
-      debugPrint('📝 [MY QUESTIONS] Fetching from: $uri');
-
-      final response = await http
-          .get(
-            uri,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $token',
-            },
-          )
-          .timeout(const Duration(seconds: 10));
-
-      debugPrint('📝 [MY QUESTIONS] Status: ${response.statusCode}');
-
-      if (response.statusCode == 200) {
-        final List<dynamic> jsonResponse = json.decode(response.body);
-
-        setState(() {
-          _questions = jsonResponse
-              .map((json) => UserQuestion.fromJson(json))
-              .toList();
-          _isLoading = false;
-        });
-
-        debugPrint('📝 [MY QUESTIONS] Loaded ${_questions.length} questions');
-      } else {
-        throw Exception('Failed to load questions: ${response.statusCode}');
-      }
-    } catch (e) {
-      debugPrint('📝 [MY QUESTIONS] Error: $e');
-      setState(() {
-        _errorMessage = e.toString();
-        _isLoading = false;
-      });
-    }
+  @override
+  void dispose() {
+    _state.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _state,
+      child: Consumer<MyQuestionsScreenProvider>(
+        builder: (_, state, __) => _buildPage(state),
+      ),
+    );
+  }
+
+  Widget _buildPage(MyQuestionsScreenProvider state) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: CommonAppBar(
@@ -108,7 +49,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
           TextButton(
             onPressed: () async {
               await AskQuestionScreen.show(context);
-              _loadQuestions();
+              _state.loadQuestions();
             },
             child: Text(
               'Ask new',
@@ -120,36 +61,42 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            if (!_isLoading && _errorMessage == null)
+            if (!state.isLoading && state.errorMessage == null)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: Row(
                   children: [
-                    _filterButton('All', _filter == _QuestionFilter.all),
-                    const SizedBox(width: 8),
                     _filterButton(
-                      'Answered',
-                      _filter == _QuestionFilter.answered,
+                      state,
+                      'All',
+                      state.filter == QuestionFilter.all,
                     ),
                     const SizedBox(width: 8),
                     _filterButton(
+                      state,
+                      'Answered',
+                      state.filter == QuestionFilter.answered,
+                    ),
+                    const SizedBox(width: 8),
+                    _filterButton(
+                      state,
                       'Pending',
-                      _filter == _QuestionFilter.pending,
+                      state.filter == QuestionFilter.pending,
                     ),
                   ],
                 ),
               ),
 
             Expanded(
-              child: _isLoading
+              child: state.isLoading
                   ? const Center(
                       child: CircularProgressIndicator(
                         color: AppColors.primary,
                       ),
                     )
-                  : _errorMessage != null
-                  ? _buildErrorState()
-                  : _buildQuestionsList(),
+                  : state.errorMessage != null
+                  ? _buildErrorState(state)
+                  : _buildQuestionsList(state),
             ),
           ],
         ),
@@ -157,14 +104,16 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
     );
   }
 
-  Widget _filterButton(String label, bool selected) {
+  Widget _filterButton(
+    MyQuestionsScreenProvider state,
+    String label,
+    bool selected,
+  ) {
     return InkWell(
-      onTap: () => setState(() {
-        _filter = switch (label) {
-          'Answered' => _QuestionFilter.answered,
-          'Pending' => _QuestionFilter.pending,
-          _ => _QuestionFilter.all,
-        };
+      onTap: () => state.setFilter(switch (label) {
+        'Answered' => QuestionFilter.answered,
+        'Pending' => QuestionFilter.pending,
+        _ => QuestionFilter.all,
       }),
       borderRadius: BorderRadius.circular(20),
       child: Container(
@@ -187,7 +136,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
     );
   }
 
-  Widget _buildErrorState() {
+  Widget _buildErrorState(MyQuestionsScreenProvider state) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.paddingLarge),
@@ -202,7 +151,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              _errorMessage ?? '',
+              state.errorMessage ?? '',
               textAlign: TextAlign.center,
               style: AppFonts.regular(
                 color: AppColors.textMuted,
@@ -217,7 +166,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
                 foregroundColor: AppColors.onPrimary,
                 shape: const StadiumBorder(),
               ),
-              onPressed: _loadQuestions,
+              onPressed: _state.loadQuestions,
               child: const Text('Try again'),
             ),
           ],
@@ -226,8 +175,8 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
-    final filtered = _filter != _QuestionFilter.all;
+  Widget _buildEmptyState(MyQuestionsScreenProvider state) {
+    final filtered = state.filter != QuestionFilter.all;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -247,7 +196,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
             const SizedBox(height: 10),
             Text(
               filtered
-                  ? 'No ${_filter == _QuestionFilter.answered ? 'answered' : 'pending'} questions so far.'
+                  ? 'No ${state.filter == QuestionFilter.answered ? 'answered' : 'pending'} questions so far.'
                   : 'Tap "Ask new" to ask your first question.',
               textAlign: TextAlign.center,
               style: AppFonts.regular(
@@ -262,13 +211,13 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
     );
   }
 
-  Widget _buildQuestionsList() {
-    final questions = _filteredQuestions;
-    if (questions.isEmpty) return _buildEmptyState();
+  Widget _buildQuestionsList(MyQuestionsScreenProvider state) {
+    final questions = state.filteredQuestions;
+    if (questions.isEmpty) return _buildEmptyState(state);
 
     return RefreshIndicator(
       color: AppColors.primary,
-      onRefresh: _loadQuestions,
+      onRefresh: _state.loadQuestions,
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         itemCount: questions.length,
@@ -376,68 +325,5 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }
-  }
-}
-
-// Model for User Question with Answer
-class UserQuestion {
-  final String id;
-  final String subject;
-  final String description;
-  final String facultyId;
-  final String facultyName;
-  final String? facultyDesignation;
-  final String userId;
-  final String userName;
-  final String? userClass;
-  final String? answer;
-  final String? answeredBy;
-  final DateTime? answeredAt;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-
-  UserQuestion({
-    required this.id,
-    required this.subject,
-    required this.description,
-    required this.facultyId,
-    required this.facultyName,
-    this.facultyDesignation,
-    required this.userId,
-    required this.userName,
-    this.userClass,
-    this.answer,
-    this.answeredBy,
-    this.answeredAt,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  factory UserQuestion.fromJson(Map<String, dynamic> json) {
-    final faculty = json['faculty'] as Map<String, dynamic>?;
-    final user = json['user'] as Map<String, dynamic>?;
-
-    return UserQuestion(
-      id: json['_id']?.toString() ?? '',
-      subject: json['subject']?.toString() ?? '',
-      description: json['description']?.toString() ?? '',
-      facultyId: faculty?['_id']?.toString() ?? '',
-      facultyName: faculty?['name']?.toString() ?? 'Unknown Faculty',
-      facultyDesignation: faculty?['designation']?.toString(),
-      userId: user?['_id']?.toString() ?? '',
-      userName: user?['name']?.toString() ?? 'Unknown User',
-      userClass: user?['class']?.toString(),
-      answer: json['answer']?.toString(),
-      answeredBy: json['answeredBy']?.toString(),
-      answeredAt: json['answeredAt'] != null
-          ? DateTime.parse(json['answeredAt'])
-          : null,
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
-          : DateTime.now(),
-      updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'])
-          : DateTime.now(),
-    );
   }
 }

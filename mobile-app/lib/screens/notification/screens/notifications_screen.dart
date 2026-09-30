@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../model/notification_model.dart';
 import '../provider/notification_provider.dart';
+import '../provider/notifications_screen_provider.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
@@ -17,7 +18,10 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final TextEditingController _searchController = TextEditingController();
-  List<NotificationModel> _filteredNotifications = [];
+  final NotificationsScreenProvider _screen = NotificationsScreenProvider();
+
+  List<NotificationModel> get _filteredNotifications =>
+      _screen.filteredNotifications;
 
   @override
   void initState() {
@@ -30,6 +34,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _screen.dispose();
     super.dispose();
   }
 
@@ -39,6 +44,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       listen: false,
     );
     await notificationProvider.loadNotifications();
+    if (!mounted) return;
     _updateFilteredNotifications();
   }
 
@@ -47,16 +53,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       context,
       listen: false,
     );
-    setState(() {
-      if (_searchController.text.isEmpty) {
-        _filteredNotifications =
-            notificationProvider.notificationsWithReadStatus;
-      } else {
-        _filteredNotifications = notificationProvider.searchNotifications(
-          _searchController.text,
-        );
-      }
-    });
+    _screen.updateFiltered(notificationProvider, _searchController.text);
   }
 
   void _onSearchChanged(String query) {
@@ -65,6 +62,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _screen,
+      child: Consumer<NotificationsScreenProvider>(
+        builder: (_, screen, __) => _buildPage(),
+      ),
+    );
+  }
+
+  Widget _buildPage() {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const CommonAppBar(title: 'Notifications'),

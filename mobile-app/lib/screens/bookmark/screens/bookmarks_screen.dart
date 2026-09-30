@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../video/model/video_model.dart';
 import '../provider/bookmark_provider.dart';
+import '../provider/bookmarks_screen_provider.dart';
 import '../../../themes/app_colors.dart';
 import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
@@ -21,6 +22,7 @@ class BookmarksScreen extends StatefulWidget {
 
 class _BookmarksScreenState extends State<BookmarksScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final BookmarksScreenProvider _screen = BookmarksScreenProvider();
 
   @override
   void initState() {
@@ -34,6 +36,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _screen.dispose();
     super.dispose();
   }
 
@@ -46,6 +49,15 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _screen,
+      child: Consumer<BookmarksScreenProvider>(
+        builder: (_, screen, __) => _buildPage(screen),
+      ),
+    );
+  }
+
+  Widget _buildPage(BookmarksScreenProvider screen) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: CommonAppBar(
@@ -98,10 +110,8 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
             return _buildEmptyState();
           }
 
-          final query = _searchController.text;
-          final filtered = query.isEmpty
-              ? bookmarkProvider.bookmarks
-              : bookmarkProvider.searchBookmarks(query);
+          final query = screen.query;
+          final filtered = screen.filter(bookmarkProvider);
 
           return RefreshIndicator(
             onRefresh: _onRefresh,
@@ -132,7 +142,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
       ),
       child: TextField(
         controller: _searchController,
-        onChanged: (_) => setState(() {}),
+        onChanged: _screen.setQuery,
         style: AppFonts.regular(color: AppColors.textPrimary),
         decoration: InputDecoration(
           hintText: 'Search bookmarks...',
@@ -143,7 +153,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                   icon: Icon(Icons.clear, color: AppColors.textMuted),
                   onPressed: () {
                     _searchController.clear();
-                    setState(() {});
+                    _screen.setQuery('');
                   },
                 )
               : null,
