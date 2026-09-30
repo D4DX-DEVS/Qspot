@@ -30,3 +30,7 @@ Thumbs.db
 !.vscode/extensions.json
 .idea
 !.env.example
+
+
+claude.md
+changes_*.md
