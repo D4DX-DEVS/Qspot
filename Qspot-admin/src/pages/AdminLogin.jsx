@@ -1,22 +1,29 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { Navigate, useNavigate } from 'react-router-dom';
+import apiClient, { isLoggedIn, setToken } from '../api/client';
+import usePageTitle from '../hooks/usePageTitle';
 import logo from '../assets/Logo 01 Color.png';
 
 const AdminLogin = () => {
+    usePageTitle('Login');
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         username: '',
         password: ''
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
+
+    // Already logged in? Skip the form entirely.
+    if (isLoggedIn()) {
+        return <Navigate to="/admin/dashboard" replace />;
+    }
 
     const handleChange = (e) => {
         setFormData({
             ...formData,
             [e.target.name]: e.target.value
         });
-        // Clear error when user starts typing
         if (error) setError('');
     };
 
@@ -24,28 +31,17 @@ const AdminLogin = () => {
         e.preventDefault();
         setLoading(true);
         setError('');
-        setSuccess('');
 
-         try {
-             const baseURL = import.meta.env.VITE_API_BASE_URL;
-             const response = await axios.post(`${baseURL}/admin/login`, formData);
-
+        try {
+            const response = await apiClient.post('/admin/login', formData);
             if (response.data.token) {
-                // Store token in localStorage
-                localStorage.setItem('adminToken', response.data.token);
-                setSuccess('Login successful!');
-
-                // Redirect to admin dashboard or home page
-                setTimeout(() => {
-                    window.location.href = '/admin/dashboard';
-                }, 1500);
-            }
-        } catch (err) {
-            if (err.response?.data?.message) {
-                setError(err.response.data.message);
+                setToken(response.data.token);
+                navigate('/admin/dashboard', { replace: true });
             } else {
                 setError('Login failed. Please try again.');
             }
+        } catch (err) {
+            setError(err.message || 'Login failed. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -55,11 +51,9 @@ const AdminLogin = () => {
         <div className="relative min-h-screen bg-black flex items-center justify-center py-12 px-4 overflow-hidden">
             <div
                 className="pointer-events-none absolute -bottom-36 -left-40 h-[110vh] w-[100vw] rounded-[28rem] bg-gradient-to-br from-[#11060d]/95 via-[#1c0b18]/85 to-[#12060f]/95 opacity-90 blur-[140px]"
-                //  "
             />
 
             <div className="relative z-10 flex w-full max-w-6xl flex-col items-center justify-between gap-8 md:flex-row md:gap-12">
-                {/* Logo Section - Left Side */}
                 <div className="flex flex-1 justify-center md:justify-start">
                     <img
                         src={logo}
@@ -68,7 +62,6 @@ const AdminLogin = () => {
                     />
                 </div>
 
-                {/* Form Section - Right Side */}
                 <div className="w-full max-w-sm flex-1 px-2 sm:px-0">
                     <form className="space-y-6" onSubmit={handleSubmit}>
                         <div>
@@ -87,7 +80,6 @@ const AdminLogin = () => {
                         </div>
 
                         <div>
-
                             <div className="mt-1">
                                 <input
                                     id="password"
@@ -114,7 +106,7 @@ const AdminLogin = () => {
                                 disabled={loading}
                                 className="w-3/4 mx-auto flex justify-center py-3 px-6 rounded-full text-sm font-medium text-white bg-gradient-to-r from-[#701845] to-[#EFB078] hover:from-[#5a1538] hover:to-[#d49a6a] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
                             >
-                                {loading ? 'Signing in...' : success ? success : 'Sign in'}
+                                {loading ? 'Signing in...' : 'Sign in'}
                             </button>
                         </div>
                     </form>

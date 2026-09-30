@@ -45,4 +45,6 @@ const quizQuestionsSchema = new mongoose.Schema({
     { timestamps: true }
 );
 
+quizQuestionsSchema.index({ quizId: 1 });
+
 module.exports = mongoose.model('QuizQuestion', quizQuestionsSchema);

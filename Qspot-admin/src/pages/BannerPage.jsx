@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { FiEdit2, FiTrash2, FiPlus, FiChevronLeft, FiChevronRight, FiImage, FiCalendar } from 'react-icons/fi';
 import Sidebar from '../components/Sidebar';
 import ConfirmDialog from '../components/dialogs/ConfirmDialog';
+import ErrorState from '../components/ui/ErrorState';
+import Spinner from '../components/ui/Spinner';
+import usePageTitle from '../hooks/usePageTitle';
+import useBodyScrollLock from '../hooks/useBodyScrollLock';
+import apiClient from '../api/client';
+import { PLACEHOLDER_IMAGE } from '../constants/placeholder';
 import brandIcon from '../assets/Icon.png';
 
 const BannerPage = () => {
+  usePageTitle('Banner');
+  const navigate = useNavigate();
   const [banners, setBanners] = useState([]);
   const [filteredBanners, setFilteredBanners] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,12 +45,11 @@ const BannerPage = () => {
   const fetchBanners = async () => {
     try {
       setLoading(true);
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      const response = await axios.get(`${baseURL}/banner`);
+      setError('');
+      const response = await apiClient.get('/banner');
       setBanners(response.data || []);
     } catch (err) {
-      console.error('Error fetching banners:', err);
-      setError('Failed to fetch banners');
+      setError(err.message || 'Failed to fetch banners');
     } finally {
       setLoading(false);
     }
@@ -50,24 +57,15 @@ const BannerPage = () => {
 
   const handleCreateBanner = async (formData) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      
       const formDataToSend = new FormData();
       formDataToSend.append('image', formData.image);
-      
-      await axios.post(`${baseURL}/banner`, formDataToSend, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
+      await apiClient.post('/banner', formDataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
       setShowCreateModal(false);
       fetchBanners();
     } catch (err) {
-      console.error('Error creating banner:', err);
-      alert('Failed to create banner');
+      alert(err.message || 'Failed to create banner');
     }
   };
 
@@ -78,51 +76,29 @@ const BannerPage = () => {
 
   const handleUpdateBanner = async (formData) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      
       const formDataToSend = new FormData();
       if (formData.image) {
         formDataToSend.append('image', formData.image);
       }
-      
-      await axios.put(`${baseURL}/banner/${editingBanner._id}`, formDataToSend, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
+      await apiClient.put(`/banner/${editingBanner._id}`, formDataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
       setShowEditModal(false);
       setEditingBanner(null);
       fetchBanners();
     } catch (err) {
-      console.error('Error updating banner:', err);
-      alert('Failed to update banner');
+      alert(err.message || 'Failed to update banner');
     }
   };
 
   const handleDeleteBanner = async (bannerId) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      
-      await axios.delete(`${baseURL}/banner/${bannerId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
+      await apiClient.delete(`/banner/${bannerId}`);
       setDeleteConfirm(null);
       fetchBanners();
     } catch (err) {
-      console.error('Error deleting banner:', err);
-      alert('Failed to delete banner');
+      alert(err.message || 'Failed to delete banner');
     }
-  };
-
-  const handleNavigate = (path) => {
-    window.location.href = path;
   };
 
   // Pagination logic
@@ -146,7 +122,7 @@ const BannerPage = () => {
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-black">
-      <Sidebar currentPage="banner" onNavigate={handleNavigate} />
+      <Sidebar currentPage="banner" onNavigate={navigate} />
       
       <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-4">
@@ -173,19 +149,9 @@ const BannerPage = () => {
             </div>
           </div>
           {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-400"></div>
-            </div>
+            <Spinner />
           ) : error ? (
-            <div className="bg-red-900/20 border border-red-500/30 text-red-400 px-4 py-3 rounded-md">
-              {error}
-              <button 
-                onClick={fetchBanners}
-                className="ml-4 text-red-300 underline hover:text-red-200"
-              >
-                Retry
-              </button>
-            </div>
+            <ErrorState message={error} onRetry={fetchBanners} />
           ) : (
             <div className="space-y-3">
               {filteredBanners.length === 0 ? (
@@ -209,8 +175,7 @@ const BannerPage = () => {
                             alt="Banner"
                             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                             onError={(e) => {
-                              e.target.src =
-                                'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjMzc0MTUxIi8+CjxwYXRoIGQ9Ik0xMiA2VjE4TTYgMTJIMTgiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+';
+                              e.target.src = PLACEHOLDER_IMAGE;
                             }}
                           />
                         </div>
@@ -363,13 +328,7 @@ const CreateBannerModal = ({ onClose, onSave }) => {
   });
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
+  useBodyScrollLock(true);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -455,13 +414,7 @@ const EditBannerModal = ({ banner, onClose, onSave }) => {
   });
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
+  useBodyScrollLock(true);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

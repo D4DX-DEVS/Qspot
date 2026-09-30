@@ -1,16 +1,43 @@
-# React + Vite
+# QSpot Admin
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Admin panel for QSpot: courses, subjects, videos (with per-episode content
+and questions), speakers, schedules, quizzes, student Q&A, banner and
+notifications. React 19 + Vite + Tailwind 4.
 
-Currently, two official plugins are available:
+## Getting started
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+npm install
+cp .env.example .env   # set VITE_API_BASE_URL to your Qspot-API instance
+npm run dev
+```
 
-## React Compiler
+## Scripts
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- `npm run dev` — start the Vite dev server
+- `npm run build` — production build
+- `npm run preview` — preview the production build locally
+- `npm run lint` — run ESLint
 
-## Expanding the ESLint configuration
+## Structure
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `src/api/client.js` — the single axios instance every page uses. Attaches
+  the admin token, redirects to `/admin/login` on 401/403, and normalises
+  API error messages onto `error.message`.
+- `src/auth/RequireAuth.jsx` — route guard used by every protected route in
+  `src/App.jsx`.
+- `src/components/ui/` — shared building blocks (`Modal`, `PageHeader`,
+  `Pagination`, `Spinner`, `ErrorState`, `EmptyState`, `EntitySelect`
+  (`FacultySelect`/`SubjectSelect`/`CourseSelect`), `DateTimePicker`).
+- `src/hooks/` — `useBodyScrollLock`, `usePageTitle`.
+- `src/utils/format.js` — `formatDuration`, ISO/local datetime helpers.
+- `src/pages/` — one file per admin page, grouped in the sidebar as
+  Content (Courses, Subjects, Videos), Learners (Users, Speakers, Q&A,
+  Schedules), Quizzes (Quizzes, Attempts) and App (Banner, Notifications).
+  Video content (questions/learn note/downloads) and a subject's chapter
+  guide are reached via cross-links rather than the sidebar.
+
+## Backend contract
+
+This app talks to `Qspot-API`. See that repo's `CONTRACT.md` for the exact
+request/response shapes it expects.

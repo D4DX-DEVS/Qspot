@@ -16,7 +16,8 @@ const speakerSchema = new mongoose.Schema({
         type: String
     },
     order: {
-        type: String
+        type: Number,
+        default: 0
     }
 }, {
     timestamps: true

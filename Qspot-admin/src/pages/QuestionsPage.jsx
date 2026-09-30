@@ -1,16 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
-import { FiTrash2, FiMessageSquare, FiSearch, FiChevronLeft, FiChevronRight, FiHelpCircle, FiClock, FiCheckCircle, FiUser, FiBookOpen, FiEdit2, FiX } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { FiTrash2, FiMessageSquare, FiSearch, FiChevronLeft, FiChevronRight, FiHelpCircle, FiClock, FiCheckCircle, FiUser, FiBookOpen, FiEdit2, FiX, FiEyeOff, FiEye } from 'react-icons/fi';
 import ConfirmDialog from '../components/dialogs/ConfirmDialog';
 import Sidebar from '../components/Sidebar';
+import ErrorState from '../components/ui/ErrorState';
+import usePageTitle from '../hooks/usePageTitle';
+import apiClient from '../api/client';
 import brandIcon from '../assets/Icon.png';
 
+// Q&A is admin-only here (this page is behind RequireAuth): list comes from
+// GET /api/questions/admin?status=&page&limit -> {items,total,page,limit}
+// per CONTRACT.md, which also adds hide/unhide (PUT /admin/:id/status) and
+// delete (DELETE /admin/:id) on top of the existing answer routes.
 const QuestionsPage = () => {
+  usePageTitle('Q&A');
+  const navigate = useNavigate();
   const [questions, setQuestions] = useState([]);
   const [filteredQuestions, setFilteredQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [statusActionLoading, setStatusActionLoading] = useState(false);
+  const [deleteQuestionTarget, setDeleteQuestionTarget] = useState(null);
   const [answerLoading, setAnswerLoading] = useState(false);
   const [answerText, setAnswerText] = useState('');
   const [answerMode, setAnswerMode] = useState('create'); // 'create' | 'update'
@@ -40,8 +50,6 @@ const QuestionsPage = () => {
   const itemsPerPage = 10;
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    setIsAdmin(Boolean(token));
     fetchQuestions();
   }, []);
 
@@ -105,14 +113,15 @@ const QuestionsPage = () => {
   const fetchQuestions = async () => {
     try {
       setLoading(true);
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      const response = await axios.get(`${baseURL}/questions`);
-      const data = response.data || [];
+      setError('');
+      // A generous limit keeps the existing client-side search/pagination
+      // working; the admin endpoint itself is still paginated server-side.
+      const response = await apiClient.get('/questions/admin', { params: { limit: 500 } });
+      const data = response.data?.items || [];
       setQuestions(data);
       return data;
     } catch (err) {
-      console.error('Error fetching questions:', err);
-      setError('Failed to fetch questions');
+      setError(err.message || 'Failed to fetch questions');
       return [];
     } finally {
       setLoading(false);
@@ -121,8 +130,7 @@ const QuestionsPage = () => {
 
   const fetchSpeakers = async () => {
     try {
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      const response = await axios.get(`${baseURL}/speakers`);
+      const response = await apiClient.get('/speakers');
       const names = Array.from(
         new Set(
           (response.data || [])
@@ -131,8 +139,8 @@ const QuestionsPage = () => {
         )
       ).sort((a, b) => a.localeCompare(b));
       setSpeakerOptions(names);
-    } catch (err) {
-      console.error('Error fetching speakers:', err);
+    } catch {
+      // Non-critical: speaker filter just stays empty.
     }
   };
 
@@ -164,19 +172,7 @@ const QuestionsPage = () => {
     setDeleteLoading(false);
     setIsEditingAnswer(false);
     try {
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      const token = localStorage.getItem('adminToken');
-      const url = token
-        ? `${baseURL}/questions/admin/${questionSummary._id}`
-        : `${baseURL}/questions/${questionSummary._id}`;
-      const config = token
-        ? {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        : undefined;
-      const response = await axios.get(url, config);
+      const response = await apiClient.get(`/questions/admin/${questionSummary._id}`);
       const detail = {
         ...questionSummary,
         ...response.data,
@@ -205,25 +201,18 @@ const QuestionsPage = () => {
 
   const submitAnswer = async () => {
     if (!expandedQuestion) return;
-    const token = localStorage.getItem('adminToken');
-    if (!token) {
-      alert('Admin authentication required');
-      return;
-    }
     if (!answerText.trim()) {
       alert('Answer is required');
       return;
     }
     try {
       setAnswerLoading(true);
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
       const questionId = expandedQuestion._id;
-      const url = `${baseURL}/questions/${questionId}/answer`;
-      const headers = { Authorization: `Bearer ${token}` };
+      const url = `/questions/${questionId}/answer`;
       if (answerMode === 'create') {
-        await axios.post(url, { answer: answerText.trim() }, { headers });
+        await apiClient.post(url, { answer: answerText.trim() });
       } else {
-        await axios.put(url, { answer: answerText.trim() }, { headers });
+        await apiClient.put(url, { answer: answerText.trim() });
       }
       setAnswerText('');
       const updatedList = await fetchQuestions();
@@ -235,8 +224,7 @@ const QuestionsPage = () => {
       }
       setIsEditingAnswer(false);
     } catch (err) {
-      console.error('Error submitting answer:', err);
-      alert(err?.response?.data?.message || 'Failed to submit answer');
+      alert(err.message || 'Failed to submit answer');
     } finally {
       setAnswerLoading(false);
     }
@@ -244,17 +232,9 @@ const QuestionsPage = () => {
 
   const deleteAnswer = async () => {
     if (!expandedQuestion || deleteLoading) return;
-    const token = localStorage.getItem('adminToken');
-    if (!token) {
-      alert('Admin authentication required');
-      return;
-    }
     try {
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      const url = `${baseURL}/questions/${expandedQuestion._id}/answer`;
-      const headers = { Authorization: `Bearer ${token}` };
       setDeleteLoading(true);
-      await axios.delete(url, { headers });
+      await apiClient.delete(`/questions/${expandedQuestion._id}/answer`);
       setDeleteConfirmOpen(false);
       setAnswerText('');
       const updatedList = await fetchQuestions();
@@ -268,10 +248,41 @@ const QuestionsPage = () => {
       }
       setIsEditingAnswer(false);
     } catch (err) {
-      console.error('Error deleting answer:', err);
-      alert(err?.response?.data?.message || 'Failed to delete answer');
+      alert(err.message || 'Failed to delete answer');
     } finally {
       setDeleteLoading(false);
+    }
+  };
+
+  // Hide/unhide a question (status: 'open' | 'hidden') and delete it outright
+  // (GAP-REPORT R11 / CONTRACT.md admin Q&A moderation routes).
+  const toggleQuestionStatus = async () => {
+    if (!expandedQuestion) return;
+    const nextStatus = expandedQuestion.status === 'hidden' ? 'open' : 'hidden';
+    try {
+      setStatusActionLoading(true);
+      await apiClient.put(`/questions/admin/${expandedQuestion._id}/status`, { status: nextStatus });
+      setExpandedQuestion((prev) => (prev ? { ...prev, status: nextStatus } : prev));
+      const updatedList = await fetchQuestions();
+      const updatedQuestion = updatedList.find((item) => item._id === expandedQuestion._id);
+      if (updatedQuestion) setExpandedQuestion((prev) => ({ ...prev, ...updatedQuestion }));
+    } catch (err) {
+      alert(err.message || 'Failed to update question status');
+    } finally {
+      setStatusActionLoading(false);
+    }
+  };
+
+  const deleteQuestion = async () => {
+    if (!deleteQuestionTarget) return;
+    try {
+      await apiClient.delete(`/questions/admin/${deleteQuestionTarget._id}`);
+      setDeleteQuestionTarget(null);
+      if (expandedQuestionId === deleteQuestionTarget._id) resetExpandedState();
+      fetchQuestions();
+    } catch (err) {
+      alert(err.message || 'Failed to delete question');
+      setDeleteQuestionTarget(null);
     }
   };
 
@@ -303,10 +314,6 @@ const QuestionsPage = () => {
     }
   };
 
-  const handleNavigate = (path) => {
-    window.location.href = path;
-  };
-
   // Pagination logic
   const totalPages = Math.ceil(filteredQuestions.length / itemsPerPage);
 const startIndex = (currentPage - 1) * itemsPerPage;
@@ -323,7 +330,7 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-black">
-      <Sidebar currentPage="questions" onNavigate={handleNavigate} />
+      <Sidebar currentPage="questions" onNavigate={navigate} />
       
       <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-4">
@@ -501,15 +508,7 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-400"></div>
             </div>
           ) : error ? (
-            <div className="bg-red-900/20 border border-red-500/30 text-red-400 px-4 py-3 rounded-md">
-              {error}
-              <button 
-                onClick={fetchQuestions}
-                className="ml-4 text-red-300 underline hover:text-red-200"
-              >
-                Retry
-              </button>
-            </div>
+            <ErrorState message={error} onRetry={fetchQuestions} />
           ) : (
             <div className="space-y-4">
               {filteredQuestions.length === 0 ? (
@@ -675,13 +674,33 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
                                     ).toLocaleTimeString()}`
                                   : 'Created date unavailable'}
                               </span>
-                  <button
-                    type="button"
-                    onClick={resetExpandedState}
-                    className="rounded-xl border border-white/12 bg-white/10 px-3 py-1 text-xs font-semibold text-white/70 transition-all hover:border-white/25 hover:bg-white/20 hover:text-white"
-                  >
-                    Close
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={toggleQuestionStatus}
+                      disabled={statusActionLoading}
+                      title={expandedQuestion?.status === 'hidden' ? 'Unhide question' : 'Hide question'}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-white/12 bg-white/10 px-3 py-1 text-xs font-semibold text-white/70 transition-all hover:border-white/25 hover:bg-white/20 hover:text-white disabled:opacity-50"
+                    >
+                      {expandedQuestion?.status === 'hidden' ? <FiEye size={12} /> : <FiEyeOff size={12} />}
+                      {expandedQuestion?.status === 'hidden' ? 'Unhide' : 'Hide'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteQuestionTarget(expandedQuestion)}
+                      title="Delete question"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-300 transition-all hover:border-red-300/60 hover:text-red-200"
+                    >
+                      <FiTrash2 size={12} /> Delete
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetExpandedState}
+                      className="rounded-xl border border-white/12 bg-white/10 px-3 py-1 text-xs font-semibold text-white/70 transition-all hover:border-white/25 hover:bg-white/20 hover:text-white"
+                    >
+                      Close
+                    </button>
+                  </div>
                             </div>
                           </div>
 
@@ -712,7 +731,7 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
                                     <FiMessageSquare size={14} />
                                     Answer
                                   </div>
-                                  {isAdmin && (
+                                  {(
                                     <div className="flex items-center gap-2">
                                       <button
                                         type="button"
@@ -746,7 +765,7 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
                                 )}
                               </div>
                             )}
-                            {!expandedQuestion.answer && isAdmin && (
+                            {!expandedQuestion.answer && (
                               <div className="rounded-2xl border border-dashed border-white/20 bg-black/20 p-6 text-center shadow-[0_10px_28px_rgba(0,0,0,0.25)] backdrop-blur-sm">
                                 <p className="text-sm font-semibold text-white/80">No answer provided yet.</p>
                                 <p className="mt-1 text-xs text-white/60">
@@ -836,7 +855,7 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
           )}
         </main>
       </div>
-      {isAdmin && isEditingAnswer && expandedQuestion && (
+      {isEditingAnswer && expandedQuestion && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center overflow-y-auto bg-black/10 px-4 py-6 backdrop-blur-md sm:py-10">
           <div className="relative w-full max-w-3xl mx-auto overflow-hidden rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/80 via-[#190d23]/65 to-[#10060f]/80 shadow-[0_26px_70px_-24px_rgba(12,6,20,0.75)]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(136,32,82,0.45),transparent_65%)]" />
@@ -925,6 +944,18 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
           confirmVariant="danger"
           onCancel={handleCancelDelete}
           onConfirm={deleteAnswer}
+        />
+      )}
+
+      {deleteQuestionTarget && (
+        <ConfirmDialog
+          title="Delete Question"
+          description="Are you sure you want to permanently delete this question and its answer? This action cannot be undone."
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          confirmVariant="danger"
+          onCancel={() => setDeleteQuestionTarget(null)}
+          onConfirm={deleteQuestion}
         />
       )}
     </div>

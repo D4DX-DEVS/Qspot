@@ -7,8 +7,8 @@ const questionSchema = new mongoose.Schema({
     },
     faculty: {
         type: mongoose.Schema.Types.ObjectId,
-        ref : "speaker",
-        required : true
+        ref: "speaker",
+        required: true
     },
     subject: {
         type: String,
@@ -18,6 +18,15 @@ const questionSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "user",
         required: true
+    },
+    class: {
+        type: String,
+        default: ''
+    },
+    status: {
+        type: String,
+        enum: ['open', 'hidden'],
+        default: 'open'
     },
     answer: {
         type: String,
@@ -34,6 +43,10 @@ const questionSchema = new mongoose.Schema({
 }, {
     timestamps: true
 });
+
+questionSchema.index({ user: 1 });
+questionSchema.index({ faculty: 1 });
+questionSchema.index({ status: 1 });
 
 // Virtual field to check if question is answered
 questionSchema.virtual('isAnswered').get(function() {

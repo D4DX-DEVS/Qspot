@@ -1,51 +1,67 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Question = require('../models/question');
 const Speaker = require('../models/speakers');
-const { authenticateUser, authenticateToken } = require('../middlewares/auth');
+const { authenticateUser, authenticateAdmin } = require('../middlewares/auth');
 
 const router = express.Router();
 
-// GET /api/questions - Get all questions (public)
-router.get('/', async (req, res) => {
+// Answers are the point of this Q&A (public FAQ), so they stay visible to any
+// signed-in student; only the admin identity behind the answer and hidden
+// (moderated) rows are stripped.
+const shapeForStudents = (question) => {
+    const obj = question.toObject ? question.toObject() : { ...question };
+    obj.isAnswered = Boolean(obj.answer);
+    delete obj.answeredBy;
+    obj.user = obj.user && obj.user.name ? { name: obj.user.name } : { name: 'Anonymous' };
+    return obj;
+};
+
+// GET /api/questions - list (student only, hides moderated rows)
+router.get('/', authenticateUser, async (req, res) => {
     try {
-        const questions = await Question.find()
+        const questions = await Question.find({
+            status: { $ne: 'hidden' },
+            $or: [{ class: '' }, { class: null }, { class: req.user.class }]
+        })
             .populate('faculty', 'name designation')
-            .populate('user', 'name class')
+            .populate('user', 'name')
             .sort({ createdAt: -1 });
 
-        // Remove answer details for public access (only show if answered)
-        const publicQuestions = questions.map(question => {
-            const questionObj = question.toObject();
-            if (questionObj.answer) {
-                // Only show that it's answered, not the actual answer
-                questionObj.isAnswered = true;
-                delete questionObj.answer;
-                delete questionObj.answeredBy;
-                delete questionObj.answeredAt;
-            } else {
-                questionObj.isAnswered = false;
-            }
-            
-            // Handle cases where user field might be missing (legacy data)
-            if (!questionObj.user) {
-                questionObj.user = {
-                    name: 'Anonymous',
-                    class: 'Unknown'
-                };
-            }
-            
-            return questionObj;
-        });
-
-        res.json(publicQuestions);
+        res.json(questions.map(shapeForStudents));
     } catch (error) {
         console.error('Error fetching questions:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 });
 
-// GET /api/questions/admin/:id - Get single question with answer for admin
-router.get('/admin/:id', authenticateToken, async (req, res) => {
+// GET /api/questions/admin?status=&page&limit - admin listing (includes everything)
+router.get('/admin', authenticateAdmin, async (req, res) => {
+    try {
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+        const filter = {};
+        if (req.query.status) filter.status = req.query.status;
+
+        const [items, total] = await Promise.all([
+            Question.find(filter)
+                .populate('faculty', 'name designation')
+                .populate('user', 'name class')
+                .sort({ createdAt: -1 })
+                .skip((page - 1) * limit)
+                .limit(limit),
+            Question.countDocuments(filter)
+        ]);
+
+        res.json({ items, total, page, limit });
+    } catch (error) {
+        console.error('Error fetching admin questions:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// GET /api/questions/admin/:id - single question with everything (admin)
+router.get('/admin/:id', authenticateAdmin, async (req, res) => {
     try {
         const question = await Question.findById(req.params.id)
             .populate('faculty', 'name designation')
@@ -55,56 +71,68 @@ router.get('/admin/:id', authenticateToken, async (req, res) => {
             return res.status(404).json({ message: 'Question not found' });
         }
 
-        const questionObj = question.toObject();
-        questionObj.isAnswered = Boolean(questionObj.answer);
-
-        if (!questionObj.user) {
-            questionObj.user = {
-                name: 'Anonymous',
-                class: 'Unknown'
-            };
-        }
-
-        res.json(questionObj);
+        res.json(question);
     } catch (error) {
         console.error('Error fetching question for admin:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 });
 
-
-// GET /api/questions/:id - Get single question (public)
-router.get('/:id', async (req, res) => {
+// PUT /api/questions/admin/:id/status - moderate (open/hidden) (admin only)
+router.put('/admin/:id/status', authenticateAdmin, async (req, res) => {
     try {
-        const question = await Question.findById(req.params.id)
-            .populate('faculty', 'name designation')
-            .populate('user', 'name class');
-        
+        const { status } = req.body || {};
+        if (!['open', 'hidden'].includes(status)) {
+            return res.status(400).json({ message: "status must be 'open' or 'hidden'" });
+        }
+
+        const question = await Question.findByIdAndUpdate(
+            req.params.id,
+            { status },
+            { new: true, runValidators: true }
+        ).populate('faculty', 'name designation').populate('user', 'name class');
+
         if (!question) {
             return res.status(404).json({ message: 'Question not found' });
         }
 
-        // Remove answer details for public access (only show if answered)
-        const questionObj = question.toObject();
-        if (questionObj.answer) {
-            // Only show that it's answered, not the actual answer
-            questionObj.isAnswered = true;
-            delete questionObj.answer;
-            delete questionObj.answeredBy;
-            delete questionObj.answeredAt;
-        } else {
-            questionObj.isAnswered = false;
+        res.json({ message: 'Question status updated', question });
+    } catch (error) {
+        console.error('Error updating question status:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// DELETE /api/questions/admin/:id - admin delete (moderation)
+router.delete('/admin/:id', authenticateAdmin, async (req, res) => {
+    try {
+        const question = await Question.findByIdAndDelete(req.params.id);
+        if (!question) {
+            return res.status(404).json({ message: 'Question not found' });
         }
-        
-        // Handle cases where user field might be missing (legacy data)
-        if (!questionObj.user) {
-            questionObj.user = {
-                name: 'Anonymous',
-                class: 'Unknown'
-            };
+        res.json({ message: 'Question deleted successfully', id: question._id });
+    } catch (error) {
+        console.error('Error deleting question (admin):', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// GET /api/questions/:id - single question (student only, hides moderated rows)
+router.get('/:id', authenticateUser, async (req, res) => {
+    try {
+        const question = await Question.findOne({
+            _id: req.params.id,
+            status: { $ne: 'hidden' },
+            $or: [{ class: '' }, { class: null }, { class: req.user.class }]
+        })
+            .populate('faculty', 'name designation')
+            .populate('user', 'name');
+
+        if (!question) {
+            return res.status(404).json({ message: 'Question not found' });
         }
 
-        res.json(questionObj);
+        res.json(shapeForStudents(question));
     } catch (error) {
         console.error('Error fetching question:', error);
         res.status(500).json({ message: 'Internal server error' });
@@ -114,25 +142,23 @@ router.get('/:id', async (req, res) => {
 // POST /api/questions - Create new question (user only)
 router.post('/', authenticateUser, async (req, res) => {
     try {
-        const { description, faculty, subject } = req.body;
+        const { description, faculty, subject } = req.body || {};
 
         if (!description || !faculty || !subject) {
             return res.status(400).json({ message: 'Description, faculty, and subject are required' });
         }
 
-        // Check if faculty exists
         const existingFaculty = await Speaker.findById(faculty);
         if (!existingFaculty) {
             return res.status(404).json({ message: 'Faculty not found' });
         }
 
-        // Subject is now a string, no need to validate existence
-
         const question = new Question({
             description,
             faculty,
             subject,
-            user: req.user.id
+            user: req.user.id,
+            class: req.user.class || ''
         });
 
         const savedQuestion = await question.save();
@@ -149,17 +175,16 @@ router.post('/', authenticateUser, async (req, res) => {
     }
 });
 
-// PUT /api/questions/:id - Update question (user only)
+// PUT /api/questions/:id - Update question (owner only)
 router.put('/:id', authenticateUser, async (req, res) => {
     try {
-        const { description, faculty, subject } = req.body;
+        const { description, faculty, subject } = req.body || {};
         const oldQuestion = await Question.findById(req.params.id);
 
         if (!oldQuestion) {
             return res.status(404).json({ message: 'Question not found' });
         }
 
-        // Check if the question belongs to the authenticated user
         if (!oldQuestion.user || oldQuestion.user.toString() !== req.user.id) {
             return res.status(403).json({ message: 'You can only update your own questions' });
         }
@@ -168,13 +193,10 @@ router.put('/:id', authenticateUser, async (req, res) => {
             return res.status(400).json({ message: 'Description, faculty, and subject are required' });
         }
 
-        // Check if faculty exists
         const existingFaculty = await Speaker.findById(faculty);
         if (!existingFaculty) {
             return res.status(404).json({ message: 'Faculty not found' });
         }
-
-        // Subject is now a string, no need to validate existence
 
         const question = await Question.findByIdAndUpdate(
             req.params.id,
@@ -182,17 +204,14 @@ router.put('/:id', authenticateUser, async (req, res) => {
             { new: true, runValidators: true }
         ).populate('faculty', 'name designation');
 
-        res.json({
-            message: 'Question updated successfully',
-            question
-        });
+        res.json({ message: 'Question updated successfully', question });
     } catch (error) {
         console.error('Error updating question:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 });
 
-// DELETE /api/questions/:id - Delete question (user only)
+// DELETE /api/questions/:id - Delete question (owner only)
 router.delete('/:id', authenticateUser, async (req, res) => {
     try {
         const question = await Question.findById(req.params.id);
@@ -201,17 +220,13 @@ router.delete('/:id', authenticateUser, async (req, res) => {
             return res.status(404).json({ message: 'Question not found' });
         }
 
-        // Check if the question belongs to the authenticated user
         if (!question.user || question.user.toString() !== req.user.id) {
             return res.status(403).json({ message: 'You can only delete your own questions' });
         }
 
         await Question.findByIdAndDelete(req.params.id);
 
-        res.json({
-            message: 'Question deleted successfully',
-            question
-        });
+        res.json({ message: 'Question deleted successfully', id: question._id });
     } catch (error) {
         console.error('Error deleting question:', error);
         res.status(500).json({ message: 'Internal server error' });
@@ -219,9 +234,9 @@ router.delete('/:id', authenticateUser, async (req, res) => {
 });
 
 // POST /api/questions/:id/answer - Admin answers a question
-router.post('/:id/answer', authenticateToken, async (req, res) => {
+router.post('/:id/answer', authenticateAdmin, async (req, res) => {
     try {
-        const { answer } = req.body;
+        const { answer } = req.body || {};
         const questionId = req.params.id;
 
         if (!answer || answer.trim() === '') {
@@ -233,12 +248,10 @@ router.post('/:id/answer', authenticateToken, async (req, res) => {
             return res.status(404).json({ message: 'Question not found' });
         }
 
-        // Check if question already has an answer
         if (question.answer) {
             return res.status(400).json({ message: 'Question already has an answer' });
         }
 
-        // Update question with answer
         const updatedQuestion = await Question.findByIdAndUpdate(
             questionId,
             {
@@ -250,10 +263,7 @@ router.post('/:id/answer', authenticateToken, async (req, res) => {
         ).populate('faculty', 'name designation')
          .populate('user', 'name class');
 
-        res.json({
-            message: 'Answer added successfully',
-            question: updatedQuestion
-        });
+        res.json({ message: 'Answer added successfully', question: updatedQuestion });
     } catch (error) {
         console.error('Error adding answer:', error);
         res.status(500).json({ message: 'Internal server error' });
@@ -261,9 +271,9 @@ router.post('/:id/answer', authenticateToken, async (req, res) => {
 });
 
 // PUT /api/questions/:id/answer - Admin updates answer
-router.put('/:id/answer', authenticateToken, async (req, res) => {
+router.put('/:id/answer', authenticateAdmin, async (req, res) => {
     try {
-        const { answer } = req.body;
+        const { answer } = req.body || {};
         const questionId = req.params.id;
 
         if (!answer || answer.trim() === '') {
@@ -279,7 +289,6 @@ router.put('/:id/answer', authenticateToken, async (req, res) => {
             return res.status(400).json({ message: 'Question has no answer to update' });
         }
 
-        // Update answer
         const updatedQuestion = await Question.findByIdAndUpdate(
             questionId,
             {
@@ -291,10 +300,7 @@ router.put('/:id/answer', authenticateToken, async (req, res) => {
         ).populate('faculty', 'name designation')
          .populate('user', 'name class');
 
-        res.json({
-            message: 'Answer updated successfully',
-            question: updatedQuestion
-        });
+        res.json({ message: 'Answer updated successfully', question: updatedQuestion });
     } catch (error) {
         console.error('Error updating answer:', error);
         res.status(500).json({ message: 'Internal server error' });
@@ -302,7 +308,7 @@ router.put('/:id/answer', authenticateToken, async (req, res) => {
 });
 
 // DELETE /api/questions/:id/answer - Admin deletes answer
-router.delete('/:id/answer', authenticateToken, async (req, res) => {
+router.delete('/:id/answer', authenticateAdmin, async (req, res) => {
     try {
         const questionId = req.params.id;
 
@@ -315,22 +321,14 @@ router.delete('/:id/answer', authenticateToken, async (req, res) => {
             return res.status(400).json({ message: 'Question has no answer to delete' });
         }
 
-        // Remove answer
         const updatedQuestion = await Question.findByIdAndUpdate(
             questionId,
-            {
-                answer: null,
-                answeredBy: null,
-                answeredAt: null
-            },
+            { answer: null, answeredBy: null, answeredAt: null },
             { new: true, runValidators: true }
         ).populate('faculty', 'name designation')
          .populate('user', 'name class');
 
-        res.json({
-            message: 'Answer deleted successfully',
-            question: updatedQuestion
-        });
+        res.json({ message: 'Answer deleted successfully', question: updatedQuestion });
     } catch (error) {
         console.error('Error deleting answer:', error);
         res.status(500).json({ message: 'Internal server error' });

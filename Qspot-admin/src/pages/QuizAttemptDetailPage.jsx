@@ -1,70 +1,50 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FiActivity, FiAlertCircle, FiClock, FiArrowLeft } from 'react-icons/fi';
 import Sidebar from '../components/Sidebar';
+import ErrorState from '../components/ui/ErrorState';
+import usePageTitle from '../hooks/usePageTitle';
+import apiClient from '../api/client';
+import { formatDuration, formatDateTime } from '../utils/format';
 import brandIcon from '../assets/Icon.png';
 
-const formatDuration = (seconds) => {
-  const value = Number(seconds);
-  if (Number.isNaN(value) || value < 0) return '0s';
-  const mins = Math.floor(value / 60);
-  const secs = Math.floor(value % 60);
-  if (mins <= 0) return `${secs}s`;
-  return `${mins}m ${secs.toString().padStart(2, '0')}s`;
-};
-
-const formatDateTime = (isoString) => {
-  if (!isoString) return 'NA';
-  const date = new Date(isoString);
-  if (Number.isNaN(date.getTime())) return 'NA';
-  return date.toLocaleString();
-};
-
+// GET /api/quizzes/attempt/:attemptId ->
+// { attemptId, quizId, title, user, language, score, totalQuestions,
+//   percentage, totalDuration, createdAt, results: [QuestionResult] }
+// QuestionResult = { questionId, type, question_en, question_ml, options_en,
+//   options_ml, attemptedAnswer: index|null, correctAnswer: index, isCorrect }
 const QuizAttemptDetailPage = () => {
   const { attemptId } = useParams();
-  const baseURL = import.meta.env.VITE_API_BASE_URL;
-  const token = useMemo(() => localStorage.getItem('adminToken'), []);
   const navigate = useNavigate();
 
   const [attempt, setAttempt] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const handleNavigate = (path) => {
-    window.location.href = path;
+  usePageTitle(attempt?.title ? `${attempt.title} · Attempt` : 'Quiz Attempt');
+
+  const fetchAttempt = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await apiClient.get(`/quizzes/attempt/${attemptId}`);
+      setAttempt(response.data);
+    } catch (fetchError) {
+      setError(fetchError.message || 'Failed to load attempt details.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    const fetchAttempt = async () => {
-      if (!baseURL || !token || !attemptId) {
-        setError('Missing configuration or authentication token.');
-        setLoading(false);
-        return;
-      }
-      try {
-        setLoading(true);
-        setError('');
-        const response = await axios.get(`${baseURL}/quizzes/attempt/${attemptId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setAttempt(response.data);
-      } catch (fetchError) {
-        console.error('Error fetching attempt detail:', fetchError);
-        setError(fetchError.response?.data?.message || 'Failed to load attempt details.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchAttempt();
-  }, [attemptId, baseURL, token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attemptId]);
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-black text-white">
-      <Sidebar currentPage="quizAttempts" onNavigate={handleNavigate} />
+      <Sidebar currentPage="quizAttempts" onNavigate={navigate} />
       <main className="w-full bg-transparent px-3 py-5 pb-28 sm:px-4 md:ml-64 md:pb-5">
-        {/* Header - styled to match other project */}
         <header className="bg-transparent backdrop-blur-sm shadow-lg rounded-xl border border-white/5">
           <div className="max-w-4xl mx-auto px-3 sm:px-4">
             <div className="flex flex-wrap items-center justify-between gap-3 py-3">
@@ -75,36 +55,26 @@ const QuizAttemptDetailPage = () => {
                   className="h-9 w-9 shrink-0 object-contain rounded-lg border border-white/10 bg-white/5 p-1 sm:h-10 sm:w-10"
                 />
                 <div className="min-w-0">
-                  <h1
-                    className="truncate text-lg font-semibold text-white tracking-wide sm:text-2xl md:text-3xl"
-                    style={{ fontFamily: "'Poppins', 'Segoe UI', 'Roboto', sans-serif", letterSpacing: '0.02em' }}
-                  >
-                    Quiz Result Details
+                  <h1 className="truncate text-lg font-semibold text-white tracking-wide sm:text-2xl md:text-3xl">
+                    {attempt?.title || 'Quiz Result Details'}
                   </h1>
                   <p className="text-[10px] uppercase tracking-[0.25em] text-white/50">ID #{attemptId}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => navigate('/admin/quiz/attempts')}
-                  className="bg-gradient-to-r from-gray-700 to-gray-800 text-white p-2 rounded-md font-medium hover:from-gray-800 hover:to-gray-900 transition-all duration-200 shadow-md inline-flex items-center gap-2"
-                >
-                  <FiArrowLeft className="text-sm" />
-                </button>
-                <div className="text-right hidden sm:block">
-                  <p className="text-xs text-gray-400 font-medium">Admin Dashboard</p>
-                  <p className="text-[10px] text-gray-500">Detailed Quiz Analysis</p>
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => navigate(attempt?.quizId ? `/admin/quiz/attempts?quizId=${attempt.quizId}` : '/admin/quiz/attempts')}
+                className="bg-gradient-to-r from-gray-700 to-gray-800 text-white p-2 rounded-md font-medium hover:from-gray-800 hover:to-gray-900 transition-all duration-200 shadow-md inline-flex items-center gap-2"
+              >
+                <FiArrowLeft className="text-sm" />
+              </button>
             </div>
           </div>
         </header>
 
-        {/* Error / Loading */}
         {error && (
-          <div className="max-w-4xl mx-auto mt-3 rounded-xl border border-red-700/50 bg-red-900/40 px-3 py-2.5 text-xs text-red-200">
-            {error}
+          <div className="max-w-4xl mx-auto mt-3">
+            <ErrorState message={error} onRetry={fetchAttempt} />
           </div>
         )}
 
@@ -124,15 +94,15 @@ const QuizAttemptDetailPage = () => {
 
         {!loading && attempt && (
           <section className="max-w-4xl mx-auto mt-4 space-y-4">
-            {/* User Information Card */}
             <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl shadow-xl border border-gray-700/50 overflow-hidden">
               <div className="px-3 sm:px-5 py-3 border-b border-gray-700/70">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base font-bold text-white">User Information</h2>
-                </div>
+                <h2 className="text-base font-bold text-white">User Information</h2>
               </div>
               <div className="px-3 sm:px-5 py-4">
-                <div className="mb-2.5 p-3.5 bg-gradient-to-r from-violet-900/20 to-purple-900/20 rounded-lg border border-violet-700/30">
+                <div
+                  className="mb-2.5 cursor-pointer p-3.5 bg-gradient-to-r from-violet-900/20 to-purple-900/20 rounded-lg border border-violet-700/30 hover:border-violet-500/50"
+                  onClick={() => attempt.user?.id && navigate(`/admin/users/${attempt.user.id}`)}
+                >
                   <div className="flex flex-wrap items-center justify-between gap-1">
                     <label className="text-xs font-medium text-gray-400">Full Name</label>
                     <p className="break-words text-lg font-bold text-white leading-tight">{attempt.user?.name || 'Unknown'}</p>
@@ -161,17 +131,17 @@ const QuizAttemptDetailPage = () => {
               </div>
             </div>
 
-            {/* Result Summary Card */}
             <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl shadow-xl border border-gray-700/50 overflow-hidden">
               <div className="px-3 sm:px-5 py-3 border-b border-gray-700/70">
                 <h2 className="text-base font-bold text-white">Quiz Result Summary</h2>
-                <p className="text-[11px] text-gray-300 mt-0.5">Performance metrics and statistics</p>
               </div>
               <div className="px-3 sm:px-5 py-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="text-center">
                     <label className="block text-[11px] font-medium text-gray-400 mb-0.5">Score</label>
-                    <p className="text-xl font-bold text-green-400">{attempt.score}</p>
+                    <p className="text-xl font-bold text-green-400">
+                      {attempt.score}/{attempt.totalQuestions}
+                    </p>
                   </div>
                   <div className="text-center">
                     <label className="block text-[11px] font-medium text-gray-400 mb-0.5">Percentage</label>
@@ -189,80 +159,57 @@ const QuizAttemptDetailPage = () => {
               </div>
             </div>
 
-            {/* Questions & Answers */}
             <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl shadow-xl border border-gray-700/50 overflow-hidden">
               <div className="px-3 sm:px-5 py-3 border-b border-gray-700/70">
                 <div className="flex items-center gap-2 text-[13px] font-semibold text-white">
                   <FiActivity className="text-sm text-[#EFB078]" />
                   Questions &amp; Answers
                 </div>
-                <p className="text-[11px] text-gray-300 mt-0.5">Detailed analysis of each question</p>
               </div>
               <div className="px-3 sm:px-5 py-4">
                 <div className="max-h-[480px] space-y-2.5 overflow-y-auto pr-1 text-[12px] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2">
-                  {attempt.questions?.map((question, index) => {
-                    const answer = attempt.answers?.[index];
-                    const isCorrect = answer?.isCorrect === 'true';
-                    // Normalize identifiers for option comparison if options exist
-                    const userAnswerId = typeof answer?.attemptedAnswer === 'object' ? answer?.attemptedAnswer?.id : answer?.attemptedAnswer;
-                    const correctAnswerId = typeof question?.correctAnswer === 'object' ? question?.correctAnswer?.id : question?.correctAnswer;
+                  {attempt.results?.map((result, index) => {
+                    const isCorrect = Boolean(result.isCorrect);
+                    const attemptedIndex =
+                      typeof result.attemptedAnswer === 'number' ? result.attemptedAnswer : null;
                     return (
                       <div
-                        key={`${question.questionNumber}-${index}`}
+                        key={result.questionId || index}
                         className={`p-3.5 rounded-lg border ${
                           isCorrect ? 'bg-green-900/20 border-green-700/50' : 'bg-red-900/20 border-red-700/50'
                         }`}
                       >
                         <div className="flex items-start justify-between mb-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[13px] font-semibold text-white">Question {question.questionNumber}</span>
-                            {answer?.duration && (
-                              <span className="text-[10px] text-gray-300 bg-gray-800/50 px-1.5 py-0.5 rounded">
-                                {formatDuration(answer.duration)}
-                              </span>
-                            )}
-                          </div>
+                          <span className="text-[13px] font-semibold text-white">Question {index + 1}</span>
                           <span
                             className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded-full ${
                               isCorrect ? 'bg-green-900/50 text-green-200' : 'bg-red-900/50 text-red-200'
                             }`}
                           >
-                            {isCorrect ? (
-                              <>
-                                <span className="text-green-400 text-sm font-bold mr-1">✓</span>Correct
-                              </>
-                            ) : (
-                              <>
-                                <span className="text-red-400 text-sm font-bold mr-1">✗</span>Incorrect
-                              </>
-                            )}
+                            {isCorrect ? '✓ Correct' : '✗ Incorrect'}
                           </span>
                         </div>
-                        <p className="mt-1 text-[13px] text-gray-200 leading-relaxed">{question.question}</p>
+                        <p className="mt-1 text-[13px] text-gray-200 leading-relaxed">{result.question_en}</p>
+                        <p className="text-[12px] text-gray-400 leading-relaxed">{result.question_ml}</p>
 
-                        {/* Options grid (if options available) */}
-                        {!!question?.options?.length && (
+                        {!!result.options_en?.length && (
                           <div className="mt-3">
                             <label className="block text-[10px] font-medium text-gray-400 mb-1">Options</label>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
-                              {question.options.map((option, optIdx) => {
-                                const optionId = typeof option === 'object' ? option.id : option;
-                                const optionLabel =
-                                  typeof option === 'object'
-                                    ? option.name || option.text || option.label || optionId
-                                    : option;
-                                const isCorrectOption =
-                                  optionId === correctAnswerId || option === question.correctAnswer;
-                                const isUserOption = optionId === userAnswerId || option === answer?.attemptedAnswer;
-                                const baseClasses = 'p-1.5 rounded border flex items-center justify-between';
+                              {result.options_en.map((option, optIdx) => {
+                                const isCorrectOption = optIdx === result.correctAnswer;
+                                const isUserOption = optIdx === attemptedIndex;
                                 const colorClasses = isCorrectOption
                                   ? 'bg-green-900/30 border-green-600/50 text-green-300'
                                   : isUserOption
                                   ? 'bg-red-900/30 border-red-600/50 text-red-300'
                                   : 'bg-gray-800/30 border-gray-600/50 text-gray-300';
                                 return (
-                                  <div key={optIdx} className={`${baseClasses} ${colorClasses}`}>
-                                    <span className="text-[12px]">{optionLabel}</span>
+                                  <div
+                                    key={optIdx}
+                                    className={`p-1.5 rounded border flex items-center justify-between ${colorClasses}`}
+                                  >
+                                    <span className="text-[12px]">{option}</span>
                                     <span className="ml-1.5">
                                       {isCorrectOption && <span className="text-green-400 text-xs font-bold">✓</span>}
                                       {isUserOption && !isCorrectOption && (
@@ -276,39 +223,24 @@ const QuizAttemptDetailPage = () => {
                           </div>
                         )}
 
-                        {/* Answers summary */}
                         <div className="mt-2.5 grid grid-cols-1 md:grid-cols-2 gap-2.5">
                           <div>
                             <label className="block text-[10px] font-medium text-gray-400 mb-1">Correct Answer</label>
                             <p className="text-[13px] font-semibold text-green-400">
-                              {typeof question.correctAnswer === 'object'
-                                ? question.correctAnswer?.name ||
-                                  question.correctAnswer?.text ||
-                                  question.correctAnswer?.label ||
-                                  question.correctAnswer?.id
-                                : question.correctAnswer || 'NA'}
+                              {result.options_en?.[result.correctAnswer] ?? 'NA'}
                             </p>
                           </div>
                           <div>
                             <label className="block text-[10px] font-medium text-gray-400 mb-1">User's Answer</label>
                             <p className={`text-[13px] font-semibold ${isCorrect ? 'text-green-400' : 'text-red-400'}`}>
-                              {answer?.attemptedAnswer
-                                ? typeof answer.attemptedAnswer === 'object'
-                                  ? answer.attemptedAnswer?.name ||
-                                    answer.attemptedAnswer?.text ||
-                                    answer.attemptedAnswer?.label ||
-                                    answer.attemptedAnswer?.id
-                                  : answer.attemptedAnswer
-                                : 'Not answered'}
+                              {attemptedIndex !== null ? result.options_en?.[attemptedIndex] ?? 'NA' : 'Not answered'}
                             </p>
                           </div>
                         </div>
                       </div>
                     );
                   })}
-                  {!attempt.questions?.length && (
-                    <p className="text-center text-white/60">No question data available.</p>
-                  )}
+                  {!attempt.results?.length && <p className="text-center text-white/60">No question data available.</p>}
                 </div>
               </div>
             </div>
@@ -320,4 +252,3 @@ const QuizAttemptDetailPage = () => {
 };
 
 export default QuizAttemptDetailPage;
-

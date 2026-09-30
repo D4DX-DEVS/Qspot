@@ -1,6 +1,6 @@
 const express = require('express');
 const Notification = require('../models/notification');
-const { authenticateToken } = require('../middlewares/auth');
+const { authenticateAdmin } = require('../middlewares/auth');
 
 const router = express.Router();
 
@@ -33,7 +33,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/notifications - Create new notification (admin only)
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateAdmin, async (req, res) => {
     try {
         const { title, description } = req.body;
 
@@ -62,7 +62,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // PUT /api/notifications/:id - Update notification (admin only)
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateAdmin, async (req, res) => {
     try {
         const { title, description } = req.body;
         const oldNotification = await Notification.findById(req.params.id);
@@ -94,7 +94,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 // (Removed toggle route since isActive is not used)
 
 // DELETE /api/notifications/:id - Delete notification (admin only)
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateAdmin, async (req, res) => {
     try {
         const notification = await Notification.findById(req.params.id);
 
@@ -106,7 +106,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
         res.json({
             message: 'Notification deleted successfully',
-            notification
+            id: notification._id
         });
     } catch (error) {
         console.error('Error deleting notification:', error);

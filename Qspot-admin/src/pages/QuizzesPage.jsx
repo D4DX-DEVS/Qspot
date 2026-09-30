@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FiPlus,
@@ -10,47 +9,42 @@ import {
   FiCalendar,
   FiClock,
   FiActivity,
-  FiPower,
   FiList,
   FiBarChart2,
-  FiLock
+  FiHelpCircle,
+  FiUsers
 } from 'react-icons/fi';
 import Sidebar from '../components/Sidebar';
 import ConfirmDialog from '../components/dialogs/ConfirmDialog';
+import ErrorState from '../components/ui/ErrorState';
+import Spinner from '../components/ui/Spinner';
+import Pagination from '../components/ui/Pagination';
+import PageHeader from '../components/ui/PageHeader';
+import usePageTitle from '../hooks/usePageTitle';
+import apiClient from '../api/client';
+import { localDateTimeToISO, isoToLocalDateTimeInput, formatDateTime } from '../utils/format';
 import brandIcon from '../assets/Icon.png';
-
-const isLegacyQuiz = (quiz) => !quiz.title;
 
 const DEFAULT_FORM = {
   title: '',
+  assessmentType: 'quiz',
   startDate: '',
   endDate: '',
   numberOfQuestions: '',
   overallTimeLimit: '',
   perQuestionTimeLimit: '',
+  timerMode: 'none',
+  allowedClasses: '',
+  requireCompletedVideo: false,
   optionsCount: '',
   questionsRandomization: false,
   isEnable: false
 };
 
-const toDateInputValue = (isoString) => {
-  if (!isoString) return '';
-  const d = new Date(isoString);
-  if (Number.isNaN(d.getTime())) return '';
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
-
-const formatDateTime = (isoString) => {
-  if (!isoString) return 'NA';
-  const d = new Date(isoString);
-  if (Number.isNaN(d.getTime())) return 'NA';
-  return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
-};
+const toDateInputValue = isoToLocalDateTimeInput;
 
 const QuizzesPage = () => {
-  const baseURL = import.meta.env.VITE_API_BASE_URL;
-  const token = useMemo(() => localStorage.getItem('adminToken'), []);
+  usePageTitle('Quizzes');
   const navigate = useNavigate();
 
   const [quizzes, setQuizzes] = useState([]);
@@ -70,24 +64,17 @@ const QuizzesPage = () => {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const handleNavigate = (path) => {
-    window.location.href = path;
-  };
-
   const fetchQuizzes = async (targetPage = page) => {
-    if (!baseURL || !token) return;
     try {
       setLoading(true);
       setError('');
-      const response = await axios.get(`${baseURL}/quiz-definitions`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await apiClient.get('/quiz-definitions', {
         params: { page: targetPage, limit }
       });
       setQuizzes(Array.isArray(response.data?.items) ? response.data.items : []);
       setTotal(response.data?.total || 0);
     } catch (err) {
-      console.error('Error fetching quizzes:', err);
-      setError(err.response?.data?.message || 'Failed to load quizzes');
+      setError(err.message || 'Failed to load quizzes');
     } finally {
       setLoading(false);
     }
@@ -96,7 +83,7 @@ const QuizzesPage = () => {
   useEffect(() => {
     fetchQuizzes(page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseURL, page]);
+  }, [page]);
 
   const openCreateModal = () => {
     setEditingQuiz(null);
@@ -109,11 +96,15 @@ const QuizzesPage = () => {
     setEditingQuiz(quiz);
     setForm({
       title: quiz.title || '',
+      assessmentType: quiz.assessmentType || 'quiz',
       startDate: toDateInputValue(quiz.startDate),
       endDate: toDateInputValue(quiz.endDate),
       numberOfQuestions: String(quiz.numberOfQuestions ?? ''),
       overallTimeLimit: quiz.overallTimeLimit != null ? String(quiz.overallTimeLimit) : '',
       perQuestionTimeLimit: quiz.perQuestionTimeLimit != null ? String(quiz.perQuestionTimeLimit) : '',
+      timerMode: quiz.timerMode || 'none',
+      allowedClasses: Array.isArray(quiz.allowedClasses) ? quiz.allowedClasses.join(', ') : '',
+      requireCompletedVideo: Boolean(quiz.conditions?.requireCompletedVideo),
       optionsCount: quiz.optionsCount != null ? String(quiz.optionsCount) : '',
       questionsRandomization: Boolean(quiz.questionsRandomization),
       isEnable: Boolean(quiz.isEnable)
@@ -135,10 +126,8 @@ const QuizzesPage = () => {
 
   const handleSave = async (event) => {
     event.preventDefault();
-    if (!baseURL || !token) return;
 
-    const editingLegacy = editingQuiz && isLegacyQuiz(editingQuiz);
-    if (!editingLegacy && !form.title.trim()) {
+    if (!form.title.trim()) {
       setFormError('Title is required.');
       return;
     }
@@ -157,15 +146,17 @@ const QuizzesPage = () => {
     }
 
     const payload = {
-      startDate: form.startDate,
-      endDate: form.endDate,
+      title: form.title.trim(),
+      assessmentType: form.assessmentType,
+      startDate: localDateTimeToISO(form.startDate),
+      endDate: localDateTimeToISO(form.endDate),
       numberOfQuestions,
       questionsRandomization: form.questionsRandomization,
       isEnable: form.isEnable
     };
-    if (!editingLegacy) {
-      payload.title = form.title.trim();
-    }
+    payload.timerMode = form.timerMode;
+    payload.allowedClasses = form.allowedClasses;
+    payload.conditions = { requireCompletedVideo: form.requireCompletedVideo };
     if (form.overallTimeLimit !== '') payload.overallTimeLimit = Number(form.overallTimeLimit);
     if (form.perQuestionTimeLimit !== '') payload.perQuestionTimeLimit = Number(form.perQuestionTimeLimit);
     if (form.optionsCount !== '') payload.optionsCount = Number(form.optionsCount);
@@ -173,35 +164,29 @@ const QuizzesPage = () => {
     try {
       setSaving(true);
       setFormError('');
-      const url = editingQuiz
-        ? `${baseURL}/quiz-definitions/${editingQuiz._id}`
-        : `${baseURL}/quiz-definitions`;
-      const method = editingQuiz ? axios.put : axios.post;
-      await method(url, payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      if (editingQuiz) {
+        await apiClient.put(`/quiz-definitions/${editingQuiz._id}`, payload);
+      } else {
+        await apiClient.post('/quiz-definitions', payload);
+      }
       closeModal();
       fetchQuizzes();
     } catch (err) {
-      console.error('Error saving quiz:', err);
-      setFormError(err.response?.data?.message || 'Failed to save quiz');
+      setFormError(err.message || 'Failed to save quiz');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!deleteTarget || !baseURL || !token) return;
+    if (!deleteTarget) return;
     try {
       setDeleteLoading(true);
-      await axios.delete(`${baseURL}/quiz-definitions/${deleteTarget._id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await apiClient.delete(`/quiz-definitions/${deleteTarget._id}`);
       setDeleteTarget(null);
       fetchQuizzes();
     } catch (err) {
-      console.error('Error deleting quiz:', err);
-      setError(err.response?.data?.message || 'Failed to delete quiz');
+      setError(err.message || 'Failed to delete quiz');
       setDeleteTarget(null);
     } finally {
       setDeleteLoading(false);
@@ -210,33 +195,26 @@ const QuizzesPage = () => {
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-black">
-      <Sidebar currentPage="quizzes" onNavigate={handleNavigate} />
+      <Sidebar currentPage="quizzes" onNavigate={navigate} />
 
       <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-6 md:p-8 flex flex-col gap-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.35em] text-white/50">Admin Dashboard</p>
-              <h1 className="text-2xl font-semibold text-white">Quizzes</h1>
-            </div>
-            <button
-              onClick={openCreateModal}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#701845]/80 via-[#9E4B63]/75 to-[#EFB078]/80 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow-[0_10px_28px_rgba(112,24,69,0.35)] transition hover:from-[#5a1538] hover:to-[#d49a6a]"
-            >
-              <FiPlus size={13} /> Create Quiz
-            </button>
-          </div>
+          <PageHeader
+            title="Quizzes"
+            actions={
+              <button
+                onClick={openCreateModal}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#701845]/80 via-[#9E4B63]/75 to-[#EFB078]/80 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow-[0_10px_28px_rgba(112,24,69,0.35)] transition hover:from-[#5a1538] hover:to-[#d49a6a]"
+              >
+                <FiPlus size={13} /> Create Quiz
+              </button>
+            }
+          />
 
-          {error && (
-            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-              {error}
-            </div>
-          )}
+          {error && !loading && <ErrorState message={error} onRetry={() => fetchQuizzes(page)} />}
 
           {loading ? (
-            <div className="flex justify-center items-center h-48">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#EFB078]"></div>
-            </div>
+            <Spinner />
           ) : quizzes.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-white/15 bg-white/5 px-8 py-12 text-center text-white/70">
               <p className="text-lg font-semibold">No quizzes yet</p>
@@ -244,114 +222,88 @@ const QuizzesPage = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {quizzes.map((quiz) => {
-                const legacy = isLegacyQuiz(quiz);
-                return (
-                  <div
-                    key={quiz._id}
-                    className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/75 via-[#1c0b18]/55 to-[#12060f]/75 p-4 shadow-[0_10px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <img src={brandIcon} alt="" className="h-6 w-6 shrink-0 rounded object-contain" />
-                        <h3 className="text-base font-semibold text-white break-words">
-                          {legacy ? 'Legacy Quiz' : quiz.title}
-                        </h3>
-                        {legacy && (
-                          <span
-                            title="Protected legacy quiz"
-                            className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-white/50"
-                          >
-                            <FiLock size={10} /> Legacy
-                          </span>
-                        )}
+              {quizzes.map((quiz) => (
+                <div
+                  key={quiz._id}
+                  className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/75 via-[#1c0b18]/55 to-[#12060f]/75 p-4 shadow-[0_10px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <img src={brandIcon} alt="" className="h-6 w-6 shrink-0 rounded object-contain" />
+                      <h3 className="text-base font-semibold text-white break-words">{quiz.title}</h3>
+                    </div>
+                    <span
+                      className={`text-xs font-semibold ${quiz.isEnable ? 'text-green-300' : 'text-red-300'}`}
+                    >
+                      {quiz.isEnable ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-white/70">
+                    <div className="font-semibold uppercase tracking-[0.16em] text-[#EFB078]">{quiz.assessmentType === 'practical' ? 'Practical exam' : 'Knowledge quiz'}</div>
+                    <div className="flex items-center gap-2">
+                      <FiCalendar className="text-[#EFB078]" size={12} />
+                      {formatDateTime(quiz.startDate)} → {formatDateTime(quiz.endDate)}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FiActivity className="text-[#EFB078]" size={12} />
+                      {quiz.numberOfQuestions} questions per attempt
+                      {quiz.questionsRandomization ? ' · randomized' : ''}
+                    </div>
+                    {(quiz.overallTimeLimit || quiz.perQuestionTimeLimit) && (
+                      <div className="flex items-center gap-2">
+                        <FiClock className="text-[#EFB078]" size={12} />
+                        {quiz.overallTimeLimit ? `${quiz.overallTimeLimit >= 60 ? `${Math.floor(quiz.overallTimeLimit / 60)}m` : `${quiz.overallTimeLimit}s`} overall` : ''}
+                        {quiz.overallTimeLimit && quiz.perQuestionTimeLimit ? ' · ' : ''}
+                        {quiz.perQuestionTimeLimit ? `${quiz.perQuestionTimeLimit}s/question` : ''}
                       </div>
-                      <span
-                        className={`text-xs font-semibold ${quiz.isEnable ? 'text-green-300' : 'text-red-300'}`}
-                      >
-                        {quiz.isEnable ? 'Enabled' : 'Disabled'}
+                    )}
+                    <div className="flex items-center gap-4 pt-1">
+                      <span className="flex items-center gap-1.5" title="Questions in the bank">
+                        <FiHelpCircle className="text-[#EFB078]" size={12} /> {quiz.questionCount ?? 0} bank
+                      </span>
+                      <span className="flex items-center gap-1.5" title="Student attempts">
+                        <FiUsers className="text-[#EFB078]" size={12} /> {quiz.attemptCount ?? 0} attempts
                       </span>
                     </div>
-
-                    <div className="space-y-1.5 text-xs text-white/70">
-                      <div className="flex items-center gap-2">
-                        <FiCalendar className="text-[#EFB078]" size={12} />
-                        {formatDateTime(quiz.startDate)} → {formatDateTime(quiz.endDate)}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <FiActivity className="text-[#EFB078]" size={12} />
-                        {quiz.numberOfQuestions} questions
-                        {quiz.questionsRandomization ? ' · randomized' : ''}
-                      </div>
-                      {(quiz.overallTimeLimit || quiz.perQuestionTimeLimit) && (
-                        <div className="flex items-center gap-2">
-                          <FiClock className="text-[#EFB078]" size={12} />
-                          {quiz.overallTimeLimit ? `${quiz.overallTimeLimit}m overall` : ''}
-                          {quiz.overallTimeLimit && quiz.perQuestionTimeLimit ? ' · ' : ''}
-                          {quiz.perQuestionTimeLimit ? `${quiz.perQuestionTimeLimit}s/question` : ''}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-white/10 pt-3">
-                      <button
-                        onClick={() => navigate(`/admin/quiz?quizId=${quiz._id}`)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-white/12 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 transition hover:border-[#EFB078]/40 hover:text-white"
-                      >
-                        <FiList size={13} /> Questions
-                      </button>
-                      <button
-                        onClick={() => navigate(`/admin/quiz/attempts?quizId=${quiz._id}`)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-white/12 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 transition hover:border-[#EFB078]/40 hover:text-white"
-                      >
-                        <FiBarChart2 size={13} /> Results
-                      </button>
-                      <button
-                        onClick={() => openEditModal(quiz)}
-                        aria-label="Edit quiz"
-                        title="Edit quiz"
-                        className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/12 bg-white/5 text-white/75 transition hover:border-[#EFB078]/40 hover:text-[#EFB078]"
-                      >
-                        <FiEdit2 size={13} />
-                      </button>
-                      {!legacy && (
-                        <button
-                          onClick={() => setDeleteTarget(quiz)}
-                          aria-label="Delete quiz"
-                          title="Delete quiz"
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-400/30 bg-red-500/10 text-red-300 transition hover:border-red-300/60 hover:text-red-200"
-                        >
-                          <FiTrash2 size={13} />
-                        </button>
-                      )}
-                    </div>
                   </div>
-                );
-              })}
+
+                  <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-white/10 pt-3">
+                    <button
+                      onClick={() => navigate(`/admin/quiz?quizId=${quiz._id}`)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-white/12 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 transition hover:border-[#EFB078]/40 hover:text-white"
+                    >
+                      <FiList size={13} /> Questions
+                    </button>
+                    <button
+                      onClick={() => navigate(`/admin/quiz/attempts?quizId=${quiz._id}`)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-white/12 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 transition hover:border-[#EFB078]/40 hover:text-white"
+                    >
+                      <FiBarChart2 size={13} /> Results
+                    </button>
+                    <button
+                      onClick={() => openEditModal(quiz)}
+                      aria-label="Edit quiz"
+                      title="Edit quiz"
+                      className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/12 bg-white/5 text-white/75 transition hover:border-[#EFB078]/40 hover:text-[#EFB078]"
+                    >
+                      <FiEdit2 size={13} />
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget(quiz)}
+                      aria-label="Delete quiz"
+                      title="Delete quiz"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-400/30 bg-red-500/10 text-red-300 transition hover:border-red-300/60 hover:text-red-200"
+                    >
+                      <FiTrash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
-          {!loading && totalPages > 1 && (
-            <div className="flex items-center justify-center gap-3 text-xs text-white/60">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 disabled:opacity-40"
-              >
-                Prev
-              </button>
-              <span>
-                Page {page} of {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 disabled:opacity-40"
-              >
-                Next
-              </button>
-            </div>
-          )}
+          {!loading && <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} label="quizzes" />}
         </main>
       </div>
 
@@ -396,19 +348,34 @@ const QuizzesPage = () => {
                   type="text"
                   value={form.title}
                   onChange={(e) => handleFieldChange('title', e.target.value)}
-                  disabled={editingQuiz ? isLegacyQuiz(editingQuiz) : false}
-                  className="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-[#EFB078]/60 focus:outline-none disabled:text-white/40"
+                  className="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-[#EFB078]/60 focus:outline-none"
                   placeholder="e.g. Ramadan Quiz 2026"
                   required
                 />
-                {editingQuiz && isLegacyQuiz(editingQuiz) && (
-                  <span className="mt-1.5 block text-[10px] font-normal uppercase tracking-normal text-white/40">
-                    The legacy quiz's title cannot be changed.
-                  </span>
-                )}
+              </label>
+
+              <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/65">
+                Assessment Type
+                <select value={form.assessmentType} onChange={(e) => handleFieldChange('assessmentType', e.target.value)} className="mt-2 w-full rounded-2xl border border-white/15 bg-[#160b17] px-4 py-2.5 text-sm text-white focus:border-[#EFB078]/60 focus:outline-none">
+                  <option value="quiz">Knowledge quiz</option>
+                  <option value="practical">Practical exam</option>
+                </select>
               </label>
 
               <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/65 sm:col-span-2">
+                  Timer mode
+                  <select
+                    value={form.timerMode}
+                    onChange={(e) => handleFieldChange('timerMode', e.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-white/15 bg-[#1b0d20] px-4 py-2.5 text-sm text-white focus:border-[#EFB078]/60 focus:outline-none"
+                  >
+                    <option value="none">No timer</option>
+                    <option value="overall">Overall timer</option>
+                    <option value="per-question">Timer per question</option>
+                    <option value="both">Overall + per question</option>
+                  </select>
+                </label>
                 <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/65">
                   Start Date *
                   <input
@@ -428,6 +395,28 @@ const QuizzesPage = () => {
                     className="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-[#EFB078]/60 focus:outline-none"
                     required
                   />
+                </label>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/65">
+                  Allowed classes
+                  <input
+                    type="text"
+                    value={form.allowedClasses}
+                    onChange={(e) => handleFieldChange('allowedClasses', e.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-[#EFB078]/60 focus:outline-none"
+                    placeholder="Class 8, Class 9 (optional)"
+                  />
+                </label>
+                <label className="mt-7 flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/65">
+                  <input
+                    type="checkbox"
+                    checked={form.requireCompletedVideo}
+                    onChange={(e) => handleFieldChange('requireCompletedVideo', e.target.checked)}
+                    className="h-4 w-4 accent-[#EFB078]"
+                  />
+                  Require completed lesson
                 </label>
               </div>
 
@@ -458,7 +447,7 @@ const QuizzesPage = () => {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/65">
-                  Overall Time Limit (minutes)
+                  Overall Time Limit (seconds)
                   <input
                     type="text"
                     inputMode="numeric"

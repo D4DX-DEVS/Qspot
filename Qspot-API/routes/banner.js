@@ -1,15 +1,9 @@
 const express = require('express');
 const Banner = require('../models/banner');
-const { authenticateToken } = require('../middlewares/auth');
+const { authenticateAdmin } = require('../middlewares/auth');
 const { upload, getCdnUrl, deleteFile } = require('../services/cdnStorageService');
 
 const router = express.Router();
-
-// Ensure upload middleware is properly initialized
-if (!upload || typeof upload.single !== 'function') {
-    console.error('Upload middleware not properly initialized');
-    process.exit(1);
-}
 
 // Create a wrapper for the upload middleware
 const uploadSingle = (req, res, next) => {
@@ -42,7 +36,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/banner - Create new banner with file upload (admin only)
-router.post('/', authenticateToken, uploadSingle, async (req, res) => {
+router.post('/', authenticateAdmin, uploadSingle, async (req, res) => {
     try {
         // Check if file was uploaded
         if (!req.file) {
@@ -66,7 +60,7 @@ router.post('/', authenticateToken, uploadSingle, async (req, res) => {
 });
 
 // PUT /api/banner/:id - Update banner with file upload (admin only)
-router.put('/:id', authenticateToken, uploadSingle, async (req, res) => {
+router.put('/:id', authenticateAdmin, uploadSingle, async (req, res) => {
     try {
         const oldBanner = await Banner.findById(req.params.id);
 
@@ -74,27 +68,24 @@ router.put('/:id', authenticateToken, uploadSingle, async (req, res) => {
             return res.status(404).json({ message: 'Banner not found' });
         }
 
-        // Check if new file was uploaded
-        if (!req.file) {
-            return res.status(400).json({ message: 'Image file is required' });
-        }
-
-        // Delete old file from CDN if it exists
-        if (oldBanner.imageKey) {
-            try {
-                await deleteFile(oldBanner.imageKey);
-            } catch (error) {
-                console.warn('Could not delete old file from CDN:', error.message);
+        // The file is optional on update: with nothing else to edit on a
+        // banner, PUT with no file simply keeps the current image.
+        const update = {};
+        if (req.file) {
+            if (oldBanner.imageKey) {
+                try {
+                    await deleteFile(oldBanner.imageKey);
+                } catch (error) {
+                    console.warn('Could not delete old file from CDN:', error.message);
+                }
             }
+            update.image = getCdnUrl(req.file.key);
+            update.imageKey = req.file.key;
         }
 
-        // Update with new file
         const banner = await Banner.findByIdAndUpdate(
             req.params.id,
-            {
-                image: getCdnUrl(req.file.key),
-                imageKey: req.file.key
-            },
+            update,
             { new: true, runValidators: true }
         );
 
@@ -109,7 +100,7 @@ router.put('/:id', authenticateToken, uploadSingle, async (req, res) => {
 });
 
 // DELETE /api/banner/:id - Delete banner and file from CDN (admin only)
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateAdmin, async (req, res) => {
     try {
         const banner = await Banner.findById(req.params.id);
 
@@ -131,7 +122,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
         res.json({
             message: 'Banner deleted successfully',
-            banner
+            id: banner._id
         });
     } catch (error) {
         console.error('Error deleting banner:', error);

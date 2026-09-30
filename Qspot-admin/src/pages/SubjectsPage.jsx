@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { FiEdit2, FiTrash2, FiPlus, FiSearch, FiX } from 'react-icons/fi';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { FiEdit2, FiTrash2, FiPlus, FiSearch, FiX, FiVideo, FiBookOpen } from 'react-icons/fi';
 import Sidebar from '../components/Sidebar';
 import ConfirmDialog from '../components/dialogs/ConfirmDialog';
+import ErrorState from '../components/ui/ErrorState';
+import Spinner from '../components/ui/Spinner';
+import { CourseSelect } from '../components/ui/EntitySelect';
+import usePageTitle from '../hooks/usePageTitle';
+import useBodyScrollLock from '../hooks/useBodyScrollLock';
+import apiClient from '../api/client';
+import { PLACEHOLDER_IMAGE } from '../constants/placeholder';
 import brandIcon from '../assets/Icon.png';
 
 // Subject Card Component
@@ -23,7 +30,7 @@ const SubjectCard = ({ subject, onClick }) => {
           alt={subject.name}
           className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.04]"
           onError={(e) => {
-            e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjMzc0MTUxIi8+CjxwYXRoIGQ9Ik0xMiA2VjE4TTYgMTJIMTgiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+';
+            e.target.src = PLACEHOLDER_IMAGE;
           }}
         />
         <div
@@ -54,6 +61,9 @@ const SubjectCard = ({ subject, onClick }) => {
 };
 
 const SubjectsPage = () => {
+  usePageTitle('Subjects');
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [subjects, setSubjects] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -72,12 +82,16 @@ const SubjectsPage = () => {
   const fetchSubjects = async () => {
     try {
       setLoading(true);
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      const response = await axios.get(`${baseURL}/subjects`);
+      setError('');
+      const response = await apiClient.get('/subjects');
       setSubjects(response.data || []);
+      const target = response.data?.find((subject) => subject._id === searchParams.get('subject'));
+      if (target) {
+        setEditingSubject(target);
+        setShowEditModal(true);
+      }
     } catch (err) {
-      console.error('Error fetching subjects:', err);
-      setError('Failed to fetch subjects');
+      setError(err.message || 'Failed to fetch subjects');
     } finally {
       setLoading(false);
     }
@@ -85,90 +99,63 @@ const SubjectsPage = () => {
 
   const handleCreateSubject = async (formData) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      
       const formDataToSend = new FormData();
       formDataToSend.append('name', formData.name);
       formDataToSend.append('order', formData.order);
+      formDataToSend.append('isPublished', String(formData.isPublished));
+      if (formData.courseId) formDataToSend.append('courseId', formData.courseId);
       formDataToSend.append('image', formData.image);
-      
-      await axios.post(`${baseURL}/subjects`, formDataToSend, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
+      await apiClient.post('/subjects', formDataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
       setShowCreateModal(false);
       fetchSubjects();
     } catch (err) {
-      console.error('Error creating subject:', err);
-      alert('Failed to create subject');
+      alert(err.message || 'Failed to create subject');
     }
   };
 
   const handleUpdateSubject = async (formData) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      
       const formDataToSend = new FormData();
       formDataToSend.append('name', formData.name);
       formDataToSend.append('order', formData.order);
+      formDataToSend.append('isPublished', String(formData.isPublished));
+      formDataToSend.append('courseId', formData.courseId || '');
       if (formData.image) {
         formDataToSend.append('image', formData.image);
       }
-      
-      await axios.put(`${baseURL}/subjects/${editingSubject._id}`, formDataToSend, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
+      await apiClient.put(`/subjects/${editingSubject._id}`, formDataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
       setShowEditModal(false);
       setEditingSubject(null);
       fetchSubjects();
     } catch (err) {
-      console.error('Error updating subject:', err);
-      alert('Failed to update subject');
+      alert(err.message || 'Failed to update subject');
     }
   };
 
   const handleDeleteSubject = async (subjectId) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      
-      await axios.delete(`${baseURL}/subjects/${subjectId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
+      await apiClient.delete(`/subjects/${subjectId}`);
       setDeleteConfirm(null);
       fetchSubjects();
     } catch (err) {
-      console.error('Error deleting subject:', err);
-      alert('Failed to delete subject');
+      // 409 (subject still has videos) carries a counts message from the
+      // server (CONTRACT.md); apiClient surfaces it as err.message.
+      alert(err.message || 'Failed to delete subject');
     }
-  };
-
-  const handleNavigate = (path) => {
-    window.location.href = path;
   };
 
   const handleCardClick = async (subjectId) => {
     try {
       setDetailLoading(true);
       setSelectedSubject({ _id: subjectId });
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      const response = await axios.get(`${baseURL}/subjects/${subjectId}`);
+      const response = await apiClient.get(`/subjects/${subjectId}`);
       setSelectedSubject(response.data);
     } catch (err) {
-      console.error('Error fetching subject details:', err);
-      alert('Failed to load subject details');
+      alert(err.message || 'Failed to load subject details');
       setSelectedSubject(null);
     } finally {
       setDetailLoading(false);
@@ -188,7 +175,7 @@ const SubjectsPage = () => {
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-black">
-      <Sidebar currentPage="subjects" onNavigate={handleNavigate} />
+      <Sidebar currentPage="subjects" onNavigate={navigate} />
       
       <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-4 sm:p-6">
@@ -218,19 +205,9 @@ const SubjectsPage = () => {
             </div>
           </div>
           {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-400"></div>
-            </div>
+            <Spinner />
           ) : error ? (
-            <div className="bg-red-900/20 border border-red-500/30 text-red-400 px-4 py-3 rounded-md">
-              {error}
-              <button 
-                onClick={fetchSubjects}
-                className="ml-4 text-red-300 underline hover:text-red-200"
-              >
-                Retry
-              </button>
-            </div>
+            <ErrorState message={error} onRetry={fetchSubjects} />
           ) : (
             <div className="w-full grid grid-cols-3 gap-2.5 sm:gap-5 lg:grid-cols-3 lg:gap-6">
               {subjects.length === 0 ? (
@@ -306,13 +283,8 @@ const SubjectsPage = () => {
 
 // Subject Detail Modal Component
 const SubjectDetailModal = ({ subject, loading, onClose, onEdit, onDelete }) => {
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
+  const navigate = useNavigate();
+  useBodyScrollLock(true);
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
@@ -353,7 +325,7 @@ const SubjectDetailModal = ({ subject, loading, onClose, onEdit, onDelete }) => 
                     alt={subject.name}
                     className="w-full h-auto object-cover"
                     onError={(e) => {
-                      e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjMzc0MTUxIi8+CjxwYXRoIGQ9Ik0xMiA2VjE4TTYgMTJIMTgiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+';
+                      e.target.src = PLACEHOLDER_IMAGE;
                     }}
                   />
                 </div>
@@ -374,7 +346,21 @@ const SubjectDetailModal = ({ subject, loading, onClose, onEdit, onDelete }) => 
                   )}
                 </div>
 
-                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10">
+                <div className="flex flex-wrap items-center justify-end gap-2.5 pt-3 border-t border-white/10">
+                  <button
+                    onClick={() => navigate(`/admin/videos?subject=${subject._id}`)}
+                    className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 py-1.5 text-[13px] font-semibold text-white/80 transition-all duration-200 hover:border-[#EFB078]/30 hover:text-white"
+                  >
+                    <FiVideo size={14} />
+                    <span>Videos</span>
+                  </button>
+                  <button
+                    onClick={() => navigate(`/admin/chapter-guide?subject=${subject._id}`)}
+                    className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 py-1.5 text-[13px] font-semibold text-white/80 transition-all duration-200 hover:border-[#EFB078]/30 hover:text-white"
+                  >
+                    <FiBookOpen size={14} />
+                    <span>Guide</span>
+                  </button>
                   <button
                     onClick={onEdit}
                     className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-gradient-to-r from-[#701845]/30 to-[#EFB078]/20 px-3.5 py-1.5 text-[13px] font-semibold text-[#EFB078] transition-all duration-200 hover:border-[#EFB078]/30 hover:from-[#701845]/40 hover:to-[#EFB078]/30 hover:text-white backdrop-blur-sm shadow-[0_4px_16px_rgba(112,24,69,0.25)]"
@@ -404,6 +390,8 @@ const CreateSubjectModal = ({ onClose, onSave }) => {
   const [formData, setFormData] = useState({
     name: '',
     order: 0,
+    courseId: '',
+    isPublished: true,
     image: null
   });
   const [loading, setLoading] = useState(false);
@@ -425,13 +413,7 @@ const CreateSubjectModal = ({ onClose, onSave }) => {
     }
   };
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
+  useBodyScrollLock(true);
 
   return (
     <div className="fixed inset-0 z-[120] flex h-full w-full items-center justify-center bg-black/70 px-4 py-10 backdrop-blur-md">
@@ -474,6 +456,23 @@ const CreateSubjectModal = ({ onClose, onSave }) => {
               />
             </div>
             <div>
+              <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">Course</label>
+              <CourseSelect
+                value={formData.courseId}
+                onChange={(value) => setFormData({ ...formData, courseId: value })}
+                className="mt-2"
+              />
+            </div>
+            <label className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/65">
+              <input
+                type="checkbox"
+                checked={formData.isPublished}
+                onChange={(e) => setFormData({ ...formData, isPublished: e.target.checked })}
+                className="h-4 w-4 accent-[#EFB078]"
+              />
+              Published
+            </label>
+            <div>
               <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">Image *</label>
               <input
                 type="file"
@@ -511,6 +510,8 @@ const EditSubjectModal = ({ subject, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     name: subject.name || '',
     order: subject.order || 0,
+    courseId: subject.courseId?._id || subject.courseId || '',
+    isPublished: subject.isPublished !== false,
     image: null
   });
   const [loading, setLoading] = useState(false);
@@ -532,13 +533,7 @@ const EditSubjectModal = ({ subject, onClose, onSave }) => {
     }
   };
 
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
+  useBodyScrollLock(true);
 
   return (
     <div className="fixed inset-0 z-[120] flex h-full w-full items-center justify-center bg-black/70 px-4 py-10 backdrop-blur-md">
@@ -580,6 +575,23 @@ const EditSubjectModal = ({ subject, onClose, onSave }) => {
                 required
               />
             </div>
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">Course</label>
+              <CourseSelect
+                value={formData.courseId}
+                onChange={(value) => setFormData({ ...formData, courseId: value })}
+                className="mt-2"
+              />
+            </div>
+            <label className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/65">
+              <input
+                type="checkbox"
+                checked={formData.isPublished}
+                onChange={(e) => setFormData({ ...formData, isPublished: e.target.checked })}
+                className="h-4 w-4 accent-[#EFB078]"
+              />
+              Published
+            </label>
             <div>
               <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">New Image (optional)</label>
               <input

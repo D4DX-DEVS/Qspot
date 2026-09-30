@@ -4,7 +4,12 @@ const quizConfigSchema = new mongoose.Schema({
     title: {
         type: String,
         trim: true,
-        default: null
+        required: true
+    },
+    assessmentType: {
+        type: String,
+        enum: ['quiz', 'practical'],
+        default: 'quiz'
     },
     startDate: {
         type: Date,
@@ -35,6 +40,19 @@ const quizConfigSchema = new mongoose.Schema({
     perQuestionTimeLimit: {
         type: Number,
         default: null
+    },
+    timerMode: {
+        type: String,
+        enum: ['none', 'overall', 'per-question', 'both'],
+        default: 'none'
+    },
+    allowedClasses: {
+        type: [String],
+        default: []
+    },
+    conditions: {
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
     },
     optionsCount: {
         type: Number,
@@ -70,8 +88,7 @@ quizConfigSchema.pre(["findOneAndUpdate", "updateOne", "update"], function (next
 
 quizConfigSchema.virtual('isLive').get(function () {
     const now = new Date();
-    return this.startDate && this.endDate && now >= this.startDate && now <= this.endDate;
+    return this.isEnable && this.startDate && this.endDate && now >= this.startDate && now <= this.endDate;
 });
 
 module.exports = mongoose.model("quizConfig", quizConfigSchema);
-
