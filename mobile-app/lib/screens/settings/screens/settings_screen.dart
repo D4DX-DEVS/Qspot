@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../themes/home_palette.dart';
+import '../../common/widgets/home_theme_scope.dart';
+import '../../../widgets/animation/pop_on_change.dart';
+import '../../../widgets/animation/pressable_scale.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/app_snack_bar.dart';
-import '../../../widgets/common/common_app_bar.dart';
 import '../../common/screens/contact_us_screen.dart';
 import '../../question/screens/ask_question_screen.dart';
 import '../../question/screens/my_questions_screen.dart';
@@ -15,6 +20,10 @@ import '../../schedule/service/alarm_service.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../../services/session.dart';
 import '../provider/settings_screen_provider.dart';
+import '../widgets/settings_group_card.dart';
+import '../widgets/settings_header.dart';
+import '../widgets/settings_row.dart';
+import '../widgets/settings_section_title.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -40,282 +49,237 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
+  // Same light/dark rule HomeThemeScope uses. Read from MediaQuery because
+  // this State's context sits above the scope it creates.
+  HomePalette get _p =>
+      MediaQuery.platformBrightnessOf(context) == Brightness.dark
+      ? HomePalette.dark
+      : HomePalette.light;
+
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: _s,
-      child: Consumer<SettingsScreenProvider>(
-        builder: (_, s, __) => _buildPage(s),
+    return HomeThemeScope(
+      child: ChangeNotifierProvider.value(
+        value: _s,
+        child: Consumer<SettingsScreenProvider>(
+          builder: (_, s, __) => _buildPage(s),
+        ),
       ),
     );
   }
 
   Widget _buildPage(SettingsScreenProvider s) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: const CommonAppBar(title: 'Settings'),
       body: s.isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
+          ? Center(child: CircularProgressIndicator(color: _p.brand))
           : ListView(
-              padding: const EdgeInsets.all(AppTheme.paddingMedium),
+              padding: EdgeInsets.zero,
               children: [
-                // Who is signed in
-                _buildProfileCard(context),
-                const SizedBox(height: AppTheme.paddingLarge),
-
-                // Notifications Section
-                _buildSectionHeader(context, 'Notifications'),
-                const SizedBox(height: AppTheme.paddingSmall),
-                _buildAlarmSettingsCard(context),
-                const SizedBox(height: AppTheme.paddingLarge),
-
-                // App Info Section
-                _buildSectionHeader(context, 'App Information'),
-                const SizedBox(height: AppTheme.paddingSmall),
-
-                _buildSettingsItem(
-                  context: context,
-                  icon: Icons.info_outline,
-                  title: 'About Us',
-                  subtitle: 'Learn more about D4DX Innovations',
-                  onTap: () => _launchUrl('https://d4dx.co/about-us/'),
+                SettingsHeader(
+                  title: 'Settings',
+                  subtitle: 'Manage your preferences and app details',
+                  onBack: () => Navigator.of(context).maybePop(),
                 ),
-
-                _buildSettingsItem(
-                  context: context,
-                  icon: Icons.contact_support,
-                  title: 'Contact Us',
-                  subtitle: 'Get in touch with our team',
-                  onTap: () => _navigateToContactUs(context),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    4,
+                    16,
+                    AppTheme.paddingLarge +
+                        MediaQuery.paddingOf(context).bottom,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: _buildSections(context),
+                  ),
                 ),
-
-                _buildSettingsItem(
-                  context: context,
-                  icon: Icons.groups_outlined,
-                  title: 'Faculties',
-                  subtitle: 'Meet the scholars behind the episodes',
-                  onTap: () => _navigateToFaculties(context),
-                ),
-
-                _buildSettingsItem(
-                  context: context,
-                  icon: Icons.question_answer,
-                  title: 'Ask a Question',
-                  subtitle: 'Ask questions to our faculties',
-                  onTap: () => _showAskQuestionDialog(context),
-                ),
-
-                _buildSettingsItem(
-                  context: context,
-                  icon: Icons.history,
-                  title: 'My Questions',
-                  subtitle: 'View your questions and answers',
-                  onTap: () => _navigateToMyQuestions(context),
-                ),
-
-                _buildSettingsItem(
-                  context: context,
-                  icon: Icons.feedback,
-                  title: 'Feedback',
-                  subtitle: 'Share your thoughts and suggestions',
-                  onTap: () => _sendFeedback(context),
-                ),
-
-                _buildSettingsItem(
-                  context: context,
-                  icon: Icons.privacy_tip,
-                  title: 'Privacy Policy',
-                  subtitle: 'View our privacy and data policy',
-                  onTap: () => _launchUrl('https://d4dx.co/privacy-policy/'),
-                ),
-
-                const SizedBox(height: AppTheme.paddingLarge),
-
-                // Logout Section
-                _buildLogoutButton(context),
-
-                const SizedBox(height: AppTheme.paddingLarge),
-
-                // App Details Section
-                _buildSectionHeader(context, 'App Details'),
-                const SizedBox(height: AppTheme.paddingSmall),
-
-                _buildInfoCard(context),
-
-                const SizedBox(height: AppTheme.paddingLarge),
-
-                // Footer
-                _buildFooter(context),
               ],
             ),
     );
   }
 
-  Widget _buildAlarmSettingsCard(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppTheme.paddingMedium),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppColors.border, width: 1),
+  List<Widget> _buildSections(BuildContext context) {
+    return [
+      const StaggeredEntrance(
+        child: SettingsSectionTitle(
+          icon: LucideIcons.bell,
+          title: 'Notifications',
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Alarm Toggle
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                ),
-                child: const Icon(
-                  Icons.alarm,
-                  color: AppColors.onPrimary,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: AppTheme.paddingMedium),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Daily Reminder',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Get notified to watch videos',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Switch(
-                value: _s.alarmEnabled,
-                onChanged: (value) async {
-                  if (value) {
-                    // Request permissions first
-                    final hasPermission = await _alarmService
-                        .requestPermissions();
-                    if (!hasPermission) {
-                      if (context.mounted) {
-                        AppSnackBar.show(
-                          context,
-                          message:
-                              'Please allow notifications in your phone settings to get daily reminders.',
-                          color: AppColors.warningOrange,
-                          duration: const Duration(seconds: 4),
-                        );
-                      }
-                      return;
-                    }
+      StaggeredEntrance(child: _buildAlarmSettingsCard(context)),
+      const SizedBox(height: AppTheme.paddingLarge),
 
-                    // Schedule alarm
-                    final success = await _alarmService.scheduleAlarm(
-                      _s.alarmHour,
-                      _s.alarmMinute,
-                    );
+      const StaggeredEntrance(
+        index: 1,
+        child: SettingsSectionTitle(
+          icon: LucideIcons.settings,
+          title: 'App Information',
+        ),
+      ),
+      StaggeredEntrance(
+        index: 1,
+        child: SettingsGroupCard(
+          children: [
+            SettingsRow(
+              icon: LucideIcons.info,
+              tone: _p.rose,
+              title: 'About Us',
+              subtitle: 'Learn more about D4DX Innovations',
+              onTap: () => _launchUrl('https://d4dx.co/about-us/'),
+            ),
+            SettingsRow(
+              icon: LucideIcons.lifeBuoy,
+              tone: _p.coral,
+              title: 'Contact Us',
+              subtitle: 'Get in touch with our team',
+              onTap: () => _navigateToContactUs(context),
+            ),
+            SettingsRow(
+              icon: LucideIcons.users,
+              tone: _p.slate,
+              title: 'Faculties',
+              subtitle: 'Meet the scholars behind the episodes',
+              onTap: () => _navigateToFaculties(context),
+            ),
+            SettingsRow(
+              icon: LucideIcons.messageCircleQuestionMark,
+              tone: _p.mint,
+              title: 'Ask a Question',
+              subtitle: 'Ask questions to our faculties',
+              onTap: () => _showAskQuestionDialog(context),
+            ),
+            SettingsRow(
+              icon: LucideIcons.history,
+              tone: _p.teal,
+              title: 'My Questions',
+              subtitle: 'View your questions and answers',
+              onTap: () => _navigateToMyQuestions(context),
+            ),
+            SettingsRow(
+              icon: LucideIcons.messageSquareWarning,
+              tone: _p.amber,
+              title: 'Feedback',
+              subtitle: 'Share your thoughts and suggestions',
+              onTap: () => _sendFeedback(context),
+            ),
+            SettingsRow(
+              icon: LucideIcons.shield,
+              tone: _p.slate,
+              title: 'Privacy Policy',
+              subtitle: 'View our privacy and data policy',
+              onTap: () => _launchUrl('https://d4dx.co/privacy-policy/'),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: AppTheme.paddingLarge),
 
-                    if (success && context.mounted) {
-                      _s.setAlarmEnabled(true);
-                      AppSnackBar.show(
-                        context,
-                        message:
-                            'Daily reminder set for ${_formatTime(_s.alarmHour, _s.alarmMinute)}',
-                        color: AppColors.success,
-                      );
-                    }
-                  } else {
-                    // Cancel alarm
-                    await _alarmService.cancelAlarm();
-                    _s.setAlarmEnabled(false);
+      const StaggeredEntrance(
+        index: 2,
+        child: SettingsSectionTitle(
+          icon: LucideIcons.smartphone,
+          title: 'App Details',
+        ),
+      ),
+      StaggeredEntrance(index: 2, child: _buildInfoCard(context)),
+      const SizedBox(height: AppTheme.paddingLarge),
+
+      StaggeredEntrance(index: 3, child: _buildLogoutButton(context)),
+      const SizedBox(height: AppTheme.paddingLarge),
+
+      StaggeredEntrance(index: 4, child: _buildFooter(context)),
+    ];
+  }
+
+  Widget _buildAlarmSettingsCard(BuildContext context) {
+    return SettingsGroupCard(
+      children: [
+        SettingsRow(
+          icon: LucideIcons.bell,
+          tone: _p.rose,
+          title: 'Daily Reminder',
+          subtitle: _s.alarmEnabled
+              ? 'On · get notified to watch videos'
+              : 'Off · switch on to get a daily reminder',
+          trailing: PopOnChange(
+            active: _s.alarmEnabled,
+            peak: 1.15,
+            child: Switch(
+              value: _s.alarmEnabled,
+              onChanged: (value) async {
+                if (value) {
+                  // Request permissions first
+                  final hasPermission = await _alarmService
+                      .requestPermissions();
+                  if (!hasPermission) {
                     if (context.mounted) {
                       AppSnackBar.show(
                         context,
-                        message: 'Daily reminder turned off',
-                        color: AppColors.success,
+                        message:
+                            'Please allow notifications in your phone settings to get daily reminders.',
+                        color: AppColors.warningOrange,
+                        duration: const Duration(seconds: 4),
                       );
                     }
+                    return;
                   }
-                },
-                activeThumbColor: AppColors.primary,
-                activeTrackColor: AppColors.primarySoft,
-              ),
-            ],
-          ),
 
-          // Time Picker (always show, but only editable when alarm is enabled)
-          const SizedBox(height: AppTheme.paddingMedium),
-          const Divider(color: AppColors.border, height: 1),
-          const SizedBox(height: AppTheme.paddingMedium),
-          InkWell(
-            onTap: _s.alarmEnabled ? () => _showTimePicker(context) : null,
-            borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-            child: Container(
-              padding: const EdgeInsets.all(AppTheme.paddingMedium),
-              decoration: BoxDecoration(
-                color: _s.alarmEnabled
-                    ? AppColors.surfaceAlt
-                    : AppColors.surfaceAlt.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.schedule,
-                    color: _s.alarmEnabled
-                        ? AppColors.primary
-                        : AppColors.textMuted,
-                    size: 24,
-                  ),
-                  const SizedBox(width: AppTheme.paddingMedium),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Reminder Time',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: AppColors.textMuted),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _formatTime(_s.alarmHour, _s.alarmMinute),
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(
-                                color: _s.alarmEnabled
-                                    ? AppColors.textPrimary
-                                    : AppColors.textMuted,
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_s.alarmEnabled)
-                    const Icon(
-                      Icons.edit,
-                      color: AppColors.textMuted,
-                      size: 20,
-                    ),
-                ],
+                  // Schedule alarm
+                  final success = await _alarmService.scheduleAlarm(
+                    _s.alarmHour,
+                    _s.alarmMinute,
+                  );
+
+                  if (success && context.mounted) {
+                    _s.setAlarmEnabled(true);
+                    AppSnackBar.show(
+                      context,
+                      message:
+                          'Daily reminder set for ${_formatTime(_s.alarmHour, _s.alarmMinute)}',
+                      color: AppColors.success,
+                    );
+                  }
+                } else {
+                  // Cancel alarm
+                  await _alarmService.cancelAlarm();
+                  _s.setAlarmEnabled(false);
+                  if (context.mounted) {
+                    AppSnackBar.show(
+                      context,
+                      message: 'Daily reminder turned off',
+                      color: AppColors.success,
+                    );
+                  }
+                }
+              },
+              // Clear on/off states: filled brand track when on, outlined
+              // grey when off.
+              activeThumbColor: AppColors.white,
+              activeTrackColor: _p.brand,
+              inactiveThumbColor: _p.textMuted,
+              inactiveTrackColor: _p.background,
+              trackOutlineColor: WidgetStateProperty.resolveWith(
+                (states) => states.contains(WidgetState.selected)
+                    ? AppColors.transparent
+                    : _p.textMuted,
               ),
             ),
           ),
-        ],
-      ),
+        ),
+        // The time only matters while the reminder is on.
+        if (_s.alarmEnabled)
+          StaggeredEntrance(
+            rise: 8,
+            child: SettingsRow(
+              icon: LucideIcons.clock,
+              tone: _p.rose,
+              title: 'Reminder Time',
+              subtitle: _formatTime(_s.alarmHour, _s.alarmMinute),
+              subtitleStyle: AppFonts.bold(color: _p.brand, fontSize: 16),
+              onTap: () => _showTimePicker(context),
+            ),
+          ),
+      ],
     );
   }
 
@@ -323,22 +287,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay(hour: _s.alarmHour, minute: _s.alarmMinute),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: AppColors.onPrimary,
-              surface: AppColors.background,
-              onSurface: AppColors.textPrimary,
-            ),
-            dialogTheme: const DialogThemeData(
-              backgroundColor: AppColors.background,
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null) {
@@ -368,167 +316,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return '$displayHour:$displayMinute $period';
   }
 
-  Widget _buildSectionHeader(BuildContext context, String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 4),
-      child: Text(
-        title.toUpperCase(),
-        style: AppFonts.bold(
-          color: AppColors.textMuted,
-          fontSize: 11.5,
-          letterSpacing: 0.8,
-        ),
-      ),
-    );
-  }
-
-  /// Who is signed in — name and class, with the sign-in number underneath.
-  Widget _buildProfileCard(BuildContext context) {
-    return Consumer<AuthProvider>(
-      builder: (context, authProvider, child) {
-        final user = authProvider.user;
-        final name = (user?.name ?? '').trim();
-        final initial = name.isNotEmpty ? name[0].toUpperCase() : 'Q';
-        final meta = [user?.classNumber, user?.phone]
-            .where(
-              (value) => value != null && value.toString().trim().isNotEmpty,
-            )
-            .map((value) => value.toString())
-            .join('  ·  ');
-
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.primarySoft,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  initial,
-                  style: AppFonts.bold(
-                    color: AppColors.onPrimary,
-                    fontSize: 22,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name.isEmpty ? 'QSPOT student' : name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppFonts.bold(
-                        color: AppColors.textPrimary,
-                        fontSize: 17,
-                      ),
-                    ),
-                    if (meta.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        meta,
-                        style: AppFonts.regular(
-                          color: AppColors.textMuted,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildSettingsItem({
-    required BuildContext context,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Material(
-        color: AppColors.surfaceAlt,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.primarySoft,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, color: AppColors.primary, size: 20),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: AppFonts.semiBold(
-                          color: AppColors.textPrimary,
-                          fontSize: 15,
-                        ),
-                      ),
-                      if (subtitle.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle,
-                          style: AppFonts.regular(
-                            color: AppColors.textMuted,
-                            fontSize: 12.5,
-                            height: 1.3,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const Icon(
-                  Icons.chevron_right,
-                  color: AppColors.textMuted,
-                  size: 20,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildInfoCard(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppTheme.paddingMedium),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: _p.card,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppColors.border, width: 1),
+        border: Border.all(color: _p.cardBorder, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -549,11 +344,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     height: 24,
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
-                      return Icon(
-                        Icons.book,
-                        color: AppColors.primary,
-                        size: 20,
-                      );
+                      return Icon(LucideIcons.book, color: _p.brand, size: 20);
                     },
                   ),
                 ),
@@ -562,7 +353,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Text(
                 'QSpot',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.textPrimary,
+                  color: _p.text,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -571,10 +362,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: AppTheme.paddingSmall),
           Text(
             'Your space for Quran videos and Islamic knowledge. Discover inspiring content from renowned speakers and scholars.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textMuted,
-              height: 1.5,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: _p.textMuted, height: 1.5),
           ),
           const SizedBox(height: AppTheme.paddingMedium),
           Row(
@@ -583,12 +373,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 'Version: ',
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
+                ).textTheme.bodySmall?.copyWith(color: _p.textMuted),
               ),
               Text(
                 _s.appVersion.isNotEmpty ? _s.appVersion : '…',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.primary,
+                  color: _p.brand,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -602,59 +392,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildLogoutButton(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
-        return Container(
-          padding: const EdgeInsets.all(AppTheme.paddingMedium),
-          decoration: BoxDecoration(
-            color: AppColors.danger.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-            border: Border.all(
-              color: AppColors.danger.withValues(alpha: 0.3),
-              width: 1,
+        return PressableScale(
+          child: Container(
+            padding: const EdgeInsets.all(AppTheme.paddingMedium),
+            decoration: BoxDecoration(
+              color: _p.error.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+              border: Border.all(
+                color: _p.error.withValues(alpha: 0.3),
+                width: 1,
+              ),
             ),
-          ),
-          child: InkWell(
-            onTap: () => _showLogoutDialog(context, authProvider),
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.danger.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
+            child: InkWell(
+              onTap: () => _showLogoutDialog(context, authProvider),
+              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: _p.error.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(LucideIcons.logOut, color: _p.error),
                   ),
-                  child: Icon(Icons.logout, color: AppColors.danger),
-                ),
-                const SizedBox(width: AppTheme.paddingMedium),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Logout',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: AppColors.danger,
-                              fontWeight: FontWeight.bold,
-                            ),
+                  const SizedBox(width: AppTheme.paddingMedium),
+                  Expanded(
+                    child: Text(
+                      'Logout',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: _p.error,
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        authProvider.user?.phone ?? 'Logged in',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: AppColors.danger,
-                ),
-              ],
+                  Icon(LucideIcons.chevronRight, size: 16, color: _p.error),
+                ],
+              ),
             ),
           ),
         );
@@ -666,31 +441,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.background,
+        backgroundColor: _p.card,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         ),
         title: Row(
           children: [
-            Icon(Icons.logout, color: AppColors.danger, size: 24),
+            Icon(LucideIcons.logOut, color: _p.error, size: 24),
             const SizedBox(width: AppTheme.paddingSmall),
-            Text(
-              'Logout',
-              style: AppFonts.bold(color: AppColors.textPrimary, fontSize: 20),
-            ),
+            Text('Logout', style: AppFonts.bold(color: _p.text, fontSize: 20)),
           ],
         ),
         content: Text(
           'Are you sure you want to logout?',
-          style: AppFonts.regular(color: AppColors.textMuted, fontSize: 16),
+          style: AppFonts.regular(color: _p.textMuted, fontSize: 16),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(
-              'Cancel',
-              style: AppFonts.medium(color: AppColors.textPrimary),
-            ),
+            child: Text('Cancel', style: AppFonts.medium(color: _p.text)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -698,7 +467,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               await performLogout(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.danger,
+              backgroundColor: _p.error,
               foregroundColor: AppColors.onPrimary,
             ),
             child: const Text('Logout'),
@@ -715,45 +484,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
           'Developed by',
           style: Theme.of(
             context,
-          ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
+          ).textTheme.bodySmall?.copyWith(color: _p.textMuted),
         ),
         const SizedBox(height: 4),
-        GestureDetector(
-          onTap: () => _launchUrl('https://d4dx.co'),
-          child: Container(
-            padding: const EdgeInsets.all(AppTheme.paddingSmall),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceAlt,
-              borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: Image.asset(
-                    'assets/icons/D4DX _logo.png',
-                    width: 24,
-                    height: 24,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Icon(
-                        Icons.business,
-                        color: AppColors.primary,
-                        size: 20,
-                      );
-                    },
-                  ),
+        PressableScale(
+          child: GestureDetector(
+            onTap: () => _launchUrl('https://d4dx.co'),
+            child: Container(
+              padding: const EdgeInsets.all(AppTheme.paddingSmall),
+              decoration: BoxDecoration(
+                color: _p.background,
+                borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Image.asset(
+                  'assets/icons/D4DX _logo.png',
+                  width: 100,
+                  height: 100,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return SizedBox(
+                      width: 100,
+                      height: 100,
+                      child: Icon(
+                        LucideIcons.building2,
+                        color: _p.brand,
+                        size: 48,
+                      ),
+                    );
+                  },
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'D4DX Innovations LLP',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -762,7 +524,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           '© ${DateTime.now().year} D4DX Innovations LLP',
           style: Theme.of(
             context,
-          ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
+          ).textTheme.bodySmall?.copyWith(color: _p.textMuted),
         ),
       ],
     );
@@ -902,18 +664,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: AppColors.background,
+          backgroundColor: _p.card,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
           title: Row(
             children: [
-              Icon(Icons.email, color: AppColors.primary, size: 24),
+              Icon(LucideIcons.mail, color: _p.brand, size: 24),
               const SizedBox(width: 8),
-              Text(
-                'Send Feedback',
-                style: AppFonts.bold(color: AppColors.textPrimary),
-              ),
+              Text('Send Feedback', style: AppFonts.bold(color: _p.text)),
             ],
           ),
           content: Column(
@@ -922,16 +681,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Text(
                 'No email app found. Please send your feedback manually to:',
-                style: AppFonts.regular(color: AppColors.textPrimary),
+                style: AppFonts.regular(color: _p.text),
               ),
               const SizedBox(height: 16),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceAlt,
+                  color: _p.background,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.border, width: 1),
+                  border: Border.all(color: _p.cardBorder, width: 1),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -941,14 +700,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Text(
                           'Email: ',
                           style: AppFonts.regular(
-                            color: AppColors.textMuted,
+                            color: _p.textMuted,
                             fontSize: 12,
                           ),
                         ),
                         Expanded(
                           child: Text(
                             'mail@d4dx.co',
-                            style: AppFonts.semiBold(color: AppColors.primary),
+                            style: AppFonts.semiBold(color: _p.brand),
                           ),
                         ),
                         IconButton(
@@ -963,12 +722,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               duration: const Duration(seconds: 2),
                             );
                           },
-                          icon: const Icon(
-                            Icons.copy,
-                            color: AppColors.primary,
+                          icon: Icon(
+                            LucideIcons.copy,
+                            color: _p.brand,
                             size: 18,
                           ),
-                          tooltip: 'Copy email',
+                          tooltip: 'Copy Email',
                         ),
                       ],
                     ),
@@ -976,7 +735,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Text(
                       'Subject: QSpot App Feedback',
                       style: AppFonts.regular(
-                        color: AppColors.textMuted,
+                        color: _p.textMuted,
                         fontSize: 12,
                       ),
                     ),
@@ -988,10 +747,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                'Close',
-                style: AppFonts.medium(color: AppColors.primary),
-              ),
+              child: Text('Close', style: AppFonts.medium(color: _p.brand)),
             ),
             ElevatedButton(
               onPressed: () {
@@ -1017,7 +773,7 @@ Thank you!''';
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: _p.brand,
                 foregroundColor: AppColors.onPrimary,
               ),
               child: const Text('Copy Template'),

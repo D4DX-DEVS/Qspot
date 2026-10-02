@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qspot/screens/video/provider/youtube_playback_toggle.dart';
 import 'package:qspot/screens/video/widgets/youtube_centre_button.dart';
@@ -187,7 +188,11 @@ void main() {
     startIn(PlayerState.paused);
     await tester.pumpWidget(
       MaterialApp(
-        home: YoutubeCentreButton(controller: controller, started: true),
+        home: YoutubeCentreButton(
+          controller: controller,
+          started: true,
+          controlsShown: true,
+        ),
       ),
     );
     final seen = <IconData>[];
@@ -211,11 +216,11 @@ void main() {
     note();
 
     expect(seen, [
-      Icons.play_arrow_rounded,
-      Icons.pause_rounded,
-      Icons.pause_rounded,
-      Icons.pause_rounded,
-      Icons.pause_rounded,
+      LucideIcons.play,
+      LucideIcons.pause,
+      LucideIcons.pause,
+      LucideIcons.pause,
+      LucideIcons.pause,
     ]);
     await tester.pump(const Duration(seconds: 2));
   });

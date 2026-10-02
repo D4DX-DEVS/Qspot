@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:qspot/screens/auth/provider/auth_provider.dart';
@@ -92,8 +93,8 @@ void main() {
     expect(find.text('Practice'), findsWidgets);
     expect(find.text('Progress'), findsWidgets);
     expect(find.text('Me'), findsWidgets);
-    expect(find.byIcon(Icons.home_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.insights_outlined), findsOneWidget);
+    expect(find.byIcon(LucideIcons.house), findsOneWidget);
+    expect(find.byIcon(LucideIcons.chartNoAxesCombined), findsOneWidget);
   });
 
   testWidgets('Practice tab groups assignments and quizzes', (tester) async {
@@ -104,7 +105,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('Assignments'), findsOneWidget);
-    expect(find.text('Quizzes and exams'), findsOneWidget);
+    expect(find.text('Quizzes and Exams'), findsOneWidget);
   });
 
   testWidgets('Progress tab owns mastery and activity', (tester) async {
@@ -114,8 +115,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('Lesson mastery'), findsWidgets);
-    expect(find.text('Recent activity'), findsOneWidget);
+    expect(find.text('Lesson Mastery'), findsWidgets);
+    expect(find.text('Recent Activity'), findsOneWidget);
     expect(
       find.text('Your completed lessons and assessments will appear here.'),
       findsOneWidget,

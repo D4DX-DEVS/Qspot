@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +9,8 @@ import 'package:qspot/screens/assignment/service/assignment_service.dart';
 import 'package:qspot/themes/app_colors.dart';
 import 'package:qspot/services/api_client.dart';
 import 'package:qspot/themes/app_fonts.dart';
+import 'package:qspot/widgets/animation/pressable_scale.dart';
+import 'package:qspot/widgets/animation/staggered_entrance.dart';
 import 'package:qspot/widgets/common/app_snack_bar.dart';
 import 'package:qspot/widgets/common/common_app_bar.dart';
 
@@ -110,7 +113,10 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
     );
   }
 
-  Future<void> _pickPhoto(AssignmentModel assignment, ImageSource source) async {
+  Future<void> _pickPhoto(
+    AssignmentModel assignment,
+    ImageSource source,
+  ) async {
     if (!_allows(assignment, 'image')) return;
     final file = await _imagePicker.pickImage(
       source: source,
@@ -185,164 +191,201 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
         return ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           children: [
-            Text(
-              assignment.title,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+            StaggeredEntrance(
+              child: Text(
+                assignment.title,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
             if (assignment.subject.isNotEmpty) ...[
               const SizedBox(height: 6),
-              Text(
-                assignment.subject,
-                style: AppFonts.regular(color: AppColors.textMuted),
+              StaggeredEntrance(
+                index: 1,
+                child: Text(
+                  assignment.subject,
+                  style: AppFonts.regular(color: AppColors.textMuted),
+                ),
               ),
             ],
             const SizedBox(height: 18),
-            _DetailMeta(assignment: assignment),
+            StaggeredEntrance(
+              index: 2,
+              child: _DetailMeta(assignment: assignment),
+            ),
             if (assignment.instructions.isNotEmpty) ...[
               const SizedBox(height: 24),
-              Text(
-                'What to do',
-                style: AppFonts.bold(fontSize: 16),
+              StaggeredEntrance(
+                index: 3,
+                child: Text('What to Do', style: AppFonts.bold(fontSize: 16)),
               ),
               const SizedBox(height: 8),
-              Text(
-                assignment.instructions,
-                style: AppFonts.regular(height: 1.45),
+              StaggeredEntrance(
+                index: 3,
+                child: Text(
+                  assignment.instructions,
+                  style: AppFonts.regular(height: 1.45),
+                ),
               ),
             ],
             const SizedBox(height: 28),
             if (assignment.feedback.isNotEmpty) ...[
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Teacher feedback',
-                      style: AppFonts.bold(),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(assignment.feedback),
-                    if (assignment.grade != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        'Score: ${assignment.grade}',
-                        style: AppFonts.bold(),
-                      ),
+              StaggeredEntrance(
+                index: 4,
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Teacher Feedback', style: AppFonts.bold()),
+                      const SizedBox(height: 6),
+                      Text(assignment.feedback),
+                      if (assignment.grade != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Score: ${assignment.grade}',
+                          style: AppFonts.bold(),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
             ],
             if (submitted)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppColors.success.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.check_circle, color: AppColors.success),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Text('Your work has been sent to your teacher.'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (assignment.submissionFiles.isNotEmpty) ...[
-                    const SizedBox(height: 14),
-                    Text(
-                      'Attachments',
-                      style: AppFonts.bold(),
-                    ),
-                    ...assignment.submissionFiles.map(
-                      (file) => ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Icon(
-                          file.mimeType.startsWith('audio')
-                              ? Icons.audiotrack_outlined
-                              : Icons.image_outlined,
-                        ),
-                        title: Text(file.name),
-                        subtitle: Text(file.mimeType),
+              StaggeredEntrance(
+                index: 5,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            LucideIcons.circleCheck,
+                            color: AppColors.success,
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Your work has been sent to your teacher.',
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                    if (assignment.submissionFiles.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      Text('Attachments', style: AppFonts.bold()),
+                      ...assignment.submissionFiles.map(
+                        (file) => ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(
+                            file.mimeType.startsWith('audio')
+                                ? LucideIcons.music
+                                : LucideIcons.image,
+                          ),
+                          title: Text(file.name),
+                          subtitle: Text(file.mimeType),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               )
             else ...[
-              Text(
-                'Your answer',
-                style: AppFonts.bold(fontSize: 16),
+              StaggeredEntrance(
+                index: 5,
+                child: Text('Your Answer', style: AppFonts.bold(fontSize: 16)),
               ),
               const SizedBox(height: 8),
-              TextField(
-                controller: _submissionController,
-                minLines: 5,
-                maxLines: 9,
-                maxLength: 5000,
-                decoration: const InputDecoration(
-                  hintText: 'Share your answer here',
-                  alignLabelWithHint: true,
-                  border: OutlineInputBorder(),
+              StaggeredEntrance(
+                index: 5,
+                child: TextField(
+                  controller: _submissionController,
+                  minLines: 5,
+                  maxLines: 9,
+                  maxLength: 5000,
+                  decoration: const InputDecoration(
+                    hintText: 'Share Your Answer Here',
+                    alignLabelWithHint: true,
+                    border: OutlineInputBorder(),
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
-              _AttachmentActions(
-                audioEnabled: _allows(assignment, 'audio'),
-                imageEnabled: _allows(assignment, 'image'),
-                onAudio: () => _pickAudio(assignment),
-                onCamera: () => _pickPhoto(assignment, ImageSource.camera),
-                onGallery: () => _pickPhoto(assignment, ImageSource.gallery),
+              StaggeredEntrance(
+                index: 6,
+                child: _AttachmentActions(
+                  audioEnabled: _allows(assignment, 'audio'),
+                  imageEnabled: _allows(assignment, 'image'),
+                  onAudio: () => _pickAudio(assignment),
+                  onCamera: () => _pickPhoto(assignment, ImageSource.camera),
+                  onGallery: () => _pickPhoto(assignment, ImageSource.gallery),
+                ),
               ),
               if (detail.attachments.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 ...detail.attachments.asMap().entries.map(
-                  (entry) => _PendingAttachment(
-                    file: entry.value,
-                    onRemove: () => detail.removeAttachmentAt(entry.key),
+                  (entry) => StaggeredEntrance(
+                    key: ObjectKey(entry.value),
+                    child: _PendingAttachment(
+                      file: entry.value,
+                      onRemove: () => detail.removeAttachmentAt(entry.key),
+                    ),
                   ),
                 ),
               ],
               const SizedBox(height: 6),
-              SizedBox(
-                height: 48,
-                child: FilledButton.icon(
-                  onPressed: detail.submitting
-                      ? null
-                      : () => _submit(assignment),
-                  icon: detail.submitting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.white,
-                          ),
-                        )
-                      : const Icon(Icons.send_outlined),
-                  label: Text(
-                    detail.submitting ? 'Sending...' : 'Submit assignment',
+              StaggeredEntrance(
+                index: 7,
+                child: SizedBox(
+                  height: 48,
+                  child: PressableScale(
+                    enabled: !detail.submitting,
+                    child: FilledButton.icon(
+                      onPressed: detail.submitting
+                          ? null
+                          : () => _submit(assignment),
+                      icon: detail.submitting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.white,
+                              ),
+                            )
+                          : const Icon(LucideIcons.send),
+                      label: Text(
+                        detail.submitting ? 'Sending...' : 'Submit Assignment',
+                      ),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 12),
-              Text(
-                'Add a voice recording or photo with your answer. You can attach up to 10 files.',
-                style: AppFonts.regular(color: AppColors.textMuted, fontSize: 12),
+              StaggeredEntrance(
+                index: 8,
+                child: Text(
+                  'Add a voice recording or photo with your answer. You can attach up to 10 files.',
+                  style: AppFonts.regular(
+                    color: AppColors.textMuted,
+                    fontSize: 12,
+                  ),
+                ),
               ),
             ],
           ],
@@ -373,20 +416,29 @@ class _AttachmentActions extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       children: [
-        OutlinedButton.icon(
-          onPressed: audioEnabled ? onAudio : null,
-          icon: const Icon(Icons.audio_file_outlined),
-          label: const Text('Upload audio'),
+        PressableScale(
+          enabled: audioEnabled,
+          child: OutlinedButton.icon(
+            onPressed: audioEnabled ? onAudio : null,
+            icon: const Icon(LucideIcons.fileAudio),
+            label: const Text('Upload Audio'),
+          ),
         ),
-        OutlinedButton.icon(
-          onPressed: imageEnabled ? onCamera : null,
-          icon: const Icon(Icons.photo_camera_outlined),
-          label: const Text('Take photo'),
+        PressableScale(
+          enabled: imageEnabled,
+          child: OutlinedButton.icon(
+            onPressed: imageEnabled ? onCamera : null,
+            icon: const Icon(LucideIcons.camera),
+            label: const Text('Take Photo'),
+          ),
         ),
-        OutlinedButton.icon(
-          onPressed: imageEnabled ? onGallery : null,
-          icon: const Icon(Icons.photo_library_outlined),
-          label: const Text('Choose photo'),
+        PressableScale(
+          enabled: imageEnabled,
+          child: OutlinedButton.icon(
+            onPressed: imageEnabled ? onGallery : null,
+            icon: const Icon(LucideIcons.images),
+            label: const Text('Choose Photo'),
+          ),
         ),
       ],
     );
@@ -406,15 +458,15 @@ class _PendingAttachment extends StatelessWidget {
       contentPadding: EdgeInsets.zero,
       leading: Icon(
         file.mimeType.startsWith('audio')
-            ? Icons.audiotrack_outlined
-            : Icons.image_outlined,
+            ? LucideIcons.music
+            : LucideIcons.image,
       ),
-      title: Text(file.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+      title: Text(file.name),
       subtitle: Text('${(file.bytes.length / 1024).ceil()} KB'),
       trailing: IconButton(
-        tooltip: 'Remove attachment',
+        tooltip: 'Remove Attachment',
         onPressed: onRemove,
-        icon: const Icon(Icons.close),
+        icon: const Icon(LucideIcons.x),
       ),
     );
   }
@@ -434,10 +486,10 @@ class _DetailMeta extends StatelessWidget {
     final status = assignment.isSubmitted
         ? 'Submitted'
         : assignment.isOverdue
-        ? 'Past due'
-        : 'To do';
+        ? 'Past Due'
+        : 'To Do';
     final due = assignment.dueAt == null
-        ? 'No due date'
+        ? 'No Due Date'
         : 'Due ${assignment.dueAt!.toLocal().day}/${assignment.dueAt!.toLocal().month}/${assignment.dueAt!.toLocal().year}';
     return Row(
       children: [
@@ -449,15 +501,12 @@ class _DetailMeta extends StatelessWidget {
           ),
           child: Text(
             status,
-            style: AppFonts.bold(
-              color: statusColor,
-              fontSize: 12,
-            ),
+            style: AppFonts.bold(color: statusColor, fontSize: 12),
           ),
         ),
         const SizedBox(width: 10),
         Icon(
-          Icons.event_outlined,
+          LucideIcons.calendarDays,
           size: 16,
           color: assignment.isOverdue ? AppColors.danger : AppColors.textMuted,
         ),
@@ -465,7 +514,9 @@ class _DetailMeta extends StatelessWidget {
         Text(
           due,
           style: AppFonts.regular(
-            color: assignment.isOverdue ? AppColors.danger : AppColors.textMuted,
+            color: assignment.isOverdue
+                ? AppColors.danger
+                : AppColors.textMuted,
             fontSize: 13,
           ),
         ),

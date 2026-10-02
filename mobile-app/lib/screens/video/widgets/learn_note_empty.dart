@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../themes/app_fonts.dart';
 import '../../../themes/home_palette.dart';
@@ -20,7 +21,7 @@ class LearnNoteEmpty extends StatelessWidget {
         child: Column(
           children: [
             SoftIconTile(
-              icon: Icons.lightbulb_outline_rounded,
+              icon: LucideIcons.lightbulb,
               tone: p.amber,
               size: 56,
               circle: true,

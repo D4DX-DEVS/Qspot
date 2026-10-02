@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../model/notification_model.dart';
 import '../provider/notification_provider.dart';
 import '../provider/notifications_screen_provider.dart';
-import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../themes/home_palette.dart';
+import '../../../widgets/animation/pressable_scale.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../../widgets/common/loading_skeleton.dart';
+import '../../../widgets/common/state_message_view.dart';
+import '../../../widgets/common/surface_card.dart';
+import '../../../widgets/common/soft_icon_tile.dart';
+import '../../common/widgets/home_theme_scope.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -62,17 +69,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: _screen,
-      child: Consumer<NotificationsScreenProvider>(
-        builder: (_, screen, __) => _buildPage(),
+    // Burgundy home theme; the page reads colours from the context inside it.
+    return HomeThemeScope(
+      child: ChangeNotifierProvider.value(
+        value: _screen,
+        child: Consumer<NotificationsScreenProvider>(
+          builder: (context, screen, _) => _buildPage(context),
+        ),
       ),
     );
   }
 
-  Widget _buildPage() {
+  Widget _buildPage(BuildContext context) {
+    final p = HomePalette.of(context);
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: const CommonAppBar(title: 'Notifications'),
       body: Consumer<NotificationProvider>(
         builder: (context, notificationProvider, child) {
@@ -81,28 +91,41 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           }
 
           if (notificationProvider.hasError) {
-            return _buildErrorState(notificationProvider.errorMessage);
+            return StateMessageView(
+              icon: LucideIcons.circleAlert,
+              title: 'Something Went Wrong',
+              message: notificationProvider.errorMessage,
+              onRetry: _loadNotifications,
+            );
           }
 
           if (notificationProvider.notifications.isEmpty) {
-            return _buildEmptyState();
+            return const StateMessageView(
+              icon: LucideIcons.bell,
+              title: 'No Notifications',
+              message: "You're all caught up! Check back later for updates.",
+            );
           }
 
           return Column(
             children: [
               // Search bar
-              _buildSearchBar(),
+              StaggeredEntrance(child: _buildSearchBar(p)),
 
               // Notifications count
-              _buildNotificationsCount(),
+              StaggeredEntrance(index: 1, child: _buildNotificationsCount(p)),
 
               // Notifications list
               Expanded(
                 child:
                     _filteredNotifications.isEmpty &&
                         _searchController.text.isNotEmpty
-                    ? _buildNoSearchResults()
-                    : _buildNotificationsList(),
+                    ? const StateMessageView(
+                        icon: LucideIcons.searchX,
+                        title: 'No Results Found',
+                        message: 'Try searching with different keywords',
+                      )
+                    : _buildNotificationsList(p),
               ),
             ],
           );
@@ -111,25 +134,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(HomePalette p) {
     return Container(
       margin: const EdgeInsets.all(AppTheme.paddingMedium),
       decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppColors.border, width: 1),
+        color: p.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: p.cardBorder, width: 1),
       ),
       child: TextField(
         controller: _searchController,
         onChanged: _onSearchChanged,
-        style: AppFonts.regular(color: AppColors.textPrimary),
+        cursorColor: p.brand,
+        style: AppFonts.regular(color: p.text),
         decoration: InputDecoration(
-          hintText: 'Search notifications...',
-          hintStyle: AppFonts.regular(color: AppColors.textMuted),
-          prefixIcon: Icon(Icons.search, color: AppColors.textMuted),
+          hintText: 'Search Notifications...',
+          hintStyle: AppFonts.regular(color: p.textMuted),
+          prefixIcon: Icon(LucideIcons.search, color: p.textMuted),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
-                  icon: Icon(Icons.clear, color: AppColors.textMuted),
+                  icon: Icon(LucideIcons.x, color: p.textMuted),
                   onPressed: () {
                     _searchController.clear();
                     _onSearchChanged('');
@@ -146,149 +170,105 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildNotificationsCount() {
+  Widget _buildNotificationsCount(HomePalette p) {
+    final count = _filteredNotifications.length;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: AppTheme.paddingMedium),
       child: Row(
         children: [
-          Consumer<NotificationProvider>(
-            builder: (context, notificationProvider, child) {
-              return Text(
-                '${_filteredNotifications.length} notification${_filteredNotifications.length != 1 ? 's' : ''}',
-                style: AppFonts.regular(
-                  color: AppColors.textMuted,
-                  fontSize: 14,
-                ),
-              );
-            },
+          Text(
+            '$count notification${count != 1 ? 's' : ''}',
+            style: AppFonts.regular(color: p.textMuted, fontSize: 14),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildNotificationsList() {
+  Widget _buildNotificationsList(HomePalette p) {
     return RefreshIndicator(
       onRefresh: _loadNotifications,
-      backgroundColor: AppColors.surface,
-      color: AppColors.primary,
+      backgroundColor: p.card,
+      color: p.brand,
       child: ListView.builder(
         padding: const EdgeInsets.all(AppTheme.paddingMedium),
         itemCount: _filteredNotifications.length,
         itemBuilder: (context, index) {
           final notification = _filteredNotifications[index];
-          return _buildNotificationCard(notification);
+          return StaggeredEntrance(
+            index: index + 2,
+            child: _buildNotificationCard(p, notification),
+          );
         },
       ),
     );
   }
 
-  Widget _buildNotificationCard(NotificationModel notification) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppTheme.paddingMedium),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppColors.border, width: 1),
-      ),
-      child: InkWell(
-        onTap: () => _onNotificationTap(notification),
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        child: Padding(
-          padding: const EdgeInsets.all(AppTheme.paddingMedium),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Notification icon
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.notifications,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-              ),
-
-              const SizedBox(width: AppTheme.paddingMedium),
-
-              // Content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      notification.title,
-                      style: AppFonts.medium(
-                        color: AppColors.textPrimary,
-                        fontSize: 16,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    const SizedBox(height: AppTheme.paddingSmall),
-
-                    Text(
-                      notification.description,
-                      style: AppFonts.regular(
-                        color: AppColors.textMuted,
-                        fontSize: 14,
-                      ),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    const SizedBox(height: AppTheme.paddingSmall),
-
-                    Text(
-                      notification.formattedDate,
-                      style: AppFonts.regular(
-                        color: AppColors.textMuted,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.paddingLarge),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildNotificationCard(HomePalette p, NotificationModel notification) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTheme.paddingMedium),
+      child: SurfaceCard(
+        onTap: () => _onNotificationTap(p, notification),
+        radius: 16,
+        // Unread ones get a soft tint, a bolder title and a dot.
+        color: notification.isRead ? null : p.brandSoft,
+        padding: const EdgeInsets.all(AppTheme.paddingMedium),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              Icons.notifications_none,
-              size: 64,
-              color: AppColors.textMuted,
-            ),
-            const SizedBox(height: AppTheme.paddingMedium),
-            Text(
-              'No Notifications',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppTheme.paddingSmall),
-            Text(
-              'You\'re all caught up! Check back later for updates.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
-              textAlign: TextAlign.center,
+            SoftIconTile(icon: LucideIcons.bell, tone: p.rose, size: 44),
+
+            const SizedBox(width: AppTheme.paddingMedium),
+
+            // Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          notification.title,
+                          style: notification.isRead
+                              ? AppFonts.semiBold(color: p.text, fontSize: 15)
+                              : AppFonts.extraBold(color: p.text, fontSize: 15),
+                        ),
+                      ),
+                      if (!notification.isRead)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8, top: 5),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: p.brand,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const SizedBox(width: 9, height: 9),
+                          ),
+                        ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 4),
+
+                  Text(
+                    notification.description,
+                    style: AppFonts.regular(
+                      color: p.textMuted,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  Text(
+                    notification.formattedDate,
+                    style: AppFonts.regular(color: p.textMuted, fontSize: 12),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -296,87 +276,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildNoSearchResults() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.paddingLarge),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.search_off, size: 64, color: AppColors.textMuted),
-            const SizedBox(height: AppTheme.paddingMedium),
-            Text(
-              'No Results Found',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppTheme.paddingSmall),
-            Text(
-              'Try searching with different keywords',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildErrorState(String errorMessage) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.paddingLarge),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 64, color: AppColors.textMuted),
-            const SizedBox(height: AppTheme.paddingMedium),
-            Text(
-              'Something went wrong',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppTheme.paddingSmall),
-            Text(
-              errorMessage,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppTheme.paddingLarge),
-            ElevatedButton(
-              onPressed: _loadNotifications,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.onPrimary,
-              ),
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _onNotificationTap(NotificationModel notification) {
+  void _onNotificationTap(HomePalette p, NotificationModel notification) {
     // Mark read immediately so the unread badge (Home + this list) reflects
     // the tap right away (M21).
     Provider.of<NotificationProvider>(
       context,
       listen: false,
-    ).markAsRead(notification.id);
+    ).markAsRead(notification.id).then((_) {
+      if (mounted) _updateFilteredNotifications();
+    });
 
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.background,
+      backgroundColor: p.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -390,25 +303,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             children: [
               Text(
                 notification.title,
-                style: AppFonts.bold(
-                  color: AppColors.textPrimary,
-                  fontSize: 19,
-                ),
+                style: AppFonts.bold(color: p.text, fontSize: 19),
               ),
               const SizedBox(height: 8),
               if (notification.formattedDate.isNotEmpty)
                 Text(
                   notification.formattedDate,
-                  style: AppFonts.regular(
-                    color: AppColors.textMuted,
-                    fontSize: 12.5,
-                  ),
+                  style: AppFonts.regular(color: p.textMuted, fontSize: 12.5),
                 ),
               const SizedBox(height: 16),
               Text(
                 notification.description,
                 style: AppFonts.regular(
-                  color: AppColors.textPrimary,
+                  color: p.text,
                   fontSize: 15,
                   height: 1.5,
                 ),
@@ -417,14 +324,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               SizedBox(
                 width: double.infinity,
                 height: 50,
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.onPrimary,
-                    shape: const StadiumBorder(),
+                child: PressableScale(
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: p.brand,
+                      foregroundColor: p.card,
+                      shape: const StadiumBorder(),
+                    ),
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    child: const Text('Close'),
                   ),
-                  onPressed: () => Navigator.of(sheetContext).pop(),
-                  child: const Text('Close'),
                 ),
               ),
             ],

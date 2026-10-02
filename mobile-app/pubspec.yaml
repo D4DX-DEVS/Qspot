@@ -67,6 +67,14 @@ dependencies:
   timezone: ^0.9.4
   flutter_timezone: ^3.0.1
   flutter_ringtone_player: ^4.0.0+3
+  lucide_icons_flutter: ^3.1.21
+
+# QSpot copy of youtube_player_flutter 9.1.2 with one added flag,
+# `hideYoutubeOverlay` (see packages/youtube_player_flutter/lib/src/utils/
+# youtube_overlay_hider.dart).
+dependency_overrides:
+  youtube_player_flutter:
+    path: packages/youtube_player_flutter
 
 dev_dependencies:
   flutter_test:
@@ -125,16 +133,16 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
   fonts:
-    - family: Poppins
+    - family: Manrope
       fonts:
-        - asset: assets/fonts/Poppins-Regular.ttf
-        - asset: assets/fonts/Poppins-Medium.ttf
+        - asset: assets/fonts/Manrope-Regular.ttf
+        - asset: assets/fonts/Manrope-Medium.ttf
           weight: 500
-        - asset: assets/fonts/Poppins-SemiBold.ttf
+        - asset: assets/fonts/Manrope-SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/Poppins-Bold.ttf
+        - asset: assets/fonts/Manrope-Bold.ttf
           weight: 700
-        - asset: assets/fonts/Poppins-ExtraBold.ttf
+        - asset: assets/fonts/Manrope-ExtraBold.ttf
           weight: 800
 
 # Flutter Launcher Icons Configuration

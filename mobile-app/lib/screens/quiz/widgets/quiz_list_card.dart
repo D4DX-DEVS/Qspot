@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../themes/accent_tone.dart';
 import '../../../themes/app_fonts.dart';
@@ -24,7 +25,7 @@ class QuizListCard extends StatelessWidget {
     final tone = _tone(p);
     final status = _status;
     final count =
-        '${quiz.questionCount} question${quiz.questionCount == 1 ? '' : 's'}';
+        '${quiz.questionCount} Question${quiz.questionCount == 1 ? '' : 's'}';
     return Semantics(
       button: true,
       label: '${quiz.title}. $status. $count',
@@ -36,9 +37,7 @@ class QuizListCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SoftIconTile(
-              icon: practical
-                  ? Icons.handyman_outlined
-                  : Icons.edit_note_rounded,
+              icon: practical ? LucideIcons.wrench : LucideIcons.pencilLine,
               tone: tone,
               size: 46,
             ),
@@ -54,8 +53,6 @@ class QuizListCard extends StatelessWidget {
                         child: Text(
                           quiz.title,
                           style: AppFonts.bold(color: p.text, fontSize: 15.5),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -64,7 +61,7 @@ class QuizListCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${practical ? 'Practical exam' : 'Knowledge quiz'} · $count',
+                    '${practical ? 'Practical Exam' : 'Knowledge Quiz'} · $count',
                     style: AppFonts.regular(color: p.textMuted, fontSize: 13),
                   ),
                   if (quiz.isUpcoming && quiz.startDate != null) ...[
@@ -77,7 +74,7 @@ class QuizListCard extends StatelessWidget {
                   if (attempt != null) ...[
                     const SizedBox(height: 10),
                     Text(
-                      'Your score: ${attempt.score}/${attempt.totalQuestions} (${attempt.percentage}%)',
+                      'Your Score: ${attempt.score}/${attempt.totalQuestions} (${attempt.percentage}%)',
                       style: AppFonts.semiBold(color: p.brand, fontSize: 13.5),
                     ),
                   ],

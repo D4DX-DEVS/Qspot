@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -7,6 +8,9 @@ import '../provider/banner_carousel_provider.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../themes/home_palette.dart';
+import '../../../widgets/animation/motion.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 
 class BannerCarousel extends StatefulWidget {
   final List<BannerModel> banners;
@@ -38,52 +42,41 @@ class _BannerCarouselState extends State<BannerCarousel> {
   }
 
   Widget _buildPage(BannerCarouselProvider carousel) {
-    debugPrint(
-      '🎠 [BANNER CAROUSEL] Building with ${widget.banners.length} banners',
-    );
-    if (widget.banners.isEmpty) {
-      debugPrint(
-        '🎠 [BANNER CAROUSEL] Empty banners list, returning SizedBox.shrink()',
-      );
-      return const SizedBox.shrink();
-    }
+    if (widget.banners.isEmpty) return const SizedBox.shrink();
 
-    for (var i = 0; i < widget.banners.length; i++) {
-      debugPrint(
-        '🎠 [BANNER CAROUSEL] Banner $i: ID=${widget.banners[i].id}, Image URL=${widget.banners[i].imageUrl}',
-      );
-    }
-
-    return Column(
-      children: [
-        CarouselSlider(
-          options: CarouselOptions(
-            height: widget.height,
-            autoPlay: widget.banners.length > 1,
-            autoPlayInterval: const Duration(seconds: 5),
-            autoPlayAnimationDuration: const Duration(milliseconds: 800),
-            autoPlayCurve: Curves.fastOutSlowIn,
-            enlargeCenterPage: true,
-            viewportFraction: 0.9,
-            onPageChanged: (index, reason) => carousel.setIndex(index),
+    return StaggeredEntrance(
+      child: Column(
+        children: [
+          CarouselSlider(
+            options: CarouselOptions(
+              height: widget.height,
+              autoPlay: widget.banners.length > 1,
+              autoPlayInterval: const Duration(seconds: 5),
+              autoPlayAnimationDuration: const Duration(milliseconds: 800),
+              autoPlayCurve: Curves.fastOutSlowIn,
+              enlargeCenterPage: true,
+              viewportFraction: 0.9,
+              onPageChanged: (index, reason) => carousel.setIndex(index),
+            ),
+            items: widget.banners.map((banner) {
+              return Builder(
+                builder: (BuildContext context) {
+                  return _buildBannerItem(banner);
+                },
+              );
+            }).toList(),
           ),
-          items: widget.banners.map((banner) {
-            return Builder(
-              builder: (BuildContext context) {
-                return _buildBannerItem(banner);
-              },
-            );
-          }).toList(),
-        ),
-        if (widget.banners.length > 1) ...[
-          const SizedBox(height: AppTheme.paddingSmall),
-          _buildIndicators(carousel),
+          if (widget.banners.length > 1) ...[
+            const SizedBox(height: AppTheme.paddingSmall),
+            _buildIndicators(carousel),
+          ],
         ],
-      ],
+      ),
     );
   }
 
   Widget _buildBannerItem(BannerModel banner) {
+    final p = HomePalette.of(context);
     return Container(
       width: MediaQuery.of(context).size.width,
       margin: const EdgeInsets.symmetric(horizontal: 5.0),
@@ -103,24 +96,19 @@ class _BannerCarouselState extends State<BannerCarousel> {
           imageUrl: banner.imageUrl,
           fit: BoxFit.cover,
           placeholder: (context, url) => Container(
-            color: AppColors.surface,
-            child: const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            ),
+            color: p.card,
+            child: Center(child: CircularProgressIndicator(color: p.brand)),
           ),
           errorWidget: (context, url, error) => Container(
-            color: AppColors.surface,
+            color: p.card,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.broken_image, size: 48, color: AppColors.textMuted),
+                Icon(LucideIcons.imageOff, size: 48, color: p.textMuted),
                 const SizedBox(height: AppTheme.paddingSmall),
                 Text(
-                  'Image not available',
-                  style: AppFonts.regular(
-                    color: AppColors.textMuted,
-                    fontSize: 12,
-                  ),
+                  'Image Not Available',
+                  style: AppFonts.regular(color: p.textMuted, fontSize: 12),
                 ),
               ],
             ),
@@ -131,18 +119,21 @@ class _BannerCarouselState extends State<BannerCarousel> {
   }
 
   Widget _buildIndicators(BannerCarouselProvider carousel) {
+    final p = HomePalette.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: widget.banners.asMap().entries.map((entry) {
-        return Container(
+        return AnimatedContainer(
+          duration: Motion.reduced(context) ? Duration.zero : Motion.medium,
+          curve: Motion.smooth,
           width: carousel.currentIndex == entry.key ? 24 : 8,
           height: 8,
           margin: const EdgeInsets.symmetric(horizontal: 4.0),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(4),
             color: carousel.currentIndex == entry.key
-                ? AppColors.primary
-                : AppColors.textMuted.withValues(alpha: 0.4),
+                ? p.brand
+                : p.textMuted.withValues(alpha: 0.4),
           ),
         );
       }).toList(),

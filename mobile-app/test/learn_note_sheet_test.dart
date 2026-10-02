@@ -62,7 +62,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Learn — quick note'), findsOneWidget);
+    expect(find.text('Learn — Quick Note'), findsOneWidget);
     expect(find.text('A short note about this episode.'), findsOneWidget);
     expect(find.text('KEY POINTS'), findsOneWidget);
     expect(find.text('First point'), findsOneWidget);
@@ -91,11 +91,11 @@ void main() {
 
   testWidgets('Got it closes the popup', (tester) async {
     await openSheet(tester, episode(learnText: 'Something to read.'));
-    expect(find.text('Learn — quick note'), findsOneWidget);
+    expect(find.text('Learn — Quick Note'), findsOneWidget);
 
-    await tester.tap(find.text('Got it'));
+    await tester.tap(find.text('Got It'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Learn — quick note'), findsNothing);
+    expect(find.text('Learn — Quick Note'), findsNothing);
   });
 }

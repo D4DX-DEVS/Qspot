@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../../services/api_client.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/home_palette.dart';
+import '../../../widgets/animation/pop_on_change.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../../widgets/common/nav_list_card.dart';
 import '../../../widgets/common/section_header.dart';
-import '../../../widgets/common/soft_outline_button.dart';
 import '../widgets/profile_identity_card.dart';
 import '../../auth/model/user_model.dart';
 import '../../auth/provider/auth_provider.dart';
-import '../../../services/session.dart';
 import '../../bookmark/screens/bookmarks_screen.dart';
 import '../../question/screens/my_questions_screen.dart';
 import '../../settings/screens/settings_screen.dart';
@@ -32,7 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CommonAppBar(title: 'Me'),
+      appBar: const CommonAppBar(title: 'Me', isDrawerNeeded: true),
       body: ListView(
         padding: EdgeInsets.fromLTRB(
           16,
@@ -41,11 +42,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           28 + MediaQuery.paddingOf(context).bottom,
         ),
         children: [
-          _identity(context),
+          StaggeredEntrance(child: _identity(context)),
           const SizedBox(height: 22),
           _shortcuts(context),
-          const SizedBox(height: 22),
-          _logout(context),
         ],
       ),
     );
@@ -89,7 +88,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
           title: Text(
-            'Edit profile',
+            'Edit Profile',
             style: AppFonts.medium(
               color: Theme.of(dialogContext).colorScheme.onSurface,
             ),
@@ -117,7 +116,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Text(
                     'Language',
                     style: AppFonts.regular(
-                      color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
+                      color: Theme.of(
+                        dialogContext,
+                      ).colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const Spacer(),
@@ -127,14 +128,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       setDialogState(() => language = index == 0 ? 'en' : 'ml');
                     },
                     borderRadius: BorderRadius.circular(8),
-                    children: const [
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('EN'),
+                    children: [
+                      PopOnChange(
+                        active: language == 'en',
+                        peak: 1.15,
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          child: Text('EN'),
+                        ),
                       ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('ML'),
+                      PopOnChange(
+                        active: language == 'ml',
+                        peak: 1.15,
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          child: Text('ML'),
+                        ),
                       ),
                     ],
                   ),
@@ -202,37 +211,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
     final items = [
       NavListCard(
-        icon: Icons.school_outlined,
+        icon: LucideIcons.graduationCap,
         tone: tone,
         circleIcon: true,
-        subtitleLines: 2,
-        title: 'My courses',
+        title: 'My Courses',
         subtitle: 'Choose the subjects you want to see',
         onTap: () => _editCourses(context),
       ),
       NavListCard(
-        icon: Icons.help_outline,
+        icon: LucideIcons.circleQuestionMark,
         tone: tone,
         circleIcon: true,
-        subtitleLines: 2,
         title: 'My Questions',
         subtitle: 'Questions you asked and their answers',
         onTap: () => open(const MyQuestionsScreen()),
       ),
       NavListCard(
-        icon: Icons.bookmark_border,
+        icon: LucideIcons.bookmark,
         tone: tone,
         circleIcon: true,
-        subtitleLines: 2,
         title: 'Bookmarks',
         subtitle: 'Episodes you saved for later',
         onTap: () => open(const BookmarksScreen()),
       ),
       NavListCard(
-        icon: Icons.settings_outlined,
+        icon: LucideIcons.settings,
         tone: tone,
         circleIcon: true,
-        subtitleLines: 2,
         title: 'Settings',
         subtitle: 'Notifications, reminders and more',
         onTap: () => open(const SettingsScreen()),
@@ -241,13 +246,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(
-          title: 'Your learning space',
-          subtitle: 'Keep your saved work, questions, and preferences close.',
+        const StaggeredEntrance(
+          index: 1,
+          child: SectionHeader(
+            title: 'Your Learning Space',
+            subtitle: 'Keep your saved work, questions, and preferences close.',
+          ),
         ),
         const SizedBox(height: 14),
-        for (final item in items)
-          Padding(padding: const EdgeInsets.only(bottom: 12), child: item),
+        for (var i = 0; i < items.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: StaggeredEntrance(index: i + 2, child: items[i]),
+          ),
       ],
     );
   }
@@ -261,7 +272,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('My courses'),
+          title: const Text('My Courses'),
           content: SizedBox(
             width: 360,
             child: courses.isEmpty
@@ -335,65 +346,5 @@ class _ProfileScreenState extends State<ProfileScreen> {
         color: AppColors.danger,
       );
     }
-  }
-
-  Widget _logout(BuildContext context) {
-    return Consumer<AuthProvider>(
-      builder: (context, authProvider, child) {
-        return SoftOutlineButton(
-          label: 'Logout',
-          icon: Icons.logout_rounded,
-          expand: true,
-          onPressed: () => _confirmLogout(context, authProvider),
-        );
-      },
-    );
-  }
-
-  void _confirmLogout(BuildContext context, AuthProvider authProvider) {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        ),
-        title: Text(
-          'Logout',
-          style: AppFonts.medium(
-            color: Theme.of(dialogContext).colorScheme.onSurface,
-            fontSize: 19,
-          ),
-        ),
-        content: Text(
-          'Are you sure you want to logout?',
-          style: AppFonts.regular(
-            color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
-            fontSize: 15,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(
-              'Cancel',
-              style: AppFonts.medium(
-                color: Theme.of(dialogContext).colorScheme.onSurface,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.danger,
-              foregroundColor: AppColors.onPrimary,
-            ),
-            onPressed: () async {
-              Navigator.of(dialogContext).pop();
-              await performLogout(context);
-            },
-            child: const Text('Logout'),
-          ),
-        ],
-      ),
-    );
   }
 }

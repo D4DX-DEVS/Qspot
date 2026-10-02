@@ -83,7 +83,7 @@ class _SplashScreenState extends State<SplashScreen>
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     await authProvider.initialize();
 
-    await Future.delayed(const Duration(milliseconds: 30000));
+    await Future.delayed(const Duration(milliseconds: 3000));
 
     if (!mounted) return;
 
@@ -190,12 +190,32 @@ class _SplashScreenState extends State<SplashScreen>
                         child: child,
                       );
                     },
-                    child: Text(
-                      'Developed by D4DX Innovations LLP',
-                      style: AppFonts.medium(
-                        color: isDark ? AppColors.white70 : palette.textMuted,
-                        fontSize: 12,
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Developed by',
+                          style: AppFonts.medium(
+                            color: isDark
+                                ? AppColors.white70
+                                : palette.textMuted,
+                            fontSize: 11,
+                          ),
+                        ),
+                        // White in dark mode — the blue mark is lost on the
+                        // burgundy.
+                        Image.asset(
+                          'assets/icons/D4DX _logo.png',
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.contain,
+                          color: isDark ? AppColors.white : null,
+                          colorBlendMode: BlendMode.srcIn,
+                          cacheHeight:
+                              (100 * MediaQuery.devicePixelRatioOf(context))
+                                  .round(),
+                        ),
+                      ],
                     ),
                   ),
                 ),

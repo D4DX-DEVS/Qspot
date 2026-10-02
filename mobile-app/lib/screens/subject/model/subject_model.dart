@@ -14,7 +14,7 @@ class SubjectGuidePoint {
 }
 
 class SubjectModel {
-  static const String defaultGuideTitle = 'What is inside this chapter';
+  static const String defaultGuideTitle = 'What Is Inside This Chapter';
 
   /// Used when the admin has not written a guide for this chapter yet, so the
   /// first-open panel is never empty.

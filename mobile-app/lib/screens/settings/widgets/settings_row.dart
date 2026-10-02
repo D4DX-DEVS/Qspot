@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../themes/accent_tone.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../widgets/animation/pressable_scale.dart';
 import '../../../widgets/common/soft_icon_tile.dart';
 
 /// A row inside a settings card: tinted icon, title, optional subtitle and a
@@ -38,47 +40,51 @@ class SettingsRow extends StatelessWidget {
         (onTap == null
             ? null
             : Icon(
-                Icons.chevron_right_rounded,
+                LucideIcons.chevronRight,
                 color: scheme.onSurfaceVariant,
                 size: 22,
               ));
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            SoftIconTile(icon: icon, tone: tone, size: 44),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: AppFonts.semiBold(
-                      color: scheme.onSurface,
-                      fontSize: 15,
-                    ),
-                  ),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 2),
+    return PressableScale(
+      enabled: onTap != null,
+      pressedScale: 0.98,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              SoftIconTile(icon: icon, tone: tone, size: 44),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      subtitle!,
-                      style:
-                          subtitleStyle ??
-                          AppFonts.regular(
-                            color: scheme.onSurfaceVariant,
-                            fontSize: 12.5,
-                            height: 1.3,
-                          ),
+                      title,
+                      style: AppFonts.semiBold(
+                        color: scheme.onSurface,
+                        fontSize: 15,
+                      ),
                     ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle!,
+                        style:
+                            subtitleStyle ??
+                            AppFonts.regular(
+                              color: scheme.onSurfaceVariant,
+                              fontSize: 12.5,
+                              height: 1.3,
+                            ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            if (end != null) ...[const SizedBox(width: 8), end],
-          ],
+              if (end != null) ...[const SizedBox(width: 8), end],
+            ],
+          ),
         ),
       ),
     );

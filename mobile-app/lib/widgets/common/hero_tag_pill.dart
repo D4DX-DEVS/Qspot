@@ -20,7 +20,7 @@ class HeroTagPill extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: AppFonts.semiBold(color: AppColors.authBrand, fontSize: 11.5),
+        style: AppFonts.semiBold(color: AppColors.authBrand, fontSize: 12),
       ),
     );
   }

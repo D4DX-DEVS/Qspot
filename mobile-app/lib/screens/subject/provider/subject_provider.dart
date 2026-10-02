@@ -67,7 +67,7 @@ class SubjectProvider with ChangeNotifier {
     if (orphaned.isNotEmpty) {
       groups.add(
         CourseSubjects(
-          course: const CourseModel(id: '', title: 'Other subjects'),
+          course: const CourseModel(id: '', title: 'Other Subjects'),
           subjects: orphaned..sort((a, b) => a.order.compareTo(b.order)),
         ),
       );

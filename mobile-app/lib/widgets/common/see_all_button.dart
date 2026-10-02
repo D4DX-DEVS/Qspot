@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:qspot/themes/app_colors.dart';
 import 'package:qspot/themes/app_theme.dart';
 
@@ -36,7 +37,7 @@ class SeeAllButton extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           const Icon(
-            Icons.arrow_forward_ios,
+            LucideIcons.chevronRight,
             color: AppColors.primary,
             size: 12,
           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../themes/home_palette.dart';
 import '../../auth/widgets/art/auth_art.dart';
@@ -50,7 +51,7 @@ class OfflineIllustration extends StatelessWidget {
                 border: Border.all(color: palette.cardBorder),
               ),
               child: Icon(
-                Icons.wifi_rounded,
+                LucideIcons.wifi,
                 color: palette.brand,
                 size: circle * 0.48,
               ),
@@ -67,7 +68,7 @@ class OfflineIllustration extends StatelessWidget {
                   border: Border.all(color: palette.card, width: 2.5),
                 ),
                 child: Icon(
-                  Icons.close_rounded,
+                  LucideIcons.x,
                   color: palette.card,
                   size: circle * 0.16,
                 ),

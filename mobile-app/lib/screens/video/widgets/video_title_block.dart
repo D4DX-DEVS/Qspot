@@ -8,14 +8,9 @@ import '../model/video_model.dart';
 /// the video stage. The caller decides where it sits: bottom-left in portrait,
 /// beside the back button in landscape.
 class VideoTitleBlock extends StatelessWidget {
-  const VideoTitleBlock({
-    super.key,
-    required this.video,
-    this.titleMaxLines = 2,
-  });
+  const VideoTitleBlock({super.key, required this.video});
 
   final VideoModel video;
-  final int titleMaxLines;
 
   @override
   Widget build(BuildContext context) {
@@ -30,8 +25,6 @@ class VideoTitleBlock extends StatelessWidget {
       children: [
         Text(
           video.displayTitle,
-          maxLines: titleMaxLines,
-          overflow: TextOverflow.ellipsis,
           style: AppFonts.bold(
             color: AppColors.white,
             fontSize: 17,
@@ -42,8 +35,6 @@ class VideoTitleBlock extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             subtitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
             style: AppFonts.regular(color: AppColors.white70, fontSize: 12.5),
           ),
         ],

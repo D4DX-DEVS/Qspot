@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../model/subject_model.dart';
 import '../provider/subject_videos_screen_provider.dart';
 import '../../video/provider/video_provider.dart';
 import '../../video/widgets/video_card.dart';
+import '../../video/widgets/video_grid.dart';
 import '../widgets/chapter_guide_sheet.dart';
 import '../../../themes/app_colors.dart';
+import '../../../themes/home_palette.dart';
 import '../../../themes/app_theme.dart';
+import '../../../widgets/animation/count_up_text.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../video/screens/video_reels_screen.dart';
 
@@ -69,6 +74,8 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
     await _loadSubjectVideos();
   }
 
+  HomePalette get _p => HomePalette.of(context);
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
@@ -81,7 +88,6 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
 
   Widget _buildPage(SubjectVideosScreenProvider subjectVideos) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: CommonAppBar(title: widget.subject.displayName),
       body: _buildBody(subjectVideos),
     );
@@ -90,9 +96,7 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
   Widget _buildBody(SubjectVideosScreenProvider subjectVideos) {
     final videos = subjectVideos.videos;
     if (subjectVideos.isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
+      return Center(child: CircularProgressIndicator(color: _p.brand));
     }
 
     if (subjectVideos.errorMessage.isNotEmpty) {
@@ -102,20 +106,20 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 64, color: AppColors.textMuted),
+              Icon(LucideIcons.circleAlert, size: 64, color: _p.textMuted),
               const SizedBox(height: AppTheme.paddingMedium),
               Text(
                 'Error Loading Videos',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.textPrimary,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.headlineSmall?.copyWith(color: _p.text),
               ),
               const SizedBox(height: AppTheme.paddingSmall),
               Text(
                 subjectVideos.errorMessage,
                 style: Theme.of(
                   context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
+                ).textTheme.bodyMedium?.copyWith(color: _p.textMuted),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppTheme.paddingLarge),
@@ -133,24 +137,20 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.video_library_outlined,
-                size: 64,
-                color: AppColors.textMuted,
-              ),
+              Icon(LucideIcons.clapperboard, size: 64, color: _p.textMuted),
               const SizedBox(height: AppTheme.paddingMedium),
               Text(
                 'No Videos Found',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.textPrimary,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.headlineSmall?.copyWith(color: _p.text),
               ),
               const SizedBox(height: AppTheme.paddingSmall),
               Text(
                 'No videos available for ${widget.subject.displayName}',
                 style: Theme.of(
                   context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
+                ).textTheme.bodyMedium?.copyWith(color: _p.textMuted),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -161,66 +161,73 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
 
     return RefreshIndicator(
       onRefresh: _onRefresh,
-      backgroundColor: AppColors.surface,
-      color: AppColors.primary,
+      backgroundColor: _p.card,
+      color: _p.brand,
       child: Column(
         children: [
           // Subject Header
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.all(AppTheme.paddingMedium),
-            padding: const EdgeInsets.all(AppTheme.paddingMedium),
-            decoration: AppTheme.gradientDecoration(),
-            child: Row(
-              children: [
-                Icon(Icons.book, color: AppColors.onPrimary, size: 24),
-                const SizedBox(width: AppTheme.paddingSmall),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.subject.displayName,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppColors.onPrimary,
-                          fontWeight: FontWeight.bold,
+          StaggeredEntrance(
+            child: Container(
+              width: double.infinity,
+              margin: const EdgeInsets.all(AppTheme.paddingMedium),
+              padding: const EdgeInsets.all(AppTheme.paddingMedium),
+              decoration: BoxDecoration(
+                gradient: _p.heroGradient,
+                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+              ),
+              child: Row(
+                children: [
+                  Icon(LucideIcons.book, color: AppColors.onPrimary, size: 24),
+                  const SizedBox(width: AppTheme.paddingSmall),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.subject.displayName,
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                color: AppColors.onPrimary,
+                                fontWeight: FontWeight.bold,
+                              ),
                         ),
-                      ),
-                      Text(
-                        '${videos.length} lesson${videos.length != 1 ? 's' : ''}',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.onPrimary.withValues(alpha: 0.85),
+                        CountUpText(
+                          '${videos.length} Lesson${videos.length != 1 ? 's' : ''}',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: AppColors.onPrimary.withValues(
+                                  alpha: 0.85,
+                                ),
+                              ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
 
           // Videos Grid
           Expanded(
-            child: GridView.builder(
+            child: VideoGrid(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppTheme.paddingMedium,
               ),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: AppTheme.paddingMedium,
-                mainAxisSpacing: AppTheme.paddingMedium,
-                childAspectRatio: 0.75,
-              ),
+              spacing: AppTheme.paddingMedium,
               itemCount: videos.length,
               itemBuilder: (context, index) {
                 final video = videos[index];
-                return VideoCard(
-                  video: video,
-                  progress: Provider.of<VideoProvider>(
-                    context,
-                    listen: false,
-                  ).progressFor(video.id),
-                  onTap: () => _openReels(index),
+                return StaggeredEntrance(
+                  index: index,
+                  child: VideoCard(
+                    video: video,
+                    progress: Provider.of<VideoProvider>(
+                      context,
+                      listen: false,
+                    ).progressFor(video.id),
+                    onTap: () => _openReels(index),
+                  ),
                 );
               },
             ),

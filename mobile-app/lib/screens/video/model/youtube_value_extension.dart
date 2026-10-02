@@ -33,6 +33,15 @@ extension YoutubeValueState on YoutubePlayerValue {
   /// that is still dragging it.
   bool showsSeekBar({required bool controlsShown}) =>
       isReady && (controlsShown || isStopped || isDragging);
+
+  /// Whether the centre button is on screen: whenever the seek bar is, so a
+  /// tap hides or reveals both together, and always while loading so the ring
+  /// never vanishes mid-buffer.
+  bool showsCentreButton({
+    required bool controlsShown,
+    required bool started,
+  }) =>
+      isLoading(started: started) || showsSeekBar(controlsShown: controlsShown);
 }
 
 extension YoutubeSeeking on YoutubePlayerController {

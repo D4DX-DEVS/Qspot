@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../model/video_model.dart';
@@ -6,15 +8,23 @@ import '../../../services/video_progress_service.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../themes/home_palette.dart';
 import '../../bookmark/provider/bookmark_provider.dart';
 import '../../schedule/service/alarm_service.dart';
+import '../../../widgets/animation/animated_progress_bar.dart';
+import '../../../widgets/animation/pop_on_change.dart';
+import '../../../widgets/animation/pressable_scale.dart';
 import '../../../widgets/common/app_snack_bar.dart';
 
+/// Video tile for a two-column grid. It is as tall as its content needs, so
+/// the whole title is always visible; see `VideoGrid`, which keeps the two
+/// cards in a row the same height.
 class VideoCard extends StatelessWidget {
   final VideoModel video;
   final VoidCallback onTap;
-  final double? width;
-  final double? height;
+
+  /// Thumbnail shape (width / height) at the top of the card.
+  static const double _thumbnailAspectRatio = 1.25;
 
   /// Watch state for the signed-in user: not-started / in-progress / completed.
   final VideoProgressStatus? progress;
@@ -23,12 +33,11 @@ class VideoCard extends StatelessWidget {
     super.key,
     required this.video,
     required this.onTap,
-    this.width = 140,
-    this.height = 180,
     this.progress,
   });
 
   void _toggleBookmark(BuildContext context, VideoModel video) async {
+    HapticFeedback.selectionClick();
     final bookmarkProvider = Provider.of<BookmarkProvider>(
       context,
       listen: false,
@@ -71,7 +80,7 @@ class VideoCard extends StatelessWidget {
         AppSnackBar.show(
           context,
           message: 'We couldn\'t set the reminder. Please try again.',
-          color: AppColors.danger,
+          color: HomePalette.of(context).error,
         );
       }
     }
@@ -80,16 +89,16 @@ class VideoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isUpcoming = video.isUpcoming;
+    final p = HomePalette.of(context);
 
-    return SizedBox(
-      width: width,
-      height: height,
+    return PressableScale(
+      enabled: !isUpcoming,
       child: Card(
         elevation: 0,
-        color: AppColors.background,
+        color: p.card,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(color: p.cardBorder),
         ),
         child: InkWell(
           onTap: isUpcoming ? null : onTap, // Disable tap for upcoming videos
@@ -98,8 +107,8 @@ class VideoCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Thumbnail
-              Expanded(
-                flex: 3,
+              AspectRatio(
+                aspectRatio: _thumbnailAspectRatio,
                 child: Stack(
                   children: [
                     ClipRRect(
@@ -111,11 +120,11 @@ class VideoCard extends StatelessWidget {
                           ? Container(
                               width: double.infinity,
                               height: double.infinity,
-                              color: AppColors.surfaceAlt,
+                              color: p.brandSoft,
                               child: Icon(
-                                Icons.video_library,
+                                LucideIcons.clapperboard,
                                 size: 24,
-                                color: AppColors.textMuted,
+                                color: p.textMuted,
                               ),
                             )
                           : CachedNetworkImage(
@@ -124,20 +133,20 @@ class VideoCard extends StatelessWidget {
                               height: double.infinity,
                               fit: BoxFit.cover,
                               placeholder: (context, url) => Container(
-                                color: AppColors.surfaceAlt,
-                                child: const Center(
+                                color: p.brandSoft,
+                                child: Center(
                                   child: CircularProgressIndicator(
-                                    color: AppColors.primary,
+                                    color: p.brand,
                                     strokeWidth: 2,
                                   ),
                                 ),
                               ),
                               errorWidget: (context, url, error) => Container(
-                                color: AppColors.surfaceAlt,
+                                color: p.brandSoft,
                                 child: Icon(
-                                  Icons.video_library,
+                                  LucideIcons.clapperboard,
                                   size: 24,
-                                  color: AppColors.textMuted,
+                                  color: p.textMuted,
                                 ),
                               ),
                             ),
@@ -156,7 +165,7 @@ class VideoCard extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: progress!.completed
                                 ? AppColors.success
-                                : AppColors.primary,
+                                : p.brand,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Row(
@@ -164,8 +173,8 @@ class VideoCard extends StatelessWidget {
                             children: [
                               Icon(
                                 progress!.completed
-                                    ? Icons.check_circle
-                                    : Icons.play_circle_fill,
+                                    ? LucideIcons.circleCheck
+                                    : LucideIcons.circlePlay,
                                 size: 11,
                                 color: AppColors.onPrimary,
                               ),
@@ -173,7 +182,7 @@ class VideoCard extends StatelessWidget {
                               Text(
                                 progress!.completed
                                     ? 'Completed'
-                                    : 'In progress',
+                                    : 'In Progress',
                                 style: AppFonts.semiBold(
                                   color: AppColors.onPrimary,
                                   fontSize: 9,
@@ -197,13 +206,11 @@ class VideoCard extends StatelessWidget {
                             topLeft: Radius.circular(2),
                             topRight: Radius.circular(2),
                           ),
-                          child: LinearProgressIndicator(
+                          child: AnimatedProgressBar(
                             value: progress!.percent,
                             minHeight: 3,
-                            backgroundColor: AppColors.border,
-                            valueColor: const AlwaysStoppedAnimation(
-                              AppColors.primary,
-                            ),
+                            backgroundColor: p.cardBorder,
+                            color: p.brand,
                           ),
                         ),
                       ),
@@ -219,8 +226,8 @@ class VideoCard extends StatelessWidget {
                               .isBookmarkedSync(video.id);
                           return Semantics(
                             label: isBookmarked
-                                ? 'Remove bookmark'
-                                : 'Bookmark video',
+                                ? 'Remove Bookmark'
+                                : 'Bookmark Video',
                             button: true,
                             child: IconButton(
                               onPressed: () => _toggleBookmark(context, video),
@@ -230,14 +237,17 @@ class VideoCard extends StatelessWidget {
                                   color: AppColors.black.withValues(alpha: 0.7),
                                   shape: BoxShape.circle,
                                 ),
-                                child: Icon(
-                                  isBookmarked
-                                      ? Icons.bookmark
-                                      : Icons.bookmark_border,
-                                  color: isBookmarked
-                                      ? AppColors.primary
-                                      : AppColors.onPrimary,
-                                  size: 16,
+                                child: PopOnChange(
+                                  active: isBookmarked,
+                                  child: Icon(
+                                    isBookmarked
+                                        ? LucideIcons.bookmarkCheck
+                                        : LucideIcons.bookmark,
+                                    color: isBookmarked
+                                        ? p.brand
+                                        : AppColors.onPrimary,
+                                    size: 16,
+                                  ),
                                 ),
                               ),
                               padding: EdgeInsets.zero,
@@ -262,7 +272,7 @@ class VideoCard extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: video.isLiveVideo
-                              ? AppColors.danger
+                              ? p.error
                               : AppColors.black.withValues(alpha: 0.7),
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -314,7 +324,7 @@ class VideoCard extends StatelessWidget {
                           child: IconButton(
                             iconSize: 20,
                             icon: const Icon(
-                              Icons.play_arrow,
+                              LucideIcons.play,
                               color: AppColors.onPrimary,
                             ),
                             onPressed: onTap,
@@ -344,7 +354,7 @@ class VideoCard extends StatelessWidget {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  gradient: AppColors.primaryGradient,
+                                  gradient: p.heroGradient,
                                   borderRadius: BorderRadius.circular(
                                     AppTheme.radiusSmall,
                                   ),
@@ -353,7 +363,7 @@ class VideoCard extends StatelessWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const Icon(
-                                      Icons.schedule,
+                                      LucideIcons.clock,
                                       color: AppColors.onPrimary,
                                       size: 14,
                                     ),
@@ -387,8 +397,6 @@ class VideoCard extends StatelessWidget {
                                           fontSize: 9,
                                         ),
                                     textAlign: TextAlign.center,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ),
@@ -397,7 +405,7 @@ class VideoCard extends StatelessWidget {
                                 onPressed: () =>
                                     _setVideoReminder(context, video),
                                 icon: const Icon(
-                                  Icons.notifications_active,
+                                  LucideIcons.bellRing,
                                   size: 12,
                                 ),
                                 label: Text(
@@ -409,7 +417,7 @@ class VideoCard extends StatelessWidget {
                                       ),
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
+                                  backgroundColor: p.brand,
                                   foregroundColor: AppColors.onPrimary,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 10,
@@ -434,41 +442,32 @@ class VideoCard extends StatelessWidget {
               ),
 
               // Video info
-              Expanded(
-                flex: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(AppTheme.paddingSmall),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          video.displayTitle,
-                          style: Theme.of(context).textTheme.titleSmall
-                              ?.copyWith(
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+              Padding(
+                padding: const EdgeInsets.all(AppTheme.paddingSmall),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      video.displayTitle,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: p.text,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+
+                    // Date
+                    if (video.formattedDate.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        video.formattedDate,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: p.textMuted,
+                          fontSize: 10,
                         ),
                       ),
-
-                      // Date
-                      if (video.formattedDate.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          video.formattedDate,
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: AppColors.textMuted,
-                                fontSize: 10,
-                              ),
-                        ),
-                      ],
                     ],
-                  ),
+                  ],
                 ),
               ),
             ],

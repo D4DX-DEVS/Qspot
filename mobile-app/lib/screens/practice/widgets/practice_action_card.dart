@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../themes/accent_tone.dart';
 import '../../../themes/app_fonts.dart';
@@ -64,11 +65,7 @@ class PracticeActionCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 6),
-            Icon(
-              Icons.arrow_forward_rounded,
-              color: scheme.onSurface,
-              size: 22,
-            ),
+            Icon(LucideIcons.arrowRight, color: scheme.onSurface, size: 22),
           ],
         ),
       ),

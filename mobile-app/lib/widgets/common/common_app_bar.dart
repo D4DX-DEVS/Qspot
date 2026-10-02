@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
+import 'app_bar_title.dart';
+import 'app_drawer.dart';
 
 /// App-wide top bar. Colours, elevation and title style come from the active
 /// theme's `appBarTheme`, so screens only pass content.
 ///
 /// Use [title] for plain text; pass [titleWidget] instead when the bar needs
 /// custom content (e.g. a search field). [titleWidget] wins when both are set.
+///
+/// Set [isDrawerNeeded] to show a menu button that opens the [AppDrawer]. It is
+/// off by default and ignored when a custom [leading] is passed.
+///
+/// [backgroundColor] and [elevation] override the theme for bars that sit over
+/// artwork (e.g. a transparent bar with no shadow); null keeps the theme's.
 class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   const CommonAppBar({
     super.key,
@@ -14,6 +24,9 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.actions,
     this.centerTitle,
     this.bottom,
+    this.isDrawerNeeded = false,
+    this.backgroundColor,
+    this.elevation,
   });
 
   final String? title;
@@ -22,10 +35,28 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget>? actions;
   final bool? centerTitle;
   final PreferredSizeWidget? bottom;
+  final bool isDrawerNeeded;
+  final Color? backgroundColor;
+  final double? elevation;
+
+  /// Space kept below the bar (inside it, so the shadow sits under the gap).
+  static const double bottomPadding = 8;
+
+  /// Height of a bar without a [bottom].
+  static const double baseHeight = kToolbarHeight + bottomPadding;
 
   @override
   Size get preferredSize =>
-      Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0));
+      Size.fromHeight(baseHeight + (bottom?.preferredSize.height ?? 0));
+
+  /// Same rule the [AppBar] uses to decide whether to centre its title.
+  bool _isCentered(BuildContext context) =>
+      centerTitle ??
+      Theme.of(context).appBarTheme.centerTitle ??
+      const [
+        TargetPlatform.iOS,
+        TargetPlatform.macOS,
+      ].contains(Theme.of(context).platform);
 
   @override
   Widget build(BuildContext context) {
@@ -34,11 +65,33 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
           titleWidget ??
           (title == null
               ? null
-              : Text(title!, maxLines: 1, overflow: TextOverflow.ellipsis)),
-      leading: leading,
+              : AppBarTitle(title!, centered: _isCentered(context))),
+      leading:
+          leading ??
+          (isDrawerNeeded
+              ? IconButton(
+                  icon: const Icon(LucideIcons.menu),
+                  tooltip: 'Menu',
+                  onPressed: () => showAppDrawer(context),
+                )
+              : null),
       actions: actions,
       centerTitle: centerTitle,
-      bottom: bottom,
+      backgroundColor: backgroundColor,
+      elevation: elevation,
+      scrolledUnderElevation: elevation,
+      bottom: PreferredSize(
+        preferredSize: Size.fromHeight(
+          (bottom?.preferredSize.height ?? 0) + bottomPadding,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ?bottom,
+            const SizedBox(height: bottomPadding),
+          ],
+        ),
+      ),
     );
   }
 }

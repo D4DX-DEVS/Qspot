@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../screens/auth/provider/auth_provider.dart';
@@ -11,6 +12,7 @@ import '../../screens/settings/screens/settings_screen.dart';
 import '../../services/session.dart';
 import '../../utils/feedback_mail.dart';
 import '../../themes/home_palette.dart';
+import '../animation/staggered_entrance.dart';
 import 'app_drawer_footer.dart';
 import 'app_drawer_header.dart';
 import 'app_drawer_section_label.dart';
@@ -78,6 +80,15 @@ class AppDrawer extends StatelessWidget {
     }
   }
 
+  /// Rows glide in one after another when the drawer opens.
+  Widget _entrance(int index, Widget child) => StaggeredEntrance(
+    index: index,
+    maxStaggered: 12,
+    step: const Duration(milliseconds: 35),
+    rise: 12,
+    child: child,
+  );
+
   @override
   Widget build(BuildContext context) {
     return FrostedPanel(
@@ -93,12 +104,15 @@ class AppDrawer extends StatelessWidget {
                 final user = auth.user;
                 final name = (user?.name ?? '').trim();
                 final classNumber = (user?.classNumber ?? '').trim();
-                return AppDrawerHeader(
-                  name: name.isEmpty ? 'Welcome' : name,
-                  subtitle: classNumber.isNotEmpty
-                      ? 'Class $classNumber'
-                      : (user?.phone ?? ''),
-                  onClose: () => Navigator.pop(context),
+                return _entrance(
+                  0,
+                  AppDrawerHeader(
+                    name: name.isEmpty ? 'Welcome' : name,
+                    subtitle: classNumber.isNotEmpty
+                        ? 'Class $classNumber'
+                        : (user?.phone ?? ''),
+                    onClose: () => Navigator.pop(context),
+                  ),
                 );
               },
             ),
@@ -106,46 +120,70 @@ class AppDrawer extends StatelessWidget {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
-                  const AppDrawerSectionLabel('General'),
-                  AppDrawerTile(
-                    icon: Icons.bookmark_border,
-                    label: 'Bookmarks',
-                    onTap: () => _open(context, const BookmarksScreen()),
+                  _entrance(1, const AppDrawerSectionLabel('General')),
+                  _entrance(
+                    2,
+                    AppDrawerTile(
+                      icon: LucideIcons.bookmark,
+                      label: 'Bookmarks',
+                      onTap: () => _open(context, const BookmarksScreen()),
+                    ),
                   ),
-                  AppDrawerTile(
-                    icon: Icons.calendar_today_outlined,
-                    label: 'Schedule',
-                    onTap: () => _open(context, const ScheduleScreen()),
+                  _entrance(
+                    3,
+                    AppDrawerTile(
+                      icon: LucideIcons.calendar,
+                      label: 'Schedule',
+                      onTap: () => _open(context, const ScheduleScreen()),
+                    ),
                   ),
-                  AppDrawerTile(
-                    icon: Icons.notifications_none_rounded,
-                    label: 'Notifications',
-                    onTap: () => _open(context, const NotificationsScreen()),
+                  _entrance(
+                    4,
+                    AppDrawerTile(
+                      icon: LucideIcons.bell,
+                      label: 'Notifications',
+                      onTap: () => _open(context, const NotificationsScreen()),
+                    ),
                   ),
-                  const AppDrawerSectionLabel('Support'),
-                  AppDrawerTile(
-                    icon: Icons.support_agent_outlined,
-                    label: 'Contact us',
-                    onTap: () => _open(context, const ContactUsScreen()),
+                  _entrance(5, const AppDrawerSectionLabel('Support')),
+                  _entrance(
+                    6,
+                    AppDrawerTile(
+                      icon: LucideIcons.headset,
+                      label: 'Contact Us',
+                      onTap: () => _open(context, const ContactUsScreen()),
+                    ),
                   ),
-                  AppDrawerTile(
-                    icon: Icons.feedback_outlined,
-                    label: 'Feedback',
-                    onTap: () => _sendFeedback(context),
+                  _entrance(
+                    7,
+                    AppDrawerTile(
+                      icon: LucideIcons.messageSquareWarning,
+                      label: 'Feedback',
+                      onTap: () => _sendFeedback(context),
+                    ),
                   ),
-                  const AppDrawerSectionLabel('Account'),
-                  AppDrawerTile(
-                    icon: Icons.settings_outlined,
-                    label: 'Settings',
-                    onTap: () => _open(context, const SettingsScreen()),
+                  _entrance(8, const AppDrawerSectionLabel('Account')),
+                  _entrance(
+                    9,
+                    AppDrawerTile(
+                      icon: LucideIcons.settings,
+                      label: 'Settings',
+                      onTap: () => _open(context, const SettingsScreen()),
+                    ),
                   ),
-                  AppDrawerTile(
-                    icon: Icons.logout,
-                    label: 'Logout',
-                    isDestructive: true,
-                    onTap: () => _logout(context),
+                  _entrance(
+                    10,
+                    AppDrawerTile(
+                      icon: LucideIcons.logOut,
+                      label: 'Logout',
+                      isDestructive: true,
+                      onTap: () => _logout(context),
+                    ),
                   ),
-                  const SafeArea(top: false, child: AppDrawerFooter()),
+                  _entrance(
+                    11,
+                    const SafeArea(top: false, child: AppDrawerFooter()),
+                  ),
                 ],
               ),
             ),

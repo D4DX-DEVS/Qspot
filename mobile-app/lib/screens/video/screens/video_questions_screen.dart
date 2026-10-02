@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../../services/api_client.dart';
@@ -9,6 +10,12 @@ import '../../../themes/app_colors.dart';
 import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../widgets/animation/animated_progress_bar.dart';
+import '../../../widgets/animation/confetti_burst.dart';
+import '../../../widgets/animation/count_up_text.dart';
+import '../../../widgets/animation/fade_on_change.dart';
+import '../../../widgets/animation/pressable_scale.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../model/video_model.dart';
 import '../provider/video_questions_screen_provider.dart';
@@ -114,7 +121,9 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
     final mode = widget.settings.timerMode;
     final initial = mode == 'overall' || mode == 'both'
         ? widget.settings.overallTimeLimit
-        : (mode == 'per-question' ? widget.settings.perQuestionTimeLimit : null);
+        : (mode == 'per-question'
+              ? widget.settings.perQuestionTimeLimit
+              : null);
     if (initial == null || initial <= 0) return;
     _q.setRemainingSeconds(initial);
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -217,7 +226,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
       // The result view carries its own close button, like the reference popups.
       appBar: q.result != null
           ? null
-          : const CommonAppBar(title: 'Video questions'),
+          : const CommonAppBar(title: 'Video Questions'),
       body: q.result != null ? _buildResult(q) : _buildQuestion(q),
     );
   }
@@ -225,12 +234,12 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
   Widget _buildResult(VideoQuestionsScreenProvider q) {
     final result = q.result!;
     final headline = result.percentage >= 80
-        ? 'Way to go!'
+        ? 'Way to Go!'
         : result.percentage >= 50
-        ? 'Nice work!'
-        : 'Keep going!';
+        ? 'Nice Work!'
+        : 'Keep Going!';
 
-    return SafeArea(
+    final content = SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
@@ -239,52 +248,58 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
           children: [
             Align(
               alignment: Alignment.centerLeft,
-              child: InkWell(
-                onTap: () => Navigator.of(context).pop(),
-                customBorder: const CircleBorder(),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: const BoxDecoration(
-                    color: AppColors.surfaceAlt,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.close,
-                    color: AppColors.textPrimary,
-                    size: 20,
+              child: PressableScale(
+                child: InkWell(
+                  onTap: () => Navigator.of(context).pop(),
+                  customBorder: const CircleBorder(),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: const BoxDecoration(
+                      color: AppColors.surfaceAlt,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      LucideIcons.x,
+                      color: AppColors.textPrimary,
+                      size: 20,
+                    ),
                   ),
                 ),
               ),
             ),
             const Spacer(),
-            _celebration(result.percentage),
+            StaggeredEntrance(index: 0, child: _celebration(result.percentage)),
             const SizedBox(height: 28),
-            Text(
-              headline,
-              textAlign: TextAlign.center,
-              style: AppFonts.bold(
-                fontSize: 26,
-                height: 1.2,
-                color: AppColors.textPrimary,
+            StaggeredEntrance(
+              index: 1,
+              child: Text(
+                headline,
+                textAlign: TextAlign.center,
+                style: AppFonts.bold(
+                  fontSize: 26,
+                  height: 1.2,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
             const SizedBox(height: 10),
-            Text(
-              'You answered ${result.score} of ${result.totalQuestions} correctly.',
-              textAlign: TextAlign.center,
-              style: AppFonts.regular(
-                fontSize: 16,
-                height: 1.4,
-                color: AppColors.textPrimary,
+            StaggeredEntrance(
+              index: 2,
+              child: Text(
+                'You answered ${result.score} of ${result.totalQuestions} correctly.',
+                textAlign: TextAlign.center,
+                style: AppFonts.regular(
+                  fontSize: 16,
+                  height: 1.4,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
             const SizedBox(height: 12),
             Text(
               widget.videoTitle,
               textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
               style: AppFonts.regular(
                 color: AppColors.textMuted,
                 fontSize: 13,
@@ -296,23 +311,30 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
               Text(
                 'You already answered these questions — this is your saved result.',
                 textAlign: TextAlign.center,
-                style: AppFonts.regular(color: AppColors.textMuted, fontSize: 12.5),
+                style: AppFonts.regular(
+                  color: AppColors.textMuted,
+                  fontSize: 12.5,
+                ),
               ),
             ],
             const Spacer(),
-            SizedBox(
-              height: 54,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.onPrimary,
-                  shape: const StadiumBorder(),
-                  textStyle: AppFonts.bold(
-                    fontSize: 16,
+            StaggeredEntrance(
+              index: 3,
+              child: SizedBox(
+                height: 54,
+                child: PressableScale(
+                  haptic: true,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.onPrimary,
+                      shape: const StadiumBorder(),
+                      textStyle: AppFonts.bold(fontSize: 16),
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Done'),
                   ),
                 ),
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Done'),
               ),
             ),
             // No retake once an attempt exists — the server rejects it (409)
@@ -320,6 +342,16 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
           ],
         ),
       ),
+    );
+
+    // A strong score gets a one-off confetti shower over the result.
+    if (result.percentage < 80) return content;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        content,
+        const Positioned.fill(child: ConfettiBurst()),
+      ],
     );
   }
 
@@ -367,12 +399,12 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(
-                    Icons.emoji_events,
+                    LucideIcons.trophy,
                     size: 46,
                     color: AppColors.primary,
                   ),
                   const SizedBox(height: 2),
-                  Text(
+                  CountUpText(
                     '$percentage%',
                     style: AppFonts.bold(
                       fontSize: 20,
@@ -413,11 +445,11 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
+                child: AnimatedProgressBar(
                   value: (q.index + 1) / widget.questions.length,
                   minHeight: 6,
                   backgroundColor: AppColors.surfaceAlt,
-                  valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+                  color: AppColors.primary,
                 ),
               ),
               const SizedBox(height: 16),
@@ -427,7 +459,9 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
                   child: Text(
                     'Time ${_timerLabel(q)}',
                     style: AppFonts.bold(
-                      color: q.remainingSeconds! <= 10 ? AppColors.danger : AppColors.primary,
+                      color: q.remainingSeconds! <= 10
+                          ? AppColors.danger
+                          : AppColors.primary,
                     ),
                   ),
                 ),
@@ -440,95 +474,114 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              Text(
-                question.questionFor(widget.locale),
-                style: AppFonts.semiBold(
-                  fontSize: 18,
-                  height: 1.35,
-                  color: AppColors.textPrimary,
+              FadeOnChange(
+                trigger: q.index,
+                child: Text(
+                  question.questionFor(widget.locale),
+                  style: AppFonts.semiBold(
+                    fontSize: 18,
+                    height: 1.35,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
             ],
           ),
         ),
         Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.paddingMedium,
-            ),
-            itemCount: options.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (context, i) {
-              final selected = _selected(q) == i;
-              return InkWell(
-                onTap: () => _choose(i),
-                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: selected ? AppColors.primarySoft : AppColors.surface,
+          child: FadeOnChange(
+            trigger: q.index,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.paddingMedium,
+              ),
+              itemCount: options.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (context, i) {
+                final selected = _selected(q) == i;
+                return PressableScale(
+                  pressedScale: 0.98,
+                  child: InkWell(
+                    onTap: () => _choose(i),
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                    border: Border.all(
-                      color: selected ? AppColors.primary : AppColors.border,
-                      width: selected ? 1.5 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 26,
-                        height: 26,
-                        child: Center(
-                          child: Text(
-                            String.fromCharCode(65 + i),
-                            style: AppFonts.semiBold(
-                              color: selected
-                                  ? AppColors.primary
-                                  : AppColors.textMuted,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? AppColors.primarySoft
+                            : AppColors.surface,
+                        borderRadius: BorderRadius.circular(
+                          AppTheme.radiusMedium,
+                        ),
+                        border: Border.all(
+                          color: selected
+                              ? AppColors.primary
+                              : AppColors.border,
+                          width: selected ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 26,
+                            height: 26,
+                            child: Center(
+                              child: Text(
+                                String.fromCharCode(65 + i),
+                                style: AppFonts.semiBold(
+                                  color: selected
+                                      ? AppColors.primary
+                                      : AppColors.textMuted,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          options[i],
-                          style: AppFonts.regular(
-                            color: AppColors.textPrimary,
-                            height: 1.3,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              options[i],
+                              style: AppFonts.regular(
+                                color: AppColors.textPrimary,
+                                height: 1.3,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
         Padding(
           padding: const EdgeInsets.all(AppTheme.paddingMedium),
           child: SizedBox(
             width: double.infinity,
-            child: FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                disabledBackgroundColor: AppColors.surfaceAlt,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+            child: PressableScale(
+              enabled: _selected(q) != null && !q.submitting,
+              haptic: true,
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  disabledBackgroundColor: AppColors.surfaceAlt,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                  ),
                 ),
-              ),
-              onPressed: _selected(q) == null || q.submitting ? null : _next,
-              child: Text(
-                q.submitting
-                    ? 'Saving...'
-                    : _isLast(q)
-                    ? 'Submit'
-                    : 'Next',
+                onPressed: _selected(q) == null || q.submitting ? null : _next,
+                child: Text(
+                  q.submitting
+                      ? 'Saving...'
+                      : _isLast(q)
+                      ? 'Submit'
+                      : 'Next',
+                ),
               ),
             ),
           ),

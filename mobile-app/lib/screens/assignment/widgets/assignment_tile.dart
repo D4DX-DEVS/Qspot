@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../themes/app_fonts.dart';
 import '../../../themes/home_palette.dart';
@@ -34,8 +35,8 @@ class AssignmentTile extends StatelessWidget {
               ? 'Reviewed'
               : 'Submitted'
         : overdue
-        ? 'Past due'
-        : 'To do';
+        ? 'Past Due'
+        : 'To Do';
     return Semantics(
       button: true,
       label: '${assignment.title}. $label. ${_dueLabel()}',
@@ -48,8 +49,8 @@ class AssignmentTile extends StatelessWidget {
           children: [
             SoftIconTile(
               icon: submitted
-                  ? Icons.check_circle_outline_rounded
-                  : Icons.assignment_outlined,
+                  ? LucideIcons.circleCheck
+                  : LucideIcons.clipboardList,
               tone: tone,
               size: 46,
             ),
@@ -61,16 +62,12 @@ class AssignmentTile extends StatelessWidget {
                   Text(
                     assignment.title,
                     style: AppFonts.bold(color: p.text, fontSize: 15.5),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
                   if (assignment.subject.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Text(
                       assignment.subject,
                       style: AppFonts.regular(color: p.textMuted, fontSize: 13),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                   const SizedBox(height: 10),
@@ -96,7 +93,7 @@ class AssignmentTile extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 12),
               child: Icon(
-                Icons.chevron_right_rounded,
+                LucideIcons.chevronRight,
                 color: p.textMuted,
                 size: 22,
               ),
@@ -109,7 +106,7 @@ class AssignmentTile extends StatelessWidget {
 
   String _dueLabel() {
     final due = assignment.dueAt;
-    if (due == null) return 'No due date';
+    if (due == null) return 'No Due Date';
     final date = due.toLocal();
     return 'Due ${date.day}/${date.month}/${date.year}';
   }

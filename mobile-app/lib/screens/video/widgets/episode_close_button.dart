@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../widgets/common/circle_icon_action.dart';
 
@@ -10,7 +11,7 @@ class EpisodeCloseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => CircleIconAction(
-    icon: Icons.close_rounded,
+    icon: LucideIcons.x,
     tooltip: 'Close',
     size: size,
     onPressed: () => Navigator.of(context).pop(),

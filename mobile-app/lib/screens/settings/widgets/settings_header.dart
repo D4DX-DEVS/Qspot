@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../themes/app_fonts.dart';
+import '../../../widgets/animation/motion.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../auth/widgets/art/auth_art.dart';
 import '../../auth/widgets/art/hanging_lantern_painter.dart';
 import '../../auth/widgets/auth_back_button.dart';
@@ -40,12 +42,23 @@ class SettingsHeader extends StatelessWidget {
             child: const TodaySkyBackdrop(skylineOpacity: 0.6),
           ),
         ),
-        const Positioned(
+        Positioned(
           top: 0,
           right: 20,
           width: 30,
           height: 110,
-          child: AuthArt(painter: HangingLanternPainter.new),
+          // Swings once from the hook and settles.
+          child: TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0.15, end: 0),
+            duration: Motion.reduced(context) ? Duration.zero : Motion.slow,
+            curve: Curves.elasticOut,
+            builder: (_, angle, child) => Transform.rotate(
+              angle: angle,
+              alignment: Alignment.topCenter,
+              child: child,
+            ),
+            child: const AuthArt(painter: HangingLanternPainter.new),
+          ),
         ),
         Padding(
           padding: EdgeInsets.fromLTRB(20, topInset + 10, 20, 22),
@@ -54,19 +67,24 @@ class SettingsHeader extends StatelessWidget {
             children: [
               AuthBackButton(onPressed: onBack),
               const SizedBox(height: 14),
-              Text(
-                title,
-                style: AppFonts.extraBold(
-                  color: scheme.onSurface,
-                  fontSize: 32,
+              StaggeredEntrance(
+                child: Text(
+                  title,
+                  style: AppFonts.extraBold(
+                    color: scheme.onSurface,
+                    fontSize: 32,
+                  ),
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: AppFonts.regular(
-                  color: scheme.onSurfaceVariant,
-                  fontSize: 14,
+              StaggeredEntrance(
+                index: 1,
+                child: Text(
+                  subtitle,
+                  style: AppFonts.regular(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             ],

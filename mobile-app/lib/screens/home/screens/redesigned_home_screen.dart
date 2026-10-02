@@ -1,33 +1,52 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../../services/today_service.dart';
+import '../../../themes/app_colors.dart';
 import '../../../themes/home_palette.dart';
+import '../../../widgets/animation/pressable_scale.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
+import '../../../widgets/common/app_logo.dart';
+import '../../../widgets/common/badged_icon_button.dart';
+import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/initials_avatar.dart';
 import '../../../widgets/common/nav_list_card.dart';
 import '../../../widgets/common/section_header.dart';
 import '../../../widgets/common/shortcut_tile.dart';
 import '../../../widgets/common/stat_tile.dart';
 import '../../assignment/screens/assignments_screen.dart';
 import '../../auth/provider/auth_provider.dart';
+import '../../banner/provider/banner_provider.dart';
+import '../../banner/widgets/banner_carousel.dart';
 import '../../bookmark/provider/bookmark_provider.dart';
+import '../../common/provider/main_navigation_provider.dart';
 import '../../common/widgets/home_theme_scope.dart';
 import '../../notification/provider/notification_provider.dart';
 import '../../notification/screens/notifications_screen.dart';
 import '../../profile/screens/profile_screen.dart';
 import '../../question/screens/ask_question_screen.dart';
+import '../../question/screens/my_questions_screen.dart';
 import '../../quiz/screens/quiz_list_screen.dart';
+import '../../schedule/screens/schedule_screen.dart';
+import '../../subject/model/subject_model.dart';
 import '../../subject/provider/subject_provider.dart';
-import '../../subject/screens/subject_list_screen.dart';
+import '../../subject/screens/subject_videos_screen.dart';
 import '../../video/model/video_model.dart';
 import '../../video/provider/video_provider.dart';
 import '../../video/screens/video_reels_screen.dart';
+import '../model/continue_lesson_info.dart';
+import '../model/today_plan.dart';
+import '../model/today_section.dart';
 import '../provider/redesigned_home_screen_provider.dart';
 import '../widgets/continue_lesson_card.dart';
-import '../widgets/today_header.dart';
+import '../widgets/today_focus_stat_tile.dart';
+import '../widgets/today_greeting.dart';
 import '../widgets/today_hero_card.dart';
 import '../widgets/today_sky_backdrop.dart';
+import '../widgets/today_task_section.dart';
 
 /// Task-first learner home. The legacy HomeScreen remains available for
 /// backwards-compatible deep links while the shell uses this redesign.
@@ -41,13 +60,19 @@ class RedesignedHomeScreen extends StatefulWidget {
 class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   final RedesignedHomeScreenProvider _home = RedesignedHomeScreenProvider();
 
+  late final MainNavigationProvider _nav;
+
   TodayOverview? get _today => _home.today;
+  TodayPlan get _plan => _home.plan;
 
   @override
   void initState() {
     super.initState();
+    _nav = context.read<MainNavigationProvider>()..addListener(_onTabChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _initialize());
   }
+
+  void _onTabChanged() => _home.setTabVisible(_nav.currentIndex == 0);
 
   Future<void> _initialize() async {
     await Future.wait([
@@ -55,6 +80,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
       context.read<SubjectProvider>().initialize(),
       context.read<BookmarkProvider>().initialize(),
       context.read<NotificationProvider>().initialize(),
+      context.read<BannerProvider>().initialize(),
       _loadToday(),
     ]);
   }
@@ -67,12 +93,14 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
     await Future.wait([
       context.read<VideoProvider>().refresh(),
       context.read<SubjectProvider>().refresh(),
+      context.read<BannerProvider>().refresh(),
       _loadToday(),
     ]);
   }
 
   @override
   void dispose() {
+    _nav.removeListener(_onTabChanged);
     _home.dispose();
     super.dispose();
   }
@@ -89,6 +117,9 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
 
   Widget _buildPage() {
     return Scaffold(
+      // The sky backdrop runs up behind the transparent bar.
+      extendBodyBehindAppBar: true,
+      appBar: _appBar(),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: CustomScrollView(
@@ -104,12 +135,11 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
               ),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  _statsStrip(),
+                  _banners(),
+                  StaggeredEntrance(index: 1, child: _statsStrip()),
                   const SizedBox(height: 18),
-                  _shortcuts(),
-                  _continueSection(),
-                  _subjectsSection(),
-                  _upcomingSection(),
+                  StaggeredEntrance(index: 2, child: _shortcuts()),
+                  ..._sections(),
                 ]),
               ),
             ),
@@ -123,82 +153,118 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   /// bottom of the skyline.
   Widget _top() {
     final topInset = MediaQuery.paddingOf(context).top;
+    final name = context.watch<AuthProvider>().user?.name ?? '';
     return Stack(
       children: [
         Positioned(
           top: 0,
           left: 0,
           right: 0,
-          height: topInset + 250,
+          height: topInset + 178 + TodayGreeting.height,
           child: const TodaySkyBackdrop(),
         ),
         Padding(
-          padding: EdgeInsets.fromLTRB(12, topInset + 14, 12, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: _header(),
-              ),
-              const SizedBox(height: 96),
-              _todayCard(),
-            ],
+          padding: EdgeInsets.fromLTRB(
+            12,
+            topInset + CommonAppBar.baseHeight + 8,
+            12,
+            0,
+          ),
+          child: StaggeredEntrance(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TodayGreeting(name: name),
+                _todayCard(),
+              ],
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _header() {
+  CommonAppBar _appBar() {
+    final palette = HomePalette.of(context);
     final auth = context.watch<AuthProvider>();
     final notifications = context.watch<NotificationProvider>();
     final name = (auth.user?.name ?? '').trim();
-    return TodayHeader(
-      greeting: _greeting(),
-      name: name.isEmpty ? 'Learner' : name,
-      unreadCount: notifications.unreadCount,
-      onNotifications: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-      ),
-      onProfile: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const HomeThemeScope(child: ProfileScreen()),
+    return CommonAppBar(
+      isDrawerNeeded: true,
+      centerTitle: false,
+      backgroundColor: AppColors.transparent,
+      elevation: 0,
+      titleWidget: const AppLogo(),
+      actions: [
+        BadgedIconButton(
+          icon: LucideIcons.bell,
+          tooltip: 'Notifications',
+          count: notifications.unreadCount,
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+          ),
         ),
-      ),
+        const SizedBox(width: 4),
+        Semantics(
+          label: 'Open Profile',
+          button: true,
+          excludeSemantics: true,
+          child: PressableScale(
+            haptic: true,
+            child: GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const HomeThemeScope(child: ProfileScreen()),
+                ),
+              ),
+              child: InitialsAvatar(
+                name: name.isEmpty ? 'Learner' : name,
+                size: 48,
+                gradient: palette.heroGradient,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+      ],
     );
   }
 
   Widget _todayCard() {
-    final item = _today?.next;
-    if (item == null || item.title.trim().isEmpty) {
+    final item = _plan.heroItem;
+    if (item == null) {
       return TodayHeroCard(
-        title: 'Your next small win',
-        description: 'Pick a short lesson and keep your rhythm gentle.',
-        actionLabel: 'Explore lessons',
-        actionIcon: Icons.menu_book_rounded,
+        title: _plan.isCaughtUp
+            ? "You're All Caught Up. Revise a Lesson!"
+            : 'Your Next Small Win',
         onAction: _openLearn,
         showSparkle: true,
       );
     }
     final video = context.read<VideoProvider>().getVideoById(item.id);
-    final urgent = item.status == 'overdue';
-    final isTask = item.kind == 'quiz' || item.kind == 'assignment';
     return TodayHeroCard(
       eyebrow: _itemLabel(item),
       meta: item.estimatedMinutes == null
           ? null
           : '${item.estimatedMinutes} min',
       title: item.title,
-      description: _itemDescription(item),
-      actionLabel: urgent ? 'Handle now' : 'Start this',
-      actionIcon: isTask
-          ? Icons.edit_note_rounded
-          : Icons.play_circle_outline_rounded,
       thumbnailUrl: video?.thumbnailUrl,
       onAction: () => _openTodayItem(item, video),
+    );
+  }
+
+  /// Announcement banners from the admin, right under the top card. Takes no
+  /// room when there are none.
+  Widget _banners() {
+    return Consumer<BannerProvider>(
+      builder: (_, banners, __) => banners.hasBanners
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 18),
+              child: BannerCarousel(banners: banners.banners),
+            )
+          : const SizedBox.shrink(),
     );
   }
 
@@ -209,34 +275,32 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
         .where((p) => p.completed)
         .length;
     final total = provider.allVideos.where((v) => !v.isUpcoming).length;
-    final nextCount = _today?.upcoming.length ?? 0;
     final stats = [
       StatTile(
-        icon: Icons.local_fire_department_outlined,
+        icon: LucideIcons.flame,
         color: palette.coral.color,
         value: '${_today?.currentStreak ?? 0}',
-        label: 'day streak',
+        label: 'Day Streak',
       ),
       StatTile(
-        icon: Icons.check_circle_outline_rounded,
+        icon: LucideIcons.circleCheck,
         color: palette.teal.color,
         value: '$completed/$total',
-        label: 'lessons done',
+        label: 'Lessons Done',
       ),
-      StatTile(
-        icon: Icons.event_note_outlined,
-        color: palette.amber.color,
-        value: '$nextCount',
-        label: 'coming up',
-      ),
+      TodayFocusStatTile(focus: _plan.focus, count: _plan.focusCount),
     ];
-    return Row(
-      children: [
-        for (var i = 0; i < stats.length; i++) ...[
-          if (i > 0) const SizedBox(width: 10),
-          Expanded(child: stats[i]),
+    // Tiles share the tallest one's height when a label wraps.
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < stats.length; i++) ...[
+            if (i > 0) const SizedBox(width: 10),
+            Expanded(child: stats[i]),
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -244,34 +308,34 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
     final palette = HomePalette.of(context);
     final tiles = [
       ShortcutTile(
-        icon: Icons.menu_book_rounded,
-        label: 'Learn',
-        tone: palette.rose,
-        onTap: _openLearn,
+        icon: LucideIcons.circleQuestionMark,
+        label: 'Ask',
+        tone: palette.mint,
+        onTap: _openAsk,
       ),
       ShortcutTile(
-        icon: Icons.edit_note_rounded,
-        label: 'Practice',
-        tone: palette.coral,
-        onTap: _openPractice,
-      ),
-      ShortcutTile(
-        icon: Icons.assignment_outlined,
+        icon: LucideIcons.clipboardList,
         label: 'Assignments',
         tone: palette.amber,
         onTap: _openAssignments,
       ),
       ShortcutTile(
-        icon: Icons.help_outline_rounded,
-        label: 'Ask',
-        tone: palette.mint,
-        onTap: _openAsk,
+        icon: LucideIcons.calendarDays,
+        label: 'Schedule',
+        tone: palette.teal,
+        onTap: _openSchedule,
+      ),
+      ShortcutTile(
+        icon: LucideIcons.messageSquareText,
+        label: 'My Questions',
+        tone: palette.rose,
+        onTap: _openMyQuestions,
       ),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: 'Your shortcuts'),
+        const SectionHeader(emoji: '⚡', title: 'Your Shortcuts'),
         const SizedBox(height: 10),
         Row(
           children: [
@@ -285,129 +349,152 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
     );
   }
 
-  Widget _continueSection() {
+  /// Sections in the order the plan sets for this learner's work.
+  List<Widget> _sections() {
+    final plan = _plan;
+    return [
+      for (var i = 0; i < plan.sections.length; i++)
+        _section(plan.sections[i], 3 + i),
+    ];
+  }
+
+  Widget _section(TodaySection section, int index) {
+    switch (section) {
+      case TodaySection.attention:
+        return _taskSection(section, _plan.attention, index);
+      case TodaySection.todo:
+        return _taskSection(section, _plan.todo, index);
+      case TodaySection.comingUp:
+        return _taskSection(section, _plan.comingUp, index);
+      case TodaySection.jumpBackIn:
+        return _continueSection(index);
+      case TodaySection.subjects:
+        return _subjectsSection(index);
+    }
+  }
+
+  Widget _taskSection(
+    TodaySection section,
+    List<TodayLearningItem> items,
+    int index,
+  ) {
+    return StaggeredEntrance(
+      index: index,
+      child: TodayTaskSection(
+        section: section,
+        items: items,
+        onItemTap: (item) => _openTodayItem(
+          item,
+          context.read<VideoProvider>().getVideoById(item.id),
+        ),
+        // Opens the area of the first item, e.g. Assignments or Schedule.
+        onSeeAll: () => _openTodayItem(items.first, null),
+      ),
+    );
+  }
+
+  Widget _continueSection(int index) {
+    final palette = HomePalette.of(context);
+    final tones = [
+      palette.coral,
+      palette.teal,
+      palette.amber,
+      palette.mint,
+      palette.rose,
+    ];
+    // Wide enough to show a sliver of the next card, so it reads as swipeable.
+    final cardWidth = (MediaQuery.sizeOf(context).width * 0.72)
+        .clamp(230.0, 280.0)
+        .toDouble();
     return Consumer<VideoProvider>(
       builder: (context, videos, _) {
         final items = videos.getVideosWithProgress().take(6).toList();
         if (items.isEmpty) return const SizedBox.shrink();
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
-            SectionHeader(
-              title: 'Pick up where you left off',
-              actionLabel: 'See all',
-              onAction: _openLearn,
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 112,
-              child: ListView.separated(
+        return StaggeredEntrance(
+          index: index,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              SectionHeader(
+                emoji: '🎬',
+                title: 'Jump Back In',
+                subtitle: 'Your Lessons Are Waiting. Finish What You Started!',
+                actionLabel: 'See All',
+                onAction: _openLearn,
+              ),
+              const SizedBox(height: 12),
+              SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 clipBehavior: Clip.none,
-                itemCount: items.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 10),
-                itemBuilder: (context, index) {
-                  final video = items[index];
-                  final progress = videos.progressFor(video.id);
-                  final percent = progress?.percent ?? 0;
-                  return ContinueLessonCard(
-                    title: video.displayTitle,
-                    subject: video.subjectName ?? 'Lesson',
-                    thumbnailUrl: video.thumbnailUrl,
-                    progress: percent,
-                    status: progress?.completed == true
-                        ? 'Completed'
-                        : '${(percent * 100).round()}% watched',
-                    onTap: () => _openVideo(video),
-                  );
-                },
+                // Cards share the tallest one's height, whatever the text size.
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (var i = 0; i < items.length; i++) ...[
+                        if (i > 0) const SizedBox(width: 12),
+                        ContinueLessonCard(
+                          title: items[i].displayTitle,
+                          subject: items[i].subjectName ?? 'Lesson',
+                          thumbnailUrl: items[i].thumbnailUrl,
+                          info: ContinueLessonInfo.from(
+                            items[i],
+                            videos.progressFor(items[i].id),
+                          ),
+                          tone: tones[i % tones.length],
+                          width: cardWidth,
+                          onTap: () => _openVideo(items[i]),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
   }
 
-  Widget _subjectsSection() {
+  Widget _subjectsSection(int index) {
     final palette = HomePalette.of(context);
     return Consumer<SubjectProvider>(
       builder: (context, subjects, _) {
         final items = subjects.subjects.take(6).toList();
         if (items.isEmpty) return const SizedBox.shrink();
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
-            SectionHeader(
-              title: 'Choose a subject',
-              actionLabel: 'See all',
-              onAction: _openLearn,
-            ),
-            const SizedBox(height: 10),
-            for (var i = 0; i < items.length; i++) ...[
-              if (i > 0) const SizedBox(height: 10),
-              NavListCard(
-                icon: Icons.auto_stories_outlined,
-                tone: i.isEven ? palette.teal : palette.coral,
-                title: items[i].displayName,
-                subtitle: 'Open chapter',
-                onTap: _openLearn,
+        return StaggeredEntrance(
+          index: index,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              SectionHeader(
+                emoji: '📚',
+                title: 'Choose a Subject',
+                actionLabel: 'See All',
+                onAction: _openLearn,
               ),
+              const SizedBox(height: 10),
+              for (var i = 0; i < items.length; i++) ...[
+                if (i > 0) const SizedBox(height: 10),
+                NavListCard(
+                  icon: LucideIcons.bookOpen,
+                  tone: i.isEven ? palette.teal : palette.coral,
+                  title: items[i].displayName,
+                  subtitle: 'Open Chapter',
+                  onTap: () => _openSubject(items[i]),
+                ),
+              ],
             ],
-          ],
+          ),
         );
       },
     );
   }
 
-  Widget _upcomingSection() {
-    final palette = HomePalette.of(context);
-    final items =
-        _today?.upcoming.take(4).toList() ?? const <TodayLearningItem>[];
-    if (items.isEmpty) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 20),
-        SectionHeader(
-          title: 'Due work',
-          actionLabel: 'See all',
-          onAction: _openPractice,
-        ),
-        const SizedBox(height: 10),
-        for (var i = 0; i < items.length; i++) ...[
-          if (i > 0) const SizedBox(height: 10),
-          _upcomingCard(items[i], palette),
-        ],
-      ],
-    );
-  }
-
-  Widget _upcomingCard(TodayLearningItem item, HomePalette palette) {
-    final tone = item.status == 'overdue' ? palette.coral : palette.rose;
-    return NavListCard(
-      icon: _iconForKind(item.kind),
-      tone: tone,
-      title: item.title,
-      subtitle: _upcomingMeta(item),
-      subtitleColor: tone.color,
-      onTap: () => _openTodayItem(
-        item,
-        context.read<VideoProvider>().getVideoById(item.id),
-      ),
-    );
-  }
-
-  String _greeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  }
-
-  String _itemLabel(TodayLearningItem item) {
+  String? _itemLabel(TodayLearningItem item) {
     if (item.status == 'overdue') return 'NEEDS YOUR ATTENTION';
     if (item.kind == 'assignment') return 'ASSIGNMENT';
     if (item.kind == 'quiz') {
@@ -415,50 +502,13 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
     }
     if (item.kind == 'schedule') return 'LIVE SESSION';
     if (item.status == 'in-progress') return 'CONTINUE LEARNING';
-    return "TODAY'S NEXT STEP";
-  }
-
-  String _itemDescription(TodayLearningItem item) {
-    if (item.status == 'overdue') return 'You can make progress on this now.';
-    if (item.kind == 'assignment') {
-      return 'Submit your work before the due date.';
-    }
-    if (item.kind == 'quiz') {
-      return item.assessmentType == 'practical'
-          ? 'Show what you can do with a practical task.'
-          : 'Check your understanding with a short practice set.';
-    }
-    if (item.status == 'in-progress') return 'Pick up where you left off.';
-    return 'A focused session is waiting for you.';
-  }
-
-  String _upcomingMeta(TodayLearningItem item) {
-    if (item.status == 'overdue') return 'Past due - handle now';
-    if (item.dueAt != null) return 'Due ${_shortDate(item.dueAt!)}';
-    if (item.releaseAt != null) {
-      return 'Available ${_shortDate(item.releaseAt!)}';
-    }
-    return item.kind == 'quiz' ? 'Ready to practice' : 'Open when ready';
-  }
-
-  String _shortDate(DateTime date) => '${date.day}/${date.month}';
-
-  IconData _iconForKind(String kind) {
-    switch (kind) {
-      case 'assignment':
-        return Icons.assignment_outlined;
-      case 'quiz':
-        return Icons.edit_note_outlined;
-      case 'schedule':
-        return Icons.video_call_outlined;
-      default:
-        return Icons.play_lesson_outlined;
-    }
+    return null;
   }
 
   void _openTodayItem(TodayLearningItem item, VideoModel? video) {
     if (item.kind == 'assignment') return _openAssignments();
     if (item.kind == 'quiz') return _openPractice();
+    if (item.kind == 'schedule') return _openSchedule();
     if (video != null) return _openVideo(video);
     _openLearn();
   }
@@ -467,25 +517,44 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
     final provider = context.read<VideoProvider>();
     final feed = provider.allVideos.isNotEmpty ? provider.allVideos : [video];
     final index = feed.indexWhere((item) => item.id == video.id);
-    VideoReelsScreen.open(context, feed, initialIndex: index < 0 ? 0 : index);
+    VideoReelsScreen.open(
+      context,
+      feed,
+      initialIndex: index < 0 ? 0 : index,
+    ).then((_) => _loadToday());
   }
 
-  void _openLearn() => Navigator.push(
+  /// Learn is a tab of the shell, so switch to it instead of pushing a page.
+  void _openLearn() => _nav.setIndex(MainNavigationProvider.learnTabIndex);
+
+  // The screens below can finish work, so Today reloads when they close.
+  void _openSubject(SubjectModel subject) => Navigator.push(
     context,
     MaterialPageRoute(
-      builder: (_) => const HomeThemeScope(child: SubjectListScreen()),
+      builder: (_) =>
+          HomeThemeScope(child: SubjectVideosScreen(subject: subject)),
     ),
-  );
+  ).then((_) => _loadToday());
 
   void _openPractice() => Navigator.push(
     context,
     MaterialPageRoute(builder: (_) => const QuizListScreen()),
-  );
+  ).then((_) => _loadToday());
 
   void _openAssignments() => Navigator.push(
     context,
     MaterialPageRoute(builder: (_) => const AssignmentsScreen()),
-  );
+  ).then((_) => _loadToday());
 
   void _openAsk() => AskQuestionScreen.show(context);
+
+  void _openSchedule() => Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => const ScheduleScreen()),
+  ).then((_) => _loadToday());
+
+  void _openMyQuestions() => Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => const MyQuestionsScreen()),
+  );
 }

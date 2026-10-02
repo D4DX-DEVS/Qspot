@@ -55,24 +55,24 @@ class AssignmentModel {
       submittedAt: _date(json['submittedAt'] ?? submission['submittedAt']),
       feedback: (json['feedback'] ?? submission['feedback'] ?? '').toString(),
       grade: (json['grade'] ?? submission['grade'])?.toString(),
-      allowedMimeTypes: (json['allowedMimeTypes'] is List
-              ? json['allowedMimeTypes'] as List
-              : const [])
-          .map((value) => value.toString())
-          .toList(),
+      allowedMimeTypes:
+          (json['allowedMimeTypes'] is List
+                  ? json['allowedMimeTypes'] as List
+                  : const [])
+              .map((value) => value.toString())
+              .toList(),
       maxFileSizeBytes:
           int.tryParse((json['maxFileSizeBytes'] ?? '').toString()) ??
           10 * 1024 * 1024,
-      submissionFiles: (submission['files'] is List
-              ? submission['files'] as List
-              : const [])
-          .whereType<Map>()
-          .map(
-            (file) => AssignmentFileModel.fromJson(
-              Map<String, dynamic>.from(file),
-            ),
-          )
-          .toList(),
+      submissionFiles:
+          (submission['files'] is List ? submission['files'] as List : const [])
+              .whereType<Map>()
+              .map(
+                (file) => AssignmentFileModel.fromJson(
+                  Map<String, dynamic>.from(file),
+                ),
+              )
+              .toList(),
     );
   }
 

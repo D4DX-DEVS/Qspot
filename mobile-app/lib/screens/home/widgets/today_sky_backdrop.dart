@@ -29,11 +29,8 @@ class TodaySkyBackdrop extends StatelessWidget {
         // The night skyline's lit windows are loud; keep it further back.
         opacity: palette.isDark ? skylineOpacity * 0.65 : skylineOpacity,
         child: AuthArt(
-          painter: (art) => MosqueSkylinePainter(
-            art,
-            showBookStand: false,
-            showMoon: false,
-          ),
+          painter: (art) =>
+              MosqueSkylinePainter(art, showBookStand: false, showMoon: false),
         ),
       ),
     );

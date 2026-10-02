@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qspot/screens/subject/model/subject_model.dart';
 import 'package:qspot/screens/subject/widgets/chapter_guide_sheet.dart';
@@ -42,7 +43,7 @@ void main() {
     expect(find.text('What is inside this chapter'), findsOneWidget);
     expect(find.text('Verse-by-verse reflections'), findsOneWidget);
     expect(find.text('Answer the questions after a video'), findsOneWidget);
-    expect(find.text('Got it'), findsOneWidget);
+    expect(find.text('Got It'), findsOneWidget);
   });
 
   testWidgets(
@@ -64,9 +65,9 @@ void main() {
   );
 
   test('maps the admin icon keys to real icons', () {
-    expect(ChapterGuideSheet.iconFor('video'), Icons.play_circle_fill);
-    expect(ChapterGuideSheet.iconFor('quiz'), Icons.quiz_outlined);
-    expect(ChapterGuideSheet.iconFor('progress'), Icons.trending_up);
-    expect(ChapterGuideSheet.iconFor('anything-else'), Icons.info_outline);
+    expect(ChapterGuideSheet.iconFor('video'), LucideIcons.circlePlay);
+    expect(ChapterGuideSheet.iconFor('quiz'), LucideIcons.listChecks);
+    expect(ChapterGuideSheet.iconFor('progress'), LucideIcons.trendingUp);
+    expect(ChapterGuideSheet.iconFor('anything-else'), LucideIcons.info);
   });
 }

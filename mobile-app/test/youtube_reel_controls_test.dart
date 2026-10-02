@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qspot/screens/video/model/youtube_value_extension.dart';
 import 'package:qspot/themes/home_palette.dart';
@@ -143,30 +144,80 @@ void main() {
         )
         .opacity;
 
-    Future<void> pump(WidgetTester tester, {bool started = true}) =>
-        tester.pumpWidget(
-          host(YoutubeCentreButton(controller: controller, started: started)),
-        );
+    Future<void> pump(
+      WidgetTester tester, {
+      bool started = true,
+      bool controlsShown = true,
+    }) => tester.pumpWidget(
+      host(
+        YoutubeCentreButton(
+          controller: controller,
+          started: started,
+          controlsShown: controlsShown,
+        ),
+      ),
+    );
+
+    double fadeOf(WidgetTester tester) => tester
+        .widget<AnimatedOpacity>(
+          find.descendant(of: button, matching: find.byType(AnimatedOpacity)),
+        )
+        .opacity;
 
     testWidgets('paused: a play icon', (tester) async {
       emit(state: PlayerState.paused);
       await pump(tester);
 
-      expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+      expect(find.byIcon(LucideIcons.play), findsOneWidget);
       expect(ring, findsNothing);
     });
 
-    testWidgets('playing: a pause icon that stays up whatever the seek bar '
-        'is doing', (tester) async {
+    testWidgets('playing with the controls open: a pause icon', (tester) async {
       emit(state: PlayerState.playing);
       await pump(tester);
 
-      expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
+      expect(find.byIcon(LucideIcons.pause), findsOneWidget);
       expect(
         find.descendant(of: button, matching: find.byType(DecoratedBox)),
         findsWidgets,
         reason: 'the circle is there too',
       );
+    });
+
+    testWidgets('playing: fades out with the controls and back in with them', (
+      tester,
+    ) async {
+      emit(state: PlayerState.playing);
+      await pump(tester, controlsShown: true);
+      expect(fadeOf(tester), 1);
+
+      await pump(tester, controlsShown: false);
+      await tester.pump(const Duration(seconds: 1));
+      expect(fadeOf(tester), 0);
+
+      await pump(tester, controlsShown: true);
+      await tester.pump(const Duration(seconds: 1));
+      expect(fadeOf(tester), 1);
+    });
+
+    testWidgets(
+      'paused or ended: stays up with the seek bar, controls or not',
+      (tester) async {
+        for (final state in [PlayerState.paused, PlayerState.ended]) {
+          emit(state: state);
+          await pump(tester, controlsShown: false);
+          await tester.pump(const Duration(seconds: 1));
+          expect(fadeOf(tester), 1, reason: '$state');
+        }
+      },
+    );
+
+    testWidgets('loading: stays up with the controls hidden, so the ring '
+        'never vanishes', (tester) async {
+      emit(state: PlayerState.buffering);
+      await pump(tester, controlsShown: false);
+      await tester.pump(const Duration(seconds: 1));
+      expect(fadeOf(tester), 1);
     });
 
     testWidgets('ended: a single replay icon, never play as well', (
@@ -175,9 +226,9 @@ void main() {
       emit(state: PlayerState.ended);
       await pump(tester);
 
-      expect(find.byIcon(Icons.replay_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
-      expect(find.byIcon(Icons.pause_rounded), findsNothing);
+      expect(find.byIcon(LucideIcons.rotateCcw), findsOneWidget);
+      expect(find.byIcon(LucideIcons.play), findsNothing);
+      expect(find.byIcon(LucideIcons.pause), findsNothing);
     });
 
     testWidgets('keeps one size in every state, loading included', (
@@ -203,7 +254,34 @@ void main() {
         );
       }
 
-      expect(sizes.toSet(), {const Size.square(YoutubeCentreButton.diameter)});
+      expect(sizes.toSet(), {
+        const Size.square(YoutubeCentreButton.minDiameter),
+      });
+    });
+
+    testWidgets('grows with a wider player so it still covers YouTube\'s own '
+        'button', (tester) async {
+      emit(state: PlayerState.paused);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: SizedBox(
+              width: 760,
+              child: YoutubeCentreButton(
+                controller: controller,
+                started: true,
+                controlsShown: true,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final size = tester.getSize(
+        find.descendant(of: button, matching: find.byType(DecoratedBox)).first,
+      );
+      expect(size, Size.square(YoutubeCentreButton.diameterFor(760)));
+      expect(size.width, greaterThan(YoutubeCentreButton.minDiameter));
     });
 
     testWidgets('before the player is ready the ring shows at once, no icon', (
@@ -214,7 +292,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
 
       expect(opacityOf(tester, ring), 1);
-      expect(opacityOf(tester, find.byIcon(Icons.play_arrow_rounded)), 0);
+      expect(opacityOf(tester, find.byIcon(LucideIcons.play)), 0);
     });
 
     testWidgets('a brief buffer keeps the icon; a long one swaps in the ring', (
@@ -222,7 +300,7 @@ void main() {
     ) async {
       emit(state: PlayerState.buffering);
       await pump(tester);
-      final icon = find.byIcon(Icons.pause_rounded);
+      final icon = find.byIcon(LucideIcons.pause);
 
       expect(opacityOf(tester, icon), 1);
       expect(opacityOf(tester, ring), 0);
@@ -237,7 +315,7 @@ void main() {
       emit(state: PlayerState.playing);
       await tester.pump();
       expect(ring, findsNothing, reason: 'back to the plain icon');
-      expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
+      expect(find.byIcon(LucideIcons.pause), findsOneWidget);
     });
 
     testWidgets('the ring is the app brand colour on the app surface colour', (
@@ -264,7 +342,11 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: ThemeData(brightness: Brightness.dark),
-          home: YoutubeCentreButton(controller: controller, started: true),
+          home: YoutubeCentreButton(
+            controller: controller,
+            started: true,
+            controlsShown: true,
+          ),
         ),
       );
       await tester.pump(const Duration(seconds: 1));
@@ -284,7 +366,10 @@ void main() {
       final disc = tester.widget<DecoratedBox>(
         find.descendant(of: button, matching: find.byType(DecoratedBox)).first,
       );
-      expect((disc.decoration as BoxDecoration).color, Colors.black45);
+      expect(
+        (disc.decoration as BoxDecoration).color,
+        YoutubeCentreButton.discColor,
+      );
     });
 
     testWidgets('cued before the first play is loading, not a play icon', (
@@ -295,7 +380,7 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
 
       expect(opacityOf(tester, ring), 1);
-      expect(opacityOf(tester, find.byIcon(Icons.play_arrow_rounded)), 0);
+      expect(opacityOf(tester, find.byIcon(LucideIcons.play)), 0);
     });
 
     testWidgets('shows nothing when the player reports an error', (
@@ -319,14 +404,18 @@ void main() {
               fit: StackFit.expand,
               children: [
                 GestureDetector(onTap: () => taps++),
-                YoutubeCentreButton(controller: controller, started: true),
+                YoutubeCentreButton(
+                  controller: controller,
+                  started: true,
+                  controlsShown: true,
+                ),
               ],
             ),
           ),
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+      await tester.tap(find.byIcon(LucideIcons.play));
       expect(taps, 1);
     });
   });

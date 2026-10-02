@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../model/subject_model.dart';
 import '../provider/subject_provider.dart';
 import '../widgets/learn_banner_art.dart';
-import '../widgets/subject_card.dart';
+import '../widgets/chapter_class_tile.dart';
 import '../widgets/subject_search_delegate.dart';
 import '../../../themes/app_theme.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
+import '../../../widgets/common/adaptive_card_columns.dart';
 import '../../../widgets/common/banner_headline.dart';
 import '../../../widgets/common/circle_icon_action.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../../widgets/common/gradient_card.dart';
+import '../../../widgets/common/section_header.dart';
+import '../../common/widgets/home_theme_scope.dart';
 import 'subject_videos_screen.dart';
 import '../../video/provider/video_provider.dart';
 
@@ -42,11 +47,11 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
     return Scaffold(
       appBar: CommonAppBar(
         title: 'Learn',
-        centerTitle: false,
+        isDrawerNeeded: true,
         actions: [
           CircleIconAction(
-            icon: Icons.search_rounded,
-            tooltip: 'Search subjects',
+            icon: LucideIcons.search,
+            tooltip: 'Search Subjects',
             onPressed: _openSearch,
           ),
           const SizedBox(width: 16),
@@ -66,7 +71,7 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.error_outline,
+                      LucideIcons.circleAlert,
                       size: 64,
                       color: scheme.onSurfaceVariant,
                     ),
@@ -103,7 +108,7 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.book_outlined,
+                      LucideIcons.book,
                       size: 64,
                       color: scheme.onSurfaceVariant,
                     ),
@@ -140,7 +145,10 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
               // The banner sits above the course groups.
               itemCount: groups.length + 1,
               itemBuilder: (context, index) {
-                if (index == 0) return _banner();
+                if (index == 0) {
+                  return StaggeredEntrance(child: _banner());
+                }
+                final groupIndex = index;
                 final group = groups[index - 1];
                 return Padding(
                   padding: const EdgeInsets.only(bottom: AppTheme.paddingLarge),
@@ -153,48 +161,34 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
                             left: 4,
                             bottom: AppTheme.paddingSmall,
                           ),
-                          child: Text(
-                            '${group.course.title} course',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  color: scheme.onSurface,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                          child: StaggeredEntrance(
+                            index: groupIndex,
+                            child: SectionHeader(
+                              title: '${group.course.title} Course',
+                              subtitle:
+                                  '${group.subjects.length} Chapter'
+                                  '${group.subjects.length == 1 ? '' : 's'}',
+                            ),
                           ),
                         ),
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: AppTheme.paddingMedium,
-                              mainAxisSpacing: AppTheme.paddingMedium,
-                              childAspectRatio: 0.75, // 120x160 aspect ratio
+                      AdaptiveCardColumns(
+                        spacing: AppTheme.paddingMedium,
+                        children: [
+                          for (var i = 0; i < group.subjects.length; i++)
+                            StaggeredEntrance(
+                              index: groupIndex + i + 1,
+                              child: ChapterClassTile(
+                                number: i + 1,
+                                title: group.subjects[i].displayName,
+                                imageUrl: group.subjects[i].imageUrl,
+                                progress: videoProvider.chapterProgressFor(
+                                  group.subjects[i].id,
+                                ),
+                                onTap: () =>
+                                    _navigateToSubjectVideos(group.subjects[i]),
+                              ),
                             ),
-                        itemCount: group.subjects.length,
-                        itemBuilder: (context, index) {
-                          final subject = group.subjects[index];
-                          final lessons = videoProvider
-                              .videosForSubject(subject.id)
-                              .where((video) => !video.isUpcoming)
-                              .toList();
-                          final completed = lessons
-                              .where(
-                                (video) =>
-                                    videoProvider
-                                        .progressFor(video.id)
-                                        ?.completed ==
-                                    true,
-                              )
-                              .length;
-                          return SubjectCard(
-                            subject: subject,
-                            completedLessons: completed,
-                            totalLessons: lessons.length,
-                            onTap: () => _navigateToSubjectVideos(subject),
-                          );
-                        },
+                        ],
                       ),
                     ],
                   ),
@@ -234,7 +228,8 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SubjectVideosScreen(subject: subject),
+        builder: (context) =>
+            HomeThemeScope(child: SubjectVideosScreen(subject: subject)),
       ),
     );
   }

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../../themes/app_fonts.dart';
 import '../../../themes/home_palette.dart';
+import '../../../widgets/animation/pressable_scale.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/info_note_card.dart';
 import '../../../widgets/common/loading_skeleton.dart';
 import '../model/video_model.dart';
@@ -31,45 +34,56 @@ class EpisodePracticeTab extends StatelessWidget {
     }
     final unlocked =
         context.watch<VideoProvider>().progressFor(video.id)?.completed == true;
-    final summary = '$count question${count == 1 ? '' : 's'} on this episode';
+    final summary = '$count Question${count == 1 ? '' : 's'} on This Episode';
 
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          InfoNoteCard(
-            icon: unlocked ? Icons.quiz_outlined : Icons.lock_outline_rounded,
-            tone: unlocked ? p.rose : p.slate,
-            message: summary,
+          StaggeredEntrance(
+            child: InfoNoteCard(
+              icon: unlocked ? LucideIcons.listChecks : LucideIcons.lock,
+              tone: unlocked ? p.rose : p.slate,
+              message: summary,
+            ),
           ),
           const SizedBox(height: 16),
-          Text(
-            unlocked
-                ? 'You finished this episode — try the questions below.'
-                : 'Finish watching to unlock the quiz.',
-            style: AppFonts.regular(
-              color: p.textMuted,
-              fontSize: 13,
-              height: 1.45,
+          StaggeredEntrance(
+            index: 1,
+            child: Text(
+              unlocked
+                  ? 'You finished this episode — try the questions below.'
+                  : 'Finish watching to unlock the quiz.',
+              style: AppFonts.regular(
+                color: p.textMuted,
+                fontSize: 13,
+                height: 1.45,
+              ),
             ),
           ),
           const Spacer(),
           if (unlocked)
-            SizedBox(
-              height: 52,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: p.brand,
-                  foregroundColor: p.card,
-                  shape: const StadiumBorder(),
-                  textStyle: AppFonts.bold(fontSize: 16),
+            StaggeredEntrance(
+              index: 2,
+              child: PressableScale(
+                haptic: true,
+                child: SizedBox(
+                  height: 52,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: p.brand,
+                      foregroundColor: p.card,
+                      shape: const StadiumBorder(),
+                      textStyle: AppFonts.bold(fontSize: 16),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      VideoQuestionsScreen.open(context, video);
+                    },
+                    child: const Text('Start Practice'),
+                  ),
                 ),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  VideoQuestionsScreen.open(context, video);
-                },
-                child: const Text('Start practice'),
               ),
             ),
         ],

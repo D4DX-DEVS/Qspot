@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../widgets/animation/motion.dart';
 import '../../../widgets/common/surface_card.dart';
 
 /// One white card holding several rows, with a hairline divider between
@@ -20,13 +21,20 @@ class SettingsGroupCard extends StatelessWidget {
     );
     return SurfaceCard(
       padding: EdgeInsets.zero,
-      child: Column(
-        children: [
-          for (var i = 0; i < children.length; i++) ...[
-            if (i > 0) divider,
-            children[i],
+      // Rows that appear or disappear (e.g. the reminder time) ease the card
+      // open instead of jumping.
+      child: AnimatedSize(
+        duration: Motion.reduced(context) ? Duration.zero : Motion.medium,
+        curve: Motion.smooth,
+        alignment: Alignment.topCenter,
+        child: Column(
+          children: [
+            for (var i = 0; i < children.length; i++) ...[
+              if (i > 0) divider,
+              children[i],
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

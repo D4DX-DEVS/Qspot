@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../animation/pressable_scale.dart';
+
 /// Icon button on a raised round card, for app bar actions such as search.
 class CircleIconAction extends StatelessWidget {
   const CircleIconAction({
@@ -24,26 +26,31 @@ class CircleIconAction extends StatelessWidget {
         button: true,
         label: tooltip,
         excludeSemantics: true,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: scheme.shadow.withValues(alpha: 0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+        child: PressableScale(
+          pressedScale: 0.88,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: scheme.shadow.withValues(alpha: 0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Material(
+              color: scheme.surfaceContainerLow,
+              shape: CircleBorder(
+                side: BorderSide(color: scheme.outlineVariant),
               ),
-            ],
-          ),
-          child: Material(
-            color: scheme.surfaceContainerLow,
-            shape: CircleBorder(side: BorderSide(color: scheme.outlineVariant)),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: onPressed,
-              child: SizedBox.square(
-                dimension: size,
-                child: Icon(icon, color: scheme.onSurface, size: size * 0.52),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: onPressed,
+                child: SizedBox.square(
+                  dimension: size,
+                  child: Icon(icon, color: scheme.onSurface, size: size * 0.52),
+                ),
               ),
             ),
           ),

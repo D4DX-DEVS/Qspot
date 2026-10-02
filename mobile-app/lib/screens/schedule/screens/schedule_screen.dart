@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../provider/schedule_provider.dart';
 import '../model/schedule_model.dart';
@@ -6,7 +7,13 @@ import '../../../themes/app_colors.dart';
 import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../themes/home_palette.dart';
+import '../../../widgets/animation/pressable_scale.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/state_message_view.dart';
+import '../../../widgets/common/surface_card.dart';
+import '../../common/widgets/home_theme_scope.dart';
 import '../service/alarm_service.dart';
 
 class ScheduleScreen extends StatefulWidget {
@@ -43,32 +50,41 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Burgundy home theme; the page reads colours from the context inside it.
+    return HomeThemeScope(child: Builder(builder: _buildPage));
+  }
+
+  Widget _buildPage(BuildContext context) {
+    final p = HomePalette.of(context);
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: const CommonAppBar(title: 'Schedule'),
       body: Consumer<ScheduleProvider>(
         builder: (context, scheduleProvider, child) {
           if (scheduleProvider.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
+            return Center(child: CircularProgressIndicator(color: p.brand));
           }
 
           if (scheduleProvider.hasError) {
-            return _buildErrorState(
-              scheduleProvider.errorMessage,
-              () => _onRefresh(),
+            return StateMessageView(
+              icon: LucideIcons.circleAlert,
+              title: 'Failed to Load Schedule',
+              message: scheduleProvider.errorMessage,
+              onRetry: _onRefresh,
             );
           }
 
           if (scheduleProvider.isEmpty) {
-            return _buildEmptyState();
+            return const StateMessageView(
+              icon: LucideIcons.calendar,
+              title: 'No Schedule Available',
+              message: 'Check back later for upcoming classes',
+            );
           }
 
           return RefreshIndicator(
             onRefresh: _onRefresh,
-            backgroundColor: AppColors.surface,
-            color: AppColors.primary,
+            backgroundColor: p.card,
+            color: p.brand,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(AppTheme.paddingMedium),
@@ -77,20 +93,36 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 children: [
                   // Upcoming Schedules
                   if (scheduleProvider.upcomingSchedules.isNotEmpty) ...[
-                    _buildSectionHeader('Upcoming Classes'),
-                    const SizedBox(height: AppTheme.paddingSmall),
-                    ...scheduleProvider.upcomingSchedules.map((schedule) {
-                      return _buildScheduleCard(schedule, isUpcoming: true);
+                    StaggeredEntrance(
+                      child: _buildSectionHeader(p, 'Upcoming Classes'),
+                    ),
+                    ...scheduleProvider.upcomingSchedules.indexed.map((entry) {
+                      return StaggeredEntrance(
+                        index: entry.$1 + 1,
+                        child: _buildScheduleCard(
+                          p,
+                          entry.$2,
+                          isUpcoming: true,
+                        ),
+                      );
                     }),
                   ],
 
                   // Completed Schedules
                   if (scheduleProvider.completedSchedules.isNotEmpty) ...[
-                    const SizedBox(height: AppTheme.paddingLarge),
-                    _buildSectionHeader('Completed Classes'),
-                    const SizedBox(height: AppTheme.paddingSmall),
-                    ...scheduleProvider.completedSchedules.map((schedule) {
-                      return _buildScheduleCard(schedule, isUpcoming: false);
+                    const SizedBox(height: AppTheme.paddingMedium),
+                    StaggeredEntrance(
+                      child: _buildSectionHeader(p, 'Completed Classes'),
+                    ),
+                    ...scheduleProvider.completedSchedules.indexed.map((entry) {
+                      return StaggeredEntrance(
+                        index: entry.$1 + 1,
+                        child: _buildScheduleCard(
+                          p,
+                          entry.$2,
+                          isUpcoming: false,
+                        ),
+                      );
                     }),
                   ],
                 ],
@@ -102,308 +134,205 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-        color: AppColors.textPrimary,
-        fontWeight: FontWeight.bold,
-      ),
+  Widget _buildSectionHeader(HomePalette p, String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+      child: Text(title, style: AppFonts.bold(color: p.text, fontSize: 17)),
     );
   }
 
   Widget _buildScheduleCard(
+    HomePalette p,
     ScheduleModel schedule, {
     required bool isUpcoming,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppTheme.paddingMedium),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(
-          color: isUpcoming
-              ? AppColors.primary.withValues(alpha: 0.25)
-              : AppColors.border,
-          width: 1,
-        ),
-      ),
-      child: Material(
-        color: AppColors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          onTap: () => _showScheduleDetails(schedule),
-          child: Padding(
-            padding: const EdgeInsets.all(AppTheme.paddingMedium),
-            child: Row(
-              children: [
-                // Date badge
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    gradient: isUpcoming ? AppColors.primaryGradient : null,
-                    color: isUpcoming ? null : AppColors.surfaceAlt,
-                    borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+    final muted = AppFonts.regular(color: p.textMuted, fontSize: 12);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTheme.paddingMedium),
+      child: SurfaceCard(
+        onTap: () => _showScheduleDetails(p, schedule),
+        radius: 16,
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            // Date badge
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: isUpcoming ? p.heroGradient : null,
+                color: isUpcoming ? null : p.background,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    schedule.date.day.toString(),
+                    style: AppFonts.bold(
+                      color: isUpcoming ? AppColors.white : p.textMuted,
+                      fontSize: 20,
+                    ),
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        schedule.date.day.toString(),
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(
-                              color: isUpcoming
-                                  ? AppColors.onPrimary
-                                  : AppColors.textMuted,
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      Text(
-                        schedule.formattedDate.split(' ')[0],
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: isUpcoming
-                              ? AppColors.onPrimary
-                              : AppColors.textMuted,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    schedule.formattedDate.split(' ')[0],
+                    style: AppFonts.medium(
+                      color: isUpcoming ? AppColors.white : p.textMuted,
+                      fontSize: 10,
+                    ),
                   ),
-                ),
+                ],
+              ),
+            ),
 
-                const SizedBox(width: AppTheme.paddingMedium),
+            const SizedBox(width: AppTheme.paddingMedium),
 
-                // Schedule info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            // Schedule info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Class number
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isUpcoming ? p.brandSoft : p.background,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      schedule.classNumber,
+                      style: AppFonts.semiBold(
+                        color: isUpcoming ? p.brand : p.textMuted,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  // Title
+                  Text(
+                    schedule.title,
+                    style: AppFonts.semiBold(color: p.text, fontSize: 15),
+                  ),
+
+                  const SizedBox(height: 4),
+
+                  // Time and faculty (the faculty name drops to its own line
+                  // when it doesn't fit beside the time)
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      // Class number
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isUpcoming
-                              ? AppColors.primarySoft
-                              : AppColors.surfaceAlt,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          schedule.classNumber,
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: isUpcoming
-                                    ? AppColors.primary
-                                    : AppColors.textMuted,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 10,
-                              ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 6),
-
-                      // Title
-                      Text(
-                        schedule.title,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-
-                      const SizedBox(height: 4),
-
-                      // Time and faculty
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            Icons.access_time,
-                            size: 14,
-                            color: AppColors.textMuted,
-                          ),
+                          Icon(LucideIcons.clock, size: 14, color: p.textMuted),
                           const SizedBox(width: 4),
-                          Text(
-                            schedule.formattedTime,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: AppColors.textMuted,
-                                  fontSize: 12,
-                                ),
+                          Flexible(
+                            child: Text(schedule.formattedTime, style: muted),
                           ),
-                          const SizedBox(width: 12),
-                          if (schedule.facultyName != null &&
-                              schedule.facultyName!.isNotEmpty)
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.person,
-                                    size: 14,
-                                    color: AppColors.textMuted,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      schedule.facultyName!,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            color: AppColors.textMuted,
-                                            fontSize: 12,
-                                          ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
                         ],
                       ),
+                      if (schedule.facultyName != null &&
+                          schedule.facultyName!.isNotEmpty)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              LucideIcons.userRound,
+                              size: 14,
+                              color: p.textMuted,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(schedule.facultyName!, style: muted),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
-                ),
-
-                // Status icon or reminder button
-                if (isUpcoming)
-                  IconButton(
-                    icon: const Icon(Icons.notifications_active),
-                    color: AppColors.primary,
-                    onPressed: () => _setReminder(schedule),
-                    tooltip: 'Set Reminder',
-                  )
-                else
-                  Icon(
-                    Icons.check_circle,
-                    color: AppColors.textMuted,
-                    size: 24,
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildErrorState(String errorMessage, VoidCallback onRetry) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.paddingLarge),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 64, color: AppColors.textMuted),
-            const SizedBox(height: AppTheme.paddingMedium),
-            Text(
-              'Failed to Load Schedule',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary),
-            ),
-            const SizedBox(height: AppTheme.paddingSmall),
-            Text(
-              errorMessage,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppTheme.paddingLarge),
-            ElevatedButton(
-              onPressed: onRetry,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.onPrimary,
+                ],
               ),
-              child: const Text('Retry'),
             ),
+
+            // Status icon or reminder button
+            if (isUpcoming)
+              PressableScale(
+                pressedScale: 0.85,
+                haptic: true,
+                child: IconButton(
+                  icon: const Icon(LucideIcons.bellRing),
+                  color: p.brand,
+                  onPressed: () => _setReminder(schedule),
+                  tooltip: 'Set Reminder',
+                ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Icon(
+                  LucideIcons.circleCheck,
+                  color: p.textMuted,
+                  size: 24,
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.paddingLarge),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.calendar_today, size: 64, color: AppColors.textMuted),
-            const SizedBox(height: AppTheme.paddingMedium),
-            Text(
-              'No Schedule Available',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary),
-            ),
-            const SizedBox(height: AppTheme.paddingSmall),
-            Text(
-              'Check back later for upcoming classes',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showScheduleDetails(ScheduleModel schedule) {
+  void _showScheduleDetails(HomePalette p, ScheduleModel schedule) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: AppColors.background,
+          backgroundColor: p.card,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
-          title: Text(
-            schedule.title,
-            style: AppFonts.bold(color: AppColors.textPrimary),
-          ),
+          title: Text(schedule.title, style: AppFonts.bold(color: p.text)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildDetailRow(Icons.class_, schedule.classNumber),
-              _buildDetailRow(Icons.calendar_today, schedule.formattedDate),
-              _buildDetailRow(Icons.access_time, schedule.formattedTime),
+              _buildDetailRow(
+                p,
+                LucideIcons.presentation,
+                schedule.classNumber,
+              ),
+              _buildDetailRow(p, LucideIcons.calendar, schedule.formattedDate),
+              _buildDetailRow(p, LucideIcons.clock, schedule.formattedTime),
               if (schedule.facultyName != null &&
                   schedule.facultyName!.isNotEmpty)
-                _buildDetailRow(Icons.person, schedule.facultyName!),
+                _buildDetailRow(
+                  p,
+                  LucideIcons.userRound,
+                  schedule.facultyName!,
+                ),
             ],
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'Close',
-                style: AppFonts.medium(color: AppColors.primary),
-              ),
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text('Close', style: AppFonts.medium(color: p.brand)),
             ),
             if (schedule.isUpcoming)
               ElevatedButton.icon(
                 onPressed: () {
-                  Navigator.pop(context);
+                  Navigator.pop(dialogContext);
                   _setReminder(schedule);
                 },
-                icon: const Icon(Icons.notifications_active, size: 18),
+                icon: const Icon(LucideIcons.bellRing, size: 18),
                 label: const Text('Set Reminder'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.onPrimary,
+                  backgroundColor: p.brand,
+                  foregroundColor: p.card,
                 ),
               ),
           ],
@@ -412,20 +341,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String text) {
+  Widget _buildDetailRow(HomePalette p, IconData icon, String text) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppColors.primary),
+          Icon(icon, size: 18, color: p.brand),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              text,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary),
-            ),
+            child: Text(text, style: AppFonts.regular(color: p.text)),
           ),
         ],
       ),
@@ -445,7 +369,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       if (success && mounted) {
         AppSnackBar.show(
           context,
-          message: 'Reminder set! We\'ll let you know when this session starts.',
+          message:
+              'Reminder set! We\'ll let you know when this session starts.',
           color: AppColors.success,
         );
       }

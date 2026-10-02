@@ -37,8 +37,6 @@ class AppDrawerTile extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: AppFonts.medium(color: color, fontSize: 16),
               ),
             ),

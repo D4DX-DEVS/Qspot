@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../../services/api_client.dart';
 import '../../../themes/app_colors.dart';
-import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
-import '../../../themes/app_fonts.dart';
+import '../../../themes/home_palette.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
+import '../../../widgets/common/app_snack_bar.dart';
 import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/info_note_card.dart';
+import '../../../widgets/common/loading_skeleton.dart';
+import '../../../widgets/common/section_header.dart';
+import '../../../widgets/common/state_message_view.dart';
+import '../../common/widgets/home_theme_scope.dart';
 import '../model/quiz_model.dart';
 import '../provider/quiz_provider.dart';
+import '../widgets/quiz_language_dialog.dart';
+import '../widgets/quiz_list_card.dart';
 import 'quiz_question_screen.dart';
 import 'quiz_results_screen.dart';
 
@@ -61,7 +70,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
   }
 
   Future<void> _startQuiz(QuizListItem quiz) async {
-    final language = await _pickLanguage();
+    final language = await QuizLanguageDialog.show(context);
     if (language == null || !mounted) return;
 
     final quizProvider = context.read<QuizProvider>();
@@ -94,161 +103,36 @@ class _QuizListScreenState extends State<QuizListScreen> {
     }
   }
 
-  Future<String?> _pickLanguage() {
-    return showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => Dialog(
-        backgroundColor: AppColors.transparent,
-        elevation: 0,
-        child: Container(
-          padding: const EdgeInsets.all(24.0),
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.border, width: 1),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Select Quiz Language',
-                style: Theme.of(dialogContext).textTheme.titleLarge?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'This cannot be changed once the quiz starts.',
-                style: Theme.of(
-                  dialogContext,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: _languageButton(
-                      dialogContext,
-                      'English',
-                      () => Navigator.pop(dialogContext, 'en'),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _languageButton(
-                      dialogContext,
-                      'മലയാളം',
-                      () => Navigator.pop(dialogContext, 'ml'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _languageButton(
-    BuildContext context,
-    String label,
-    VoidCallback onPressed,
-  ) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.transparent,
-          shadowColor: AppColors.transparent,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: AppColors.onPrimary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: const CommonAppBar(title: 'Quiz'),
-      body: Consumer<QuizProvider>(
-        builder: (context, quizProvider, child) {
-          if (quizProvider.isListLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
-          }
-
-          if (quizProvider.hasListError) {
-            return _buildErrorState(context, quizProvider);
-          }
-
-          return RefreshIndicator(
-            onRefresh: quizProvider.fetchQuizList,
-            color: AppColors.primary,
-            child: _buildList(context, quizProvider.quizList),
+    // Burgundy home theme; the page reads colours from the context inside it.
+    return HomeThemeScope(
+      child: Builder(
+        builder: (context) {
+          final p = HomePalette.of(context);
+          return Scaffold(
+            appBar: const CommonAppBar(title: 'Quiz'),
+            body: Consumer<QuizProvider>(
+              builder: (context, quizProvider, child) {
+                if (quizProvider.isListLoading) return const LoadingSkeleton();
+                if (quizProvider.hasListError) {
+                  return StateMessageView(
+                    icon: LucideIcons.circleAlert,
+                    title: 'Error Loading Quizzes',
+                    message: quizProvider.listError,
+                    onRetry: quizProvider.fetchQuizList,
+                  );
+                }
+                return RefreshIndicator(
+                  onRefresh: quizProvider.fetchQuizList,
+                  backgroundColor: p.card,
+                  color: p.brand,
+                  child: _buildList(context, quizProvider.quizList),
+                );
+              },
+            ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildErrorState(BuildContext context, QuizProvider quizProvider) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.paddingLarge),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-              color: AppColors.textMuted,
-            ),
-            const SizedBox(height: AppTheme.paddingMedium),
-            Text(
-              'Error Loading Quizzes',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary),
-            ),
-            const SizedBox(height: AppTheme.paddingSmall),
-            Text(
-              quizProvider.listError,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppTheme.paddingLarge),
-            ElevatedButton(
-              onPressed: quizProvider.fetchQuizList,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.onPrimary,
-              ),
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -257,193 +141,47 @@ class _QuizListScreenState extends State<QuizListScreen> {
     final live = quizzes.where((q) => q.isLive).toList();
     final upcoming = quizzes.where((q) => q.isUpcoming).toList();
     final ended = quizzes.where((q) => q.isEnded).toList();
+    final p = HomePalette.of(context);
 
-    if (live.isEmpty) {
-      // Always render a clear "No live quiz" state instead of hiding the
-      // screen — the empty array is an expected, normal response.
-      return ListView(
-        padding: const EdgeInsets.all(AppTheme.paddingMedium),
-        children: [
-          _buildNoLiveQuizCard(context),
-          if (upcoming.isNotEmpty) ...[
-            const SizedBox(height: AppTheme.paddingLarge),
-            _sectionHeader(context, 'Upcoming'),
-            ...upcoming.map((q) => _quizCard(context, q)),
-          ],
-          if (ended.isNotEmpty) ...[
-            const SizedBox(height: AppTheme.paddingLarge),
-            _sectionHeader(context, 'Ended'),
-            ...ended.map((q) => _quizCard(context, q)),
-          ],
-        ],
-      );
-    }
-
+    // Always render a clear "No live quiz" state instead of hiding the
+    // screen: the empty array is an expected, normal response.
     return ListView(
-      padding: const EdgeInsets.all(AppTheme.paddingMedium),
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(
+        AppTheme.contentInset,
+        8,
+        AppTheme.contentInset,
+        28 + MediaQuery.paddingOf(context).bottom,
+      ),
       children: [
-        _sectionHeader(context, 'Live now'),
-        ...live.map((q) => _quizCard(context, q)),
-        if (upcoming.isNotEmpty) ...[
-          const SizedBox(height: AppTheme.paddingLarge),
-          _sectionHeader(context, 'Upcoming'),
-          ...upcoming.map((q) => _quizCard(context, q)),
-        ],
-        if (ended.isNotEmpty) ...[
-          const SizedBox(height: AppTheme.paddingLarge),
-          _sectionHeader(context, 'Ended'),
-          ...ended.map((q) => _quizCard(context, q)),
-        ],
+        if (live.isEmpty)
+          StaggeredEntrance(
+            child: InfoNoteCard(
+              icon: LucideIcons.listChecks,
+              tone: p.amber,
+              message:
+                  'No live quiz right now. Check back later, or see upcoming and past quizzes below.',
+            ),
+          )
+        else
+          ..._section('Live Now', live),
+        if (upcoming.isNotEmpty) ..._section('Upcoming', upcoming),
+        if (ended.isNotEmpty) ..._section('Ended', ended),
       ],
     );
   }
 
-  Widget _buildNoLiveQuizCard(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppTheme.paddingLarge),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceAlt,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppColors.border, width: 1),
-      ),
-      child: Column(
-        children: [
-          const Icon(Icons.quiz_outlined, size: 56, color: AppColors.textMuted),
-          const SizedBox(height: AppTheme.paddingMedium),
-          Text(
-            'No live quiz right now',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppTheme.paddingSmall),
-          Text(
-            'Check back later, or see upcoming and past quizzes below.',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionHeader(BuildContext context, String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppTheme.paddingSmall),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.bold,
+  List<Widget> _section(String title, List<QuizListItem> quizzes) => [
+    const SizedBox(height: 8),
+    SectionHeader(title: title),
+    const SizedBox(height: 4),
+    for (final (index, quiz) in quizzes.indexed)
+      StaggeredEntrance(
+        index: index,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: QuizListCard(quiz: quiz, onTap: () => _onQuizTap(quiz)),
         ),
       ),
-    );
-  }
-
-  Widget _quizCard(BuildContext context, QuizListItem quiz) {
-    final attempt = quiz.myAttempt;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppTheme.paddingMedium),
-      child: InkWell(
-        onTap: () => _onQuizTap(quiz),
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(AppTheme.paddingMedium),
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-            border: Border.all(color: _statusColor(quiz), width: 1),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      quiz.title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  _statusBadge(context, quiz),
-                ],
-              ),
-              const SizedBox(height: AppTheme.paddingSmall),
-              Text(
-                quiz.assessmentType == 'practical'
-                    ? 'Practical exam'
-                    : 'Knowledge quiz',
-                style: Theme.of(
-                  context,
-                ).textTheme.labelSmall?.copyWith(color: AppColors.primary),
-              ),
-              Text(
-                '${quiz.questionCount} question${quiz.questionCount == 1 ? '' : 's'}',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
-              ),
-              if (quiz.isUpcoming && quiz.startDate != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  'Starts ${_formatDate(quiz.startDate!)}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
-                ),
-              ],
-              if (attempt != null) ...[
-                const SizedBox(height: AppTheme.paddingSmall),
-                Text(
-                  'Your score: ${attempt.score}/${attempt.totalQuestions} (${attempt.percentage}%)',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Color _statusColor(QuizListItem quiz) {
-    if (quiz.isLive) return AppColors.success;
-    if (quiz.isUpcoming) return AppColors.warning;
-    return AppColors.border;
-  }
-
-  Widget _statusBadge(BuildContext context, QuizListItem quiz) {
-    final label = quiz.hasAttempted
-        ? 'Attempted'
-        : quiz.isLive
-        ? 'Live'
-        : quiz.isUpcoming
-        ? 'Upcoming'
-        : 'Ended';
-    final color = quiz.hasAttempted ? AppColors.primary : _statusColor(quiz);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(label, style: AppFonts.bold(color: color, fontSize: 11)),
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
+  ];
 }

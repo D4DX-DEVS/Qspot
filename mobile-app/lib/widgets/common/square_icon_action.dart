@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../animation/pressable_scale.dart';
+
 /// Icon button on a raised rounded-square card, e.g. the drawer's collapse
 /// button.
 class SquareIconAction extends StatelessWidget {
@@ -26,29 +28,32 @@ class SquareIconAction extends StatelessWidget {
         button: true,
         label: tooltip,
         excludeSemantics: true,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: radius,
-            boxShadow: [
-              BoxShadow(
-                color: scheme.shadow.withValues(alpha: 0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Material(
-            color: scheme.surfaceContainerLow,
-            shape: RoundedRectangleBorder(
+        child: PressableScale(
+          pressedScale: 0.88,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
               borderRadius: radius,
-              side: BorderSide(color: scheme.outlineVariant),
+              boxShadow: [
+                BoxShadow(
+                  color: scheme.shadow.withValues(alpha: 0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: onPressed,
-              child: SizedBox.square(
-                dimension: size,
-                child: Icon(icon, color: scheme.onSurface, size: size * 0.55),
+            child: Material(
+              color: scheme.surfaceContainerLow,
+              shape: RoundedRectangleBorder(
+                borderRadius: radius,
+                side: BorderSide(color: scheme.outlineVariant),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: onPressed,
+                child: SizedBox.square(
+                  dimension: size,
+                  child: Icon(icon, color: scheme.onSurface, size: size * 0.55),
+                ),
               ),
             ),
           ),

@@ -31,7 +31,7 @@ class QuizLanguageDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Select quiz language',
+              'Select Quiz Language',
               style: AppFonts.bold(color: p.text, fontSize: 19),
               textAlign: TextAlign.center,
             ),

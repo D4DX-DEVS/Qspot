@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../home/screens/redesigned_home_screen.dart';
@@ -6,6 +7,7 @@ import '../../profile/screens/profile_screen.dart';
 import '../../progress/screens/progress_screen.dart';
 import '../../subject/screens/subject_list_screen.dart';
 import '../../practice/screens/practice_hub_screen.dart';
+import '../../../widgets/animation/fade_on_change.dart';
 import '../../../widgets/common/floating_nav_bar.dart';
 import '../../../widgets/common/floating_nav_bar_item.dart';
 import '../provider/main_navigation_provider.dart';
@@ -70,7 +72,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     return HomeThemeScope(
       child: Scaffold(
         extendBody: true,
-        body: IndexedStack(index: nav.currentIndex, children: _screens),
+        body: FadeOnChange(
+          trigger: nav.currentIndex,
+          child: IndexedStack(index: nav.currentIndex, children: _screens),
+        ),
         bottomNavigationBar: _bottomBar(nav),
       ),
     );
@@ -82,28 +87,28 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       onTap: nav.setIndex,
       items: const [
         FloatingNavBarItem(
-          icon: Icons.home_outlined,
-          activeIcon: Icons.home_rounded,
+          icon: LucideIcons.house,
+          activeIcon: LucideIcons.house,
           label: 'Today',
         ),
         FloatingNavBarItem(
-          icon: Icons.menu_book_outlined,
-          activeIcon: Icons.menu_book,
+          icon: LucideIcons.bookOpen,
+          activeIcon: LucideIcons.bookOpen,
           label: 'Learn',
         ),
         FloatingNavBarItem(
-          icon: Icons.edit_note_outlined,
-          activeIcon: Icons.edit_note,
+          icon: LucideIcons.pencilLine,
+          activeIcon: LucideIcons.pencilLine,
           label: 'Practice',
         ),
         FloatingNavBarItem(
-          icon: Icons.insights_outlined,
-          activeIcon: Icons.insights,
+          icon: LucideIcons.chartNoAxesCombined,
+          activeIcon: LucideIcons.chartNoAxesCombined,
           label: 'Progress',
         ),
         FloatingNavBarItem(
-          icon: Icons.person_outline_rounded,
-          activeIcon: Icons.person_rounded,
+          icon: LucideIcons.userRound,
+          activeIcon: LucideIcons.userRound,
           label: 'Me',
         ),
       ],

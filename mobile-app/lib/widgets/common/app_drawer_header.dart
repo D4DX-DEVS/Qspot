@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../themes/app_fonts.dart';
 import '../../themes/home_palette.dart';
@@ -37,7 +38,7 @@ class AppDrawerHeader extends StatelessWidget {
               const AppLogo(width: 120),
               const Spacer(),
               SquareIconAction(
-                icon: Icons.keyboard_double_arrow_left_rounded,
+                icon: LucideIcons.chevronsLeft,
                 tooltip: 'Close',
                 onPressed: onClose,
               ),
@@ -64,8 +65,6 @@ class AppDrawerHeader extends StatelessWidget {
                       children: [
                         Text(
                           name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
                           style: AppFonts.bold(color: p.text, fontSize: 18),
                         ),
@@ -73,8 +72,7 @@ class AppDrawerHeader extends StatelessWidget {
                           const SizedBox(height: 2),
                           Text(
                             subtitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
                             style: AppFonts.regular(
                               color: p.textMuted,
                               fontSize: 13,

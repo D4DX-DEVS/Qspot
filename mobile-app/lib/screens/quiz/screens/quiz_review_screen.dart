@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../model/quiz_model.dart';
 
@@ -26,7 +28,7 @@ class QuizReviewScreen extends StatelessWidget {
       body: results.isEmpty
           ? Center(
               child: Text(
-                'No quiz results available',
+                'No Quiz Results Available',
                 style: AppFonts.regular(color: AppColors.textPrimary),
               ),
             )
@@ -50,10 +52,13 @@ class QuizReviewScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(AppTheme.paddingMedium),
                     itemCount: results.length,
                     itemBuilder: (context, index) {
-                      return _buildQuestionCard(
-                        context,
-                        results[index],
-                        index + 1,
+                      return StaggeredEntrance(
+                        index: index,
+                        child: _buildQuestionCard(
+                          context,
+                          results[index],
+                          index + 1,
+                        ),
                       );
                     },
                   ),
@@ -118,7 +123,7 @@ class QuizReviewScreen extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        isCorrect ? Icons.check : Icons.close,
+                        isCorrect ? LucideIcons.check : LucideIcons.x,
                         color: isCorrect ? AppColors.success : AppColors.danger,
                         size: 16,
                       ),
@@ -207,15 +212,17 @@ class QuizReviewScreen extends StatelessWidget {
                                   color: textColor,
                                   fontSize: 14,
                                 ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
                           softWrap: true,
                         ),
                       ),
                       if (showCorrectMark)
-                        Icon(Icons.check, color: AppColors.success, size: 18),
+                        Icon(
+                          LucideIcons.check,
+                          color: AppColors.success,
+                          size: 18,
+                        ),
                       if (showIncorrectMark)
-                        Icon(Icons.close, color: AppColors.danger, size: 18),
+                        Icon(LucideIcons.x, color: AppColors.danger, size: 18),
                     ],
                   ),
                 );
@@ -245,8 +252,6 @@ class QuizReviewScreen extends StatelessWidget {
                           color: AppColors.success,
                           fontSize: 14,
                         ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
                         softWrap: true,
                       ),
                     ],
@@ -270,15 +275,13 @@ class QuizReviewScreen extends StatelessWidget {
                                 userAnswerIndex >= 0 &&
                                 userAnswerIndex < options.length)
                             ? options[userAnswerIndex]
-                            : 'Not answered',
+                            : 'Not Answered',
                         style: AppFonts.bold(
                           color: isCorrect
                               ? AppColors.success
                               : AppColors.danger,
                           fontSize: 14,
                         ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
                         softWrap: true,
                       ),
                     ],

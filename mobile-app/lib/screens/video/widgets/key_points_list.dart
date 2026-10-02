@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../themes/app_fonts.dart';
 import '../../../themes/home_palette.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 
 /// "KEY POINTS" label over a list of ticked points.
 class KeyPointsList extends StatelessWidget {
@@ -24,34 +26,37 @@ class KeyPointsList extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        for (final point in points)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 22,
-                  height: 22,
-                  margin: const EdgeInsets.only(top: 1),
-                  decoration: BoxDecoration(
-                    color: p.brandSoft,
-                    shape: BoxShape.circle,
+        for (final (index, point) in points.indexed)
+          StaggeredEntrance(
+            index: index,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 22,
+                    height: 22,
+                    margin: const EdgeInsets.only(top: 1),
+                    decoration: BoxDecoration(
+                      color: p.brandSoft,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(LucideIcons.check, size: 13, color: p.brand),
                   ),
-                  child: Icon(Icons.check, size: 13, color: p.brand),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    point,
-                    style: AppFonts.regular(
-                      color: p.text,
-                      fontSize: 15,
-                      height: 1.45,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      point,
+                      style: AppFonts.regular(
+                        color: p.text,
+                        fontSize: 15,
+                        height: 1.45,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
       ],

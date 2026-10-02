@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../../services/learning_progress_service.dart';
 import '../../../themes/accent_tone.dart';
 import '../../../themes/home_palette.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../../widgets/common/info_note_card.dart';
 import '../../../widgets/common/section_header.dart';
@@ -61,7 +63,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
   Widget _buildPage(ProgressScreenProvider progress) {
     return Scaffold(
-      appBar: const CommonAppBar(title: 'Progress'),
+      appBar: const CommonAppBar(title: 'Progress', isDrawerNeeded: true),
       body: RefreshIndicator(onRefresh: _load, child: _buildBody(progress)),
     );
   }
@@ -90,36 +92,54 @@ class _ProgressScreenState extends State<ProgressScreen> {
         32 + MediaQuery.paddingOf(context).bottom,
       ),
       children: [
-        const SectionHeader(
-          title: 'Your learning, in view',
-          subtitle: 'Notice what is becoming familiar and choose your next step.',
+        const StaggeredEntrance(
+          child: SectionHeader(
+            title: 'Your Learning, in View',
+            subtitle:
+                'Notice what is becoming familiar and choose your next step.',
+          ),
         ),
         const SizedBox(height: 16),
-        _statsBand(data, palette),
+        StaggeredEntrance(index: 1, child: _statsBand(data, palette)),
         const SizedBox(height: 22),
-        const SectionHeader(title: 'Mastery'),
+        const StaggeredEntrance(
+          index: 2,
+          child: SectionHeader(title: 'Mastery'),
+        ),
         const SizedBox(height: 8),
-        MasteryRingCard(
-          percent: data.masteryPercent,
-          title: 'Lesson mastery',
-          detail: data.videosTotal == 0
-              ? 'Start your first lesson'
-              : '${data.videosCompleted} of ${data.videosTotal} started lessons complete',
-          highlight: data.videosInProgress > 0
-              ? '${data.videosInProgress} in progress'
-              : null,
-          highlightColor: palette.coral.color,
+        StaggeredEntrance(
+          index: 2,
+          child: MasteryRingCard(
+            percent: data.masteryPercent,
+            title: 'Lesson Mastery',
+            detail: data.videosTotal == 0
+                ? 'Start Your First Lesson'
+                : '${data.videosCompleted} of ${data.videosTotal} started lessons complete',
+            highlight: data.videosInProgress > 0
+                ? '${data.videosInProgress} In Progress'
+                : null,
+            highlightColor: palette.coral.color,
+          ),
         ),
         if (data.courses.isNotEmpty) ...[
           const SizedBox(height: 22),
-          _masteryGroup('Courses', data.courses),
+          StaggeredEntrance(
+            index: 3,
+            child: _masteryGroup('Courses', data.courses),
+          ),
         ],
         if (data.subjects.isNotEmpty) ...[
           const SizedBox(height: 22),
-          _masteryGroup('Chapters', data.subjects),
+          StaggeredEntrance(
+            index: 4,
+            child: _masteryGroup('Chapters', data.subjects),
+          ),
         ],
         const SizedBox(height: 22),
-        const SectionHeader(title: 'Recent activity'),
+        const StaggeredEntrance(
+          index: 5,
+          child: SectionHeader(title: 'Recent Activity'),
+        ),
         const SizedBox(height: 8),
         ..._recentActivity(data, palette),
       ],
@@ -130,31 +150,35 @@ class _ProgressScreenState extends State<ProgressScreen> {
     final stats = data.stats;
     final tiles = [
       StatTile(
-        icon: Icons.local_fire_department_outlined,
+        icon: LucideIcons.flame,
         color: palette.coral.color,
         value: '${stats?.currentStreak ?? 0}',
-        label: 'day streak',
+        label: 'Day Streak',
       ),
       StatTile(
-        icon: Icons.military_tech_outlined,
+        icon: LucideIcons.medal,
         color: palette.rose.color,
         value: '${stats?.level ?? 1}',
-        label: 'level',
+        label: 'Level',
       ),
       StatTile(
-        icon: Icons.bolt_outlined,
+        icon: LucideIcons.zap,
         color: palette.amber.color,
         value: '${stats?.xp ?? 0}',
         label: 'XP',
       ),
     ];
-    return Row(
-      children: [
-        for (var i = 0; i < tiles.length; i++) ...[
-          if (i > 0) const SizedBox(width: 10),
-          Expanded(child: tiles[i]),
+    // Tiles share the tallest one's height when a label wraps.
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < tiles.length; i++) ...[
+            if (i > 0) const SizedBox(width: 10),
+            Expanded(child: tiles[i]),
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -190,14 +214,14 @@ class _ProgressScreenState extends State<ProgressScreen> {
         <_ActivityRowData>[
           ...data.activities.map(
             (item) => _ActivityRowData(
-              kind: item.isVideoQuiz ? 'Video quiz' : 'Quiz',
+              kind: item.isVideoQuiz ? 'Video Quiz' : 'Quiz',
               title: item.title,
               detail:
                   '${item.score}/${item.totalQuestions} correct - ${item.percentage.round()}%',
               date: item.createdAt,
               icon: item.isVideoQuiz
-                  ? Icons.play_lesson_outlined
-                  : Icons.edit_note_outlined,
+                  ? LucideIcons.monitorPlay
+                  : LucideIcons.pencilLine,
               tone: item.isVideoQuiz ? palette.coral : palette.rose,
             ),
           ),
@@ -214,7 +238,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
     if (activities.isEmpty) {
       return [
         InfoNoteCard(
-          icon: Icons.timeline_outlined,
+          icon: LucideIcons.activity,
           tone: palette.slate,
           message: 'Your completed lessons and assessments will appear here.',
         ),
@@ -223,16 +247,22 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
     return activities
         .take(8)
+        .indexed
         .map(
-          (item) => Padding(
+          (entry) => Padding(
             padding: const EdgeInsets.only(bottom: 10),
-            child: ActivityTile(
-              icon: item.icon,
-              tone: item.tone,
-              kind: item.kind,
-              title: item.title,
-              detail: item.detail,
-              dateLabel: item.date == null ? null : _dateLabel(item.date!),
+            child: StaggeredEntrance(
+              index: entry.$1,
+              child: ActivityTile(
+                icon: entry.$2.icon,
+                tone: entry.$2.tone,
+                kind: entry.$2.kind,
+                title: entry.$2.title,
+                detail: entry.$2.detail,
+                dateLabel: entry.$2.date == null
+                    ? null
+                    : _dateLabel(entry.$2.date!),
+              ),
             ),
           ),
         )
@@ -247,13 +277,13 @@ class _ProgressScreenState extends State<ProgressScreen> {
               videos.getVideoById(entry.key)?.displayTitle ?? 'Lesson';
           final progress = entry.value;
           return _ActivityRowData(
-            kind: progress.completed ? 'Lesson complete' : 'Lesson',
+            kind: progress.completed ? 'Lesson Complete' : 'Lesson',
             title: title,
             detail: progress.completed ? 'Completed' : 'Viewed',
             date: progress.completedAt ?? progress.lastViewedAt,
             icon: progress.completed
-                ? Icons.check_circle_outline
-                : Icons.play_circle_outline,
+                ? LucideIcons.circleCheck
+                : LucideIcons.circlePlay,
             tone: progress.completed ? palette.mint : palette.coral,
           );
         })

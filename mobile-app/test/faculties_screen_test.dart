@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:qspot/screens/speaker/model/speaker_model.dart';
@@ -103,7 +104,7 @@ void main() {
 
     expect(find.text('His episode'), findsOneWidget);
     expect(find.text('Someone else'), findsOneWidget);
-    expect(find.text('Watch all 1 episode'), findsNWidgets(2));
+    expect(find.text('Watch All 1 Episode'), findsNWidgets(2));
   });
 
   testWidgets('says so when a faculty has no episodes yet', (tester) async {
@@ -124,7 +125,7 @@ void main() {
       ],
     );
 
-    await tester.tap(find.byIcon(Icons.search));
+    await tester.tap(find.byIcon(LucideIcons.search));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'suhaib');
     await tester.pumpAndSettle();

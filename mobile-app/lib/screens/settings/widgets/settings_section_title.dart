@@ -23,9 +23,11 @@ class SettingsSectionTitle extends StatelessWidget {
         children: [
           Icon(icon, color: scheme.primary, size: 22),
           const SizedBox(width: 10),
-          Text(
-            title,
-            style: AppFonts.bold(color: scheme.onSurface, fontSize: 17),
+          Flexible(
+            child: Text(
+              title,
+              style: AppFonts.bold(color: scheme.onSurface, fontSize: 17),
+            ),
           ),
         ],
       ),

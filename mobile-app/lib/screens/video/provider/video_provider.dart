@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../model/video_model.dart';
+import '../../subject/model/chapter_progress.dart';
 import '../../../services/api_client.dart';
 import '../../../services/common/storage_service.dart';
 import '../../../services/video_progress_service.dart';
@@ -72,6 +73,30 @@ class VideoProvider with ChangeNotifier {
       return b.datePublished.compareTo(a.datePublished);
     });
     return videos;
+  }
+
+  /// Finished and begun lesson counts for one subject. Upcoming episodes are
+  /// left out: they cannot be played yet.
+  ChapterProgress chapterProgressFor(String subjectId) {
+    var total = 0;
+    var completed = 0;
+    var started = 0;
+    for (final video in _allVideos) {
+      if (video.subjectId != subjectId || video.isUpcoming) continue;
+      total++;
+      final progress = _progressByVideo[video.id];
+      if (progress == null) continue;
+      if (progress.completed) {
+        completed++;
+      } else if (progress.positionSeconds > 0) {
+        started++;
+      }
+    }
+    return ChapterProgress(
+      total: total,
+      completed: completed,
+      started: started,
+    );
   }
 
   bool get isLoading => _loadingState == VideoLoadingState.loading;
