@@ -31,6 +31,7 @@ import '../../question/screens/ask_question_screen.dart';
 import '../../question/screens/my_questions_screen.dart';
 import '../../quiz/screens/quiz_list_screen.dart';
 import '../../schedule/screens/schedule_screen.dart';
+import '../../speaker/provider/speaker_provider.dart';
 import '../../subject/model/subject_model.dart';
 import '../../subject/provider/subject_provider.dart';
 import '../../subject/screens/subject_videos_screen.dart';
@@ -77,6 +78,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   Future<void> _initialize() async {
     await Future.wait([
       context.read<VideoProvider>().initialize(),
+      context.read<SpeakerProvider>().initialize(),
       context.read<SubjectProvider>().initialize(),
       context.read<BookmarkProvider>().initialize(),
       context.read<NotificationProvider>().initialize(),
@@ -92,6 +94,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   Future<void> _refresh() async {
     await Future.wait([
       context.read<VideoProvider>().refresh(),
+      context.read<SpeakerProvider>().refresh(),
       context.read<SubjectProvider>().refresh(),
       context.read<BannerProvider>().refresh(),
       _loadToday(),
