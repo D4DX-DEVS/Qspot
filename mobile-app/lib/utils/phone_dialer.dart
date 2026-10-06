@@ -28,3 +28,39 @@ Future<void> callPhone(BuildContext context, String number) async {
     duration: const Duration(seconds: 4),
   );
 }
+
+/// Opens WhatsApp for [number]. If WhatsApp is unavailable, the web handoff
+/// is attempted before falling back to copying the number.
+Future<void> messageOnWhatsApp(BuildContext context, String number) async {
+  final digits = number.replaceAll(RegExp(r'\D'), '');
+  var launched = false;
+  try {
+    launched = await launchUrl(
+      Uri(scheme: 'whatsapp', host: 'send', queryParameters: {'phone': digits}),
+      mode: LaunchMode.externalApplication,
+    );
+  } catch (e) {
+    debugPrint('Error launching WhatsApp: $e');
+  }
+
+  if (!launched) {
+    try {
+      launched = await launchUrl(
+        Uri.https('wa.me', digits),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (e) {
+      debugPrint('Error launching WhatsApp web: $e');
+    }
+  }
+
+  if (launched || !context.mounted) return;
+  await Clipboard.setData(ClipboardData(text: number));
+  if (!context.mounted) return;
+  AppSnackBar.show(
+    context,
+    message: "Can't open WhatsApp. Number copied: $number",
+    color: AppColors.warningOrange,
+    duration: const Duration(seconds: 4),
+  );
+}
