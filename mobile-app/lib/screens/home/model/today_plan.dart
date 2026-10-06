@@ -63,13 +63,36 @@ class TodayPlan {
     if (overview == null) return const TodayPlan();
 
     final attention = <TodayLearningItem>[];
-    // Quizzes the learner already started come first: finish what you began.
-    final todo = <TodayLearningItem>[
-      ...overview.continueItems.where((item) => item.kind == 'quiz'),
-    ];
+    final todo = <TodayLearningItem>[];
     final comingUp = <TodayLearningItem>[];
+
+    // The API can return the same item in `continue` and `upcoming`. Keep one
+    // actionable copy across those sources while preserving the server's
+    // ordering inside a single list. The hero may intentionally repeat the
+    // first item so the learner can see it and its detailed row together.
+    final blocked = <String>{};
+    final continueSeen = <String>{};
+    void addContinuation(TodayLearningItem item) {
+      final key = '${item.kind}:${item.id}';
+      if (item.id.isEmpty || continueSeen.add(key)) {
+        todo.add(item);
+        if (item.id.isNotEmpty) blocked.add(key);
+      }
+    }
+
+    final next = overview.next;
+
+    // Quizzes the learner already started come first: finish what you began.
+    for (final item in overview.continueItems) {
+      if (item.kind == 'quiz' && !_doneStatuses.contains(item.status)) {
+        addContinuation(item);
+      }
+    }
+
     for (final item in overview.upcoming) {
       if (_doneStatuses.contains(item.status)) continue;
+      final key = '${item.kind}:${item.id}';
+      if (item.id.isNotEmpty && blocked.contains(key)) continue;
       if (item.status == 'overdue') {
         attention.add(item);
       } else if (item.kind == 'assignment' ||
@@ -80,13 +103,20 @@ class TodayPlan {
       }
     }
 
-    final next = overview.next;
-    final heroItem =
-        next == null ||
-            next.title.trim().isEmpty ||
-            _doneStatuses.contains(next.status)
-        ? null
-        : next;
+    bool isActionable(TodayLearningItem item) =>
+        item.title.trim().isNotEmpty && !_doneStatuses.contains(item.status);
+    TodayLearningItem? firstActionable(List<TodayLearningItem> items) {
+      for (final item in items) {
+        if (isActionable(item)) return item;
+      }
+      return null;
+    }
+
+    final fallbackNext =
+        firstActionable(attention) ??
+        firstActionable(todo) ??
+        firstActionable(comingUp);
+    final heroItem = next != null && isActionable(next) ? next : fallbackNext;
     final lessonsInProgress = overview.continueItems.any(
       (item) => item.kind == 'video',
     );
@@ -106,7 +136,14 @@ class TodayPlan {
         if (!lessonsInProgress) TodaySection.jumpBackIn,
       ],
       heroItem: heroItem,
-      isCaughtUp: heroItem == null,
+      // A missing `next` is not proof that the learner is caught up: older
+      // API responses may still provide overdue or queued work in the lists.
+      isCaughtUp:
+          heroItem == null &&
+          attention.isEmpty &&
+          todo.isEmpty &&
+          comingUp.isEmpty &&
+          !lessonsInProgress,
     );
   }
 }

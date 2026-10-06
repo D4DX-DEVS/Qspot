@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qspot/screens/subject/model/chapter_progress.dart';
 import 'package:qspot/screens/subject/widgets/chapter_class_tile.dart';
+import 'package:qspot/screens/subject/widgets/chapter_thumbnail.dart';
 import 'package:qspot/screens/video/model/video_model.dart';
 import 'package:qspot/screens/video/provider/video_provider.dart';
 import 'package:qspot/services/video_progress_service.dart';
@@ -201,6 +202,23 @@ void main() {
         await _pump(tester, brightness: brightness, _tile(onTap: () => taps++));
         await tester.tap(find.byType(ChapterClassTile));
         expect(taps, 1);
+      });
+
+      testWidgets('chapter artwork keeps its full source width', (
+        tester,
+      ) async {
+        await _pump(
+          tester,
+          brightness: brightness,
+          width: 400,
+          _tile(imageUrl: 'https://example.invalid/quran-recitation.png'),
+        );
+
+        final thumbnail = find.descendant(
+          of: find.byType(ChapterThumbnail),
+          matching: find.byType(AspectRatio),
+        );
+        expect(tester.getSize(thumbnail), const Size(96, 60));
       });
 
       testWidgets('a long name on a small phone with big text is shown whole', (

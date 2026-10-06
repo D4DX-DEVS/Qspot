@@ -6,7 +6,9 @@ import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../themes/home_palette.dart';
 import '../../../widgets/animation/pressable_scale.dart';
+import '../../../widgets/animation/idle_attention.dart';
 import '../../../widgets/common/banner_headline.dart';
+import '../../../widgets/common/gold_pill_button.dart';
 import '../../../widgets/common/gradient_card.dart';
 import 'sparkle_accent.dart';
 
@@ -22,6 +24,7 @@ class TodayHeroCard extends StatelessWidget {
     this.meta,
     this.thumbnailUrl,
     this.showSparkle = false,
+    this.actionLabel = 'Start now',
   });
 
   final String title;
@@ -32,6 +35,7 @@ class TodayHeroCard extends StatelessWidget {
   final String? meta;
   final String? thumbnailUrl;
   final bool showSparkle;
+  final String actionLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -39,8 +43,14 @@ class TodayHeroCard extends StatelessWidget {
     final hasThumb = thumb != null && thumb.isNotEmpty;
     final brand = HomePalette.of(context).brand;
     return PressableScale(
-      haptic: true,
+      // The nested CTA owns haptic feedback; keeping the card shell silent
+      // avoids firing two selection pulses when the CTA is tapped.
+      haptic: false,
       child: GestureDetector(
+        // The CTA owns the accessible action. Keeping the decorative/card
+        // tap out of the semantics tree prevents the full hero from being
+        // announced and outlined as one giant button.
+        excludeFromSemantics: true,
         onTap: onAction,
         child: GradientCard(
           backdrop: hasThumb
@@ -93,10 +103,12 @@ class TodayHeroCard extends StatelessWidget {
           minHeight: hasThumb ? 240 : 178,
           padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
           child: SizedBox(
-            height: hasThumb ? 240 - 42 : null,
+            height: hasThumb ? 240 - 42 : 178 - 42,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: hasThumb
+                  ? MainAxisAlignment.spaceBetween
+                  : MainAxisAlignment.center,
               children: [
                 if (eyebrow != null || meta != null)
                   Row(
@@ -128,6 +140,16 @@ class TodayHeroCard extends StatelessWidget {
                   title: title,
                   titleSize: 15,
                   titleTrailing: showSparkle ? const SparkleAccent() : null,
+                ),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: IdleAttention(
+                    child: GoldPillButton(
+                      label: actionLabel,
+                      icon: LucideIcons.play,
+                      onPressed: onAction,
+                    ),
+                  ),
                 ),
               ],
             ),

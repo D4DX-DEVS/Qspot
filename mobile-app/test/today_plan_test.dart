@@ -92,6 +92,23 @@ void main() {
       expect(plan.sections.first, TodaySection.todo);
     });
 
+    test('filters completed continuations and de-duplicates API lists', () {
+      final plan = _plan(
+        next: _item('assignment', 'overdue', id: 'late'),
+        keepGoing: [
+          _item('quiz', 'graded', id: 'done'),
+          _item('quiz', 'live', id: 'q'),
+        ],
+        upcoming: [
+          _item('assignment', 'overdue', id: 'late'),
+          _item('quiz', 'live', id: 'q'),
+          _item('assignment', 'upcoming', id: 'a'),
+        ],
+      );
+      expect(plan.attention, hasLength(1));
+      expect(plan.todo.map((item) => item.id), ['q', 'a']);
+    });
+
     test(
       'quizzes that have not opened yet and lessons wait under coming up',
       () {
@@ -134,6 +151,23 @@ void main() {
       final plan = _plan(next: _item('assignment', 'graded'));
       expect(plan.heroItem, isNull);
       expect(plan.isCaughtUp, isTrue);
+    });
+
+    test('missing next does not hide overdue work', () {
+      final plan = _plan(
+        upcoming: [_item('assignment', 'overdue', id: 'late')],
+      );
+      expect(plan.isCaughtUp, isFalse);
+      expect(plan.attention, hasLength(1));
+      expect(plan.heroItem?.id, 'late');
+    });
+
+    test('does not promote an untitled fallback item into the hero', () {
+      final plan = _plan(
+        upcoming: [_item('assignment', 'overdue', title: '  ')],
+      );
+      expect(plan.heroItem, isNull);
+      expect(plan.isCaughtUp, isFalse);
     });
 
     test('an untitled next step is ignored', () {

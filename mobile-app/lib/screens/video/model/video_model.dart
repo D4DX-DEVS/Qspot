@@ -1,3 +1,5 @@
+import '../../../utils/json_parsing.dart';
+
 /// A handout attached to an episode.
 class VideoDownload {
   final String title;
@@ -155,11 +157,11 @@ class VideoModel {
                 .where((item) => item.title.isNotEmpty && item.url.isNotEmpty)
                 .toList()
           : const [],
-      order: (json['order'] as num?)?.toInt() ?? 0,
-      durationSeconds: (json['durationSeconds'] as num?)?.toInt() ?? 0,
-      questionCount: (json['questionCount'] as num?)?.toInt() ?? 0,
+      order: jsonInt(json['order']) ?? 0,
+      durationSeconds: jsonInt(json['durationSeconds']) ?? 0,
+      questionCount: jsonInt(json['questionCount']) ?? 0,
       isUpcoming: upcoming,
-      progress: (json['progress'] as num?)?.toInt() ?? 0,
+      progress: jsonInt(json['progress']) ?? 0,
     );
   }
 

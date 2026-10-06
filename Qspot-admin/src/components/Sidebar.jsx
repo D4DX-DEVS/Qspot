@@ -15,7 +15,8 @@ import {
   FaGraduationCap,
   FaLayerGroup,
   FaTasks,
-  FaChartLine
+  FaChartLine,
+  FaBars
 } from 'react-icons/fa';
 import logo from '../assets/Logo 01.png';
 import ConfirmDialog from './dialogs/ConfirmDialog';
@@ -56,6 +57,7 @@ const menuGroups = [
   {
     label: 'App',
     items: [
+      { id: 'navigation', label: 'Navigation', icon: FaBars, path: '/admin/navigation' },
       { id: 'banner', label: 'Banner', icon: FaImage, path: '/admin/banner' },
       { id: 'notifications', label: 'Notifications', icon: FaBell, path: '/admin/notifications' }
     ]

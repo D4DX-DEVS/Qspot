@@ -20,6 +20,7 @@ import CurriculumPage from './pages/CurriculumPage';
 import AssignmentsPage from './pages/AssignmentsPage';
 import UserActivityPage from './pages/UserActivityPage';
 import LearningAnalyticsPage from './pages/LearningAnalyticsPage';
+import NavigationPage from './pages/NavigationPage';
 import RequireAuth from './auth/RequireAuth';
 import ErrorBoundary from './components/ErrorBoundary';
 import NotFound from './components/NotFound';
@@ -142,6 +143,7 @@ function App() {
               }
             />
             <Route path="/admin/analytics" element={<RequireAuth><LearningAnalyticsPage /></RequireAuth>} />
+            <Route path="/admin/navigation" element={<RequireAuth><NavigationPage /></RequireAuth>} />
             <Route
               path="/admin/schedules"
               element={

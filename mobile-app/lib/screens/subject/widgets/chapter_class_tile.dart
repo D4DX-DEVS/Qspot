@@ -31,6 +31,7 @@ class ChapterClassTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = HomePalette.of(context);
+    final thumbnailWidth = MediaQuery.sizeOf(context).width < 360 ? 72.0 : 96.0;
     return Semantics(
       button: true,
       excludeSemantics: true,
@@ -47,7 +48,13 @@ class ChapterClassTile extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ChapterThumbnail(number: number, imageUrl: imageUrl),
+            // Preserve the source artwork ratio while giving the text column
+            // enough room on narrow phones and larger accessibility text.
+            ChapterThumbnail(
+              number: number,
+              imageUrl: imageUrl,
+              width: thumbnailWidth,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

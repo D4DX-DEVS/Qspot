@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../../services/today_service.dart';
+import '../../../services/navigation_config_service.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/home_palette.dart';
 import '../../../widgets/animation/pressable_scale.dart';
@@ -34,6 +35,7 @@ import '../../schedule/screens/schedule_screen.dart';
 import '../../speaker/provider/speaker_provider.dart';
 import '../../subject/model/subject_model.dart';
 import '../../subject/provider/subject_provider.dart';
+import '../../subject/screens/subject_list_screen.dart';
 import '../../subject/screens/subject_videos_screen.dart';
 import '../../video/model/video_model.dart';
 import '../../video/provider/video_provider.dart';
@@ -60,6 +62,9 @@ class RedesignedHomeScreen extends StatefulWidget {
 
 class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   final RedesignedHomeScreenProvider _home = RedesignedHomeScreenProvider();
+  Set<String> _visibleHomeSections = {
+    for (final item in NavigationConfigService.defaultHomeSections) item.key,
+  };
 
   late final MainNavigationProvider _nav;
 
@@ -73,10 +78,12 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _initialize());
   }
 
-  void _onTabChanged() => _home.setTabVisible(_nav.currentIndex == 0);
+  void _onTabChanged() =>
+      _home.setTabVisible(_nav.keyAt(_nav.currentIndex) == 'today');
 
   Future<void> _initialize() async {
     await Future.wait([
+      _loadNavigationConfig(),
       context.read<VideoProvider>().initialize(),
       context.read<SpeakerProvider>().initialize(),
       context.read<SubjectProvider>().initialize(),
@@ -86,6 +93,16 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
       _loadToday(),
     ]);
   }
+
+  Future<void> _loadNavigationConfig() async {
+    final config = await NavigationConfigService.fetchConfig();
+    if (!mounted) return;
+    setState(() {
+      _visibleHomeSections = {for (final item in config.homeSections) item.key};
+    });
+  }
+
+  bool _showHomeSection(String key) => _visibleHomeSections.contains(key);
 
   Future<void> _loadToday() async {
     await _home.loadToday();
@@ -138,10 +155,14 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
               ),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  _banners(),
-                  StaggeredEntrance(index: 1, child: _statsStrip()),
-                  const SizedBox(height: 18),
-                  StaggeredEntrance(index: 2, child: _shortcuts()),
+                  if (_showHomeSection('banners')) _banners(),
+                  if (_showHomeSection('stats'))
+                    StaggeredEntrance(index: 1, child: _statsStrip()),
+                  if (_showHomeSection('stats') &&
+                      _showHomeSection('shortcuts'))
+                    const SizedBox(height: 18),
+                  if (_showHomeSection('shortcuts'))
+                    StaggeredEntrance(index: 2, child: _shortcuts()),
                   ..._sections(),
                 ]),
               ),
@@ -156,6 +177,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   /// bottom of the skyline.
   Widget _top() {
     final topInset = MediaQuery.paddingOf(context).top;
+    final heroVisible = _showHomeSection('hero');
     final name = context.watch<AuthProvider>().user?.name ?? '';
     return Stack(
       children: [
@@ -163,7 +185,10 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
           top: 0,
           left: 0,
           right: 0,
-          height: topInset + 178 + TodayGreeting.height,
+          height:
+              topInset +
+              (heroVisible ? 178 : CommonAppBar.baseHeight + 24) +
+              TodayGreeting.height,
           child: const TodaySkyBackdrop(),
         ),
         Padding(
@@ -178,7 +203,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TodayGreeting(name: name),
-                _todayCard(),
+                if (heroVisible) _todayCard(),
               ],
             ),
           ),
@@ -254,6 +279,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
           : '${item.estimatedMinutes} min',
       title: item.title,
       thumbnailUrl: video?.thumbnailUrl,
+      actionLabel: _itemActionLabel(item),
       onAction: () => _openTodayItem(item, video),
     );
   }
@@ -357,8 +383,24 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
     final plan = _plan;
     return [
       for (var i = 0; i < plan.sections.length; i++)
-        _section(plan.sections[i], 3 + i),
+        if (_showHomeSection(_homeSectionKey(plan.sections[i])))
+          _section(plan.sections[i], 3 + i),
     ];
+  }
+
+  String _homeSectionKey(TodaySection section) {
+    switch (section) {
+      case TodaySection.attention:
+        return 'attention';
+      case TodaySection.todo:
+        return 'todo';
+      case TodaySection.comingUp:
+        return 'comingUp';
+      case TodaySection.jumpBackIn:
+        return 'jumpBackIn';
+      case TodaySection.subjects:
+        return 'subjects';
+    }
   }
 
   Widget _section(TodaySection section, int index) {
@@ -508,6 +550,15 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
     return null;
   }
 
+  String _itemActionLabel(TodayLearningItem item) {
+    if (item.status == 'overdue') return 'Handle now';
+    if (item.kind == 'assignment') return 'Open assignment';
+    if (item.kind == 'quiz') return 'Start practice';
+    if (item.kind == 'schedule') return 'View session';
+    if (item.status == 'in-progress') return 'Continue lesson';
+    return 'Start lesson';
+  }
+
   void _openTodayItem(TodayLearningItem item, VideoModel? video) {
     if (item.kind == 'assignment') return _openAssignments();
     if (item.kind == 'quiz') return _openPractice();
@@ -528,7 +579,18 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   }
 
   /// Learn is a tab of the shell, so switch to it instead of pushing a page.
-  void _openLearn() => _nav.setIndex(MainNavigationProvider.learnTabIndex);
+  void _openLearn() {
+    if (_nav.hasKey('learn')) {
+      _nav.setIndex(_nav.indexForKey('learn'));
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const HomeThemeScope(child: SubjectListScreen()),
+      ),
+    );
+  }
 
   // The screens below can finish work, so Today reloads when they close.
   void _openSubject(SubjectModel subject) => Navigator.push(

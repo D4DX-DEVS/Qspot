@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qspot/widgets/animation/animated_progress_bar.dart';
 import 'package:qspot/widgets/animation/count_up_text.dart';
+import 'package:qspot/widgets/animation/idle_attention.dart';
 import 'package:qspot/widgets/animation/pop_on_change.dart';
 import 'package:qspot/widgets/animation/pressable_scale.dart';
 import 'package:qspot/widgets/animation/shake_on_change.dart';
@@ -117,6 +118,43 @@ void main() {
       await tester.pump();
       expect(_scaleOf(tester), 1);
       await gesture.up();
+    });
+  });
+
+  group('IdleAttention', () {
+    testWidgets('adds a quiet pulse when motion is available', (tester) async {
+      await tester.pumpWidget(
+        _host(const IdleAttention(child: SizedBox(key: _target))),
+      );
+      await tester.pump(const Duration(milliseconds: 700));
+      final scale = tester
+          .widget<Transform>(
+            find.ancestor(
+              of: find.byKey(_target),
+              matching: find.byType(Transform),
+            ),
+          )
+          .transform
+          .getMaxScaleOnAxis();
+      expect(scale, greaterThan(1));
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('stays still when animations are turned off', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          const IdleAttention(child: SizedBox(key: _target)),
+          disableAnimations: true,
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 700));
+      expect(
+        find.ancestor(
+          of: find.byKey(_target),
+          matching: find.byType(Transform),
+        ),
+        findsNothing,
+      );
     });
   });
 

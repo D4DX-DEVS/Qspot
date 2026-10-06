@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../services/api_client.dart';
+import '../utils/json_parsing.dart';
 
 /// Server-side watch state for one video.
 ///
@@ -52,15 +53,15 @@ class VideoProgressStatus {
   factory VideoProgressStatus.fromJson(Map<String, dynamic> json) {
     return VideoProgressStatus(
       videoId: (json['videoId'] ?? '').toString(),
-      positionSeconds: (json['positionSeconds'] as num?)?.toInt() ?? 0,
-      maxPositionSeconds: (json['maxPositionSeconds'] as num?)?.toInt() ?? 0,
-      watchedSeconds: (json['watchedSeconds'] as num?)?.toInt() ?? 0,
-      durationSeconds: (json['durationSeconds'] as num?)?.toInt() ?? 0,
+      positionSeconds: jsonInt(json['positionSeconds']) ?? 0,
+      maxPositionSeconds: jsonInt(json['maxPositionSeconds']) ?? 0,
+      watchedSeconds: jsonInt(json['watchedSeconds']) ?? 0,
+      durationSeconds: jsonInt(json['durationSeconds']) ?? 0,
       completed: json['completed'] == true,
       completedAt: _date(json['completedAt']),
       lastViewedAt: _date(json['lastViewedAt']),
       status: (json['status'] ?? 'not-started').toString(),
-      questionCount: (json['questionCount'] as num?)?.toInt() ?? 0,
+      questionCount: jsonInt(json['questionCount']) ?? 0,
       quizAttempted: json['quizAttempted'] == true,
     );
   }
@@ -116,7 +117,7 @@ class VideoQuestionItem {
       optionsEn: _options(json['options_en']),
       optionsMl: _options(json['options_ml']),
       difficulty: (json['difficulty'] ?? 'Easy').toString(),
-      order: (json['order'] as num?)?.toInt() ?? 0,
+      order: jsonInt(json['order']) ?? 0,
     );
   }
 }
@@ -190,9 +191,9 @@ class VideoQuizResult {
       attemptId: (json['attemptId'] ?? '').toString(),
       videoId: (json['videoId'] ?? '').toString(),
       language: (json['language'] ?? 'en').toString(),
-      score: (json['score'] as num?)?.toInt() ?? 0,
-      totalQuestions: (json['totalQuestions'] as num?)?.toInt() ?? 0,
-      percentage: (json['percentage'] as num?)?.toInt() ?? 0,
+      score: jsonInt(json['score']) ?? 0,
+      totalQuestions: jsonInt(json['totalQuestions']) ?? 0,
+      percentage: jsonInt(json['percentage']) ?? 0,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString())
           : null,
@@ -244,8 +245,8 @@ class VideoPracticeSettings {
     return VideoPracticeSettings(
       available: json['available'] != false,
       timerMode: (json['timerMode'] ?? 'none').toString(),
-      overallTimeLimit: (json['overallTimeLimit'] as num?)?.toInt(),
-      perQuestionTimeLimit: (json['perQuestionTimeLimit'] as num?)?.toInt(),
+      overallTimeLimit: jsonInt(json['overallTimeLimit']),
+      perQuestionTimeLimit: jsonInt(json['perQuestionTimeLimit']),
     );
   }
 }

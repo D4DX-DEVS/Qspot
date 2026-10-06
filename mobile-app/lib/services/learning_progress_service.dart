@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'api_client.dart';
+import '../utils/json_parsing.dart';
 
 class MasteryItem {
   const MasteryItem({
@@ -24,8 +25,8 @@ class MasteryItem {
     Map<String, dynamic> json, {
     required String idKey,
   }) {
-    final total = (json['total'] as num?)?.toInt() ?? 0;
-    final completed = (json['completed'] as num?)?.toInt() ?? 0;
+    final total = jsonInt(json['total']) ?? 0;
+    final completed = jsonInt(json['completed']) ?? 0;
     return MasteryItem(
       id: (json[idKey] ?? '').toString(),
       title: (json['title'] ?? json['name'] ?? 'Untitled').toString(),
@@ -61,9 +62,9 @@ class ProgressActivity {
     return ProgressActivity(
       kind: kind,
       title: (json['title'] ?? '').toString(),
-      score: (json['score'] as num?)?.toInt() ?? 0,
-      totalQuestions: (json['totalQuestions'] as num?)?.toInt() ?? 0,
-      percentage: (json['percentage'] as num?) ?? 0,
+      score: jsonInt(json['score']) ?? 0,
+      totalQuestions: jsonInt(json['totalQuestions']) ?? 0,
+      percentage: jsonDouble(json['percentage']) ?? 0,
       createdAt: DateTime.tryParse((json['createdAt'] ?? '').toString()),
     );
   }
@@ -86,10 +87,10 @@ class LearningStats {
 
   factory LearningStats.fromJson(Map<String, dynamic> json) {
     return LearningStats(
-      currentStreak: (json['currentStreak'] as num?)?.toInt() ?? 0,
-      longestStreak: (json['longestStreak'] as num?)?.toInt() ?? 0,
-      xp: (json['xp'] as num?)?.toInt() ?? 0,
-      level: ((json['level'] as num?)?.toInt() ?? 1).clamp(1, 999).toInt(),
+      currentStreak: jsonInt(json['currentStreak']) ?? 0,
+      longestStreak: jsonInt(json['longestStreak']) ?? 0,
+      xp: jsonInt(json['xp']) ?? 0,
+      level: (jsonInt(json['level']) ?? 1).clamp(1, 999).toInt(),
       lastActivityDate: DateTime.tryParse(
         '${json['lastActivityDate'] ?? ''}T00:00:00',
       ),
@@ -172,9 +173,9 @@ class LearningProgressData {
         });
 
     return LearningProgressData(
-      videosTotal: (videos['total'] as num?)?.toInt() ?? 0,
-      videosCompleted: (videos['completed'] as num?)?.toInt() ?? 0,
-      videosInProgress: (videos['inProgress'] as num?)?.toInt() ?? 0,
+      videosTotal: jsonInt(videos['total']) ?? 0,
+      videosCompleted: jsonInt(videos['completed']) ?? 0,
+      videosInProgress: jsonInt(videos['inProgress']) ?? 0,
       courses: parseMastery(progress['courses'], 'courseId'),
       subjects: parseMastery(progress['subjects'], 'subjectId'),
       activities: activities,

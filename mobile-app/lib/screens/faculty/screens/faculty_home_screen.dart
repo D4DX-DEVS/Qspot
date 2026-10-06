@@ -291,7 +291,7 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
           'feedback': feedback.text.trim(),
         },
       );
-      if (mounted) {
+      if (mounted && sheetContext.mounted) {
         Navigator.of(sheetContext).pop();
         _load();
       }

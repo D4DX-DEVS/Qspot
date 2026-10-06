@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../services/api_client.dart';
+import '../../../utils/json_parsing.dart';
 import '../model/quiz_model.dart';
 
 enum QuizLoadingState { idle, loading, loaded, error }
@@ -170,8 +171,8 @@ class QuizProvider with ChangeNotifier {
 
   void _applySessionData(Map<String, dynamic> data) {
     _quizTitle = data['title'] as String? ?? '';
-    _overallTimeLimit = (data['overallTimeLimit'] as num?)?.toInt();
-    _perQuestionTimeLimit = (data['perQuestionTimeLimit'] as num?)?.toInt();
+    _overallTimeLimit = jsonInt(data['overallTimeLimit']);
+    _perQuestionTimeLimit = jsonInt(data['perQuestionTimeLimit']);
     _timerMode = data['timerMode'] as String? ?? 'none';
     _sessionQuestions = (data['questions'] as List<dynamic>? ?? [])
         .map((e) => QuizQuestion.fromJson(e as Map<String, dynamic>))

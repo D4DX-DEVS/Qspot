@@ -12,7 +12,7 @@ class FloatingNavBar extends StatelessWidget {
     required this.items,
     required this.currentIndex,
     required this.onTap,
-  }) : assert(items.length >= 2);
+  }) : assert(items.length >= 1);
 
   /// Widest the bar grows (landscape / tablets); it stays centered beyond this.
   static const double maxWidth = 560;
@@ -25,7 +25,9 @@ class FloatingNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     // Maps the selected index onto -1..1 so the highlight slides between slots.
-    final slot = -1 + 2 * currentIndex / (items.length - 1);
+    final slot = items.length == 1
+        ? 0.0
+        : -1 + 2 * currentIndex / (items.length - 1);
 
     return SafeArea(
       top: false,
@@ -66,7 +68,7 @@ class FloatingNavBar extends StatelessWidget {
                         duration: const Duration(milliseconds: 320),
                         curve: Curves.easeOutCubic,
                         child: FractionallySizedBox(
-                          widthFactor: 1 / items.length,
+                          widthFactor: items.length == 1 ? 1 : 1 / items.length,
                           heightFactor: 1,
                           child: DecoratedBox(
                             decoration: BoxDecoration(

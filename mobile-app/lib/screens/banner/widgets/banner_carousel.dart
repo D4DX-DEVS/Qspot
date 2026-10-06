@@ -54,8 +54,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
               autoPlayInterval: const Duration(seconds: 5),
               autoPlayAnimationDuration: const Duration(milliseconds: 800),
               autoPlayCurve: Curves.fastOutSlowIn,
-              enlargeCenterPage: true,
-              viewportFraction: 0.9,
+              enlargeCenterPage: false,
+              viewportFraction: 1,
               onPageChanged: (index, reason) => carousel.setIndex(index),
             ),
             items: widget.banners.map((banner) {
@@ -78,8 +78,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
   Widget _buildBannerItem(BannerModel banner) {
     final p = HomePalette.of(context);
     return Container(
-      width: MediaQuery.of(context).size.width,
-      margin: const EdgeInsets.symmetric(horizontal: 5.0),
+      width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         boxShadow: [

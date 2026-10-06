@@ -43,6 +43,7 @@ class ApiClient {
   static const Duration timeout = Duration(seconds: 15);
   static const String _tokenKey = 'auth_token';
   static final http.Client _defaultClient = http.Client();
+  static Future<void>? _sessionExpiryInFlight;
 
   /// Replaced by deterministic clients in tests. Production always uses
   /// [_defaultClient].
@@ -111,14 +112,24 @@ class ApiClient {
   }
 
   static Future<void> _handleSessionExpired() async {
-    await StorageService.remove(_tokenKey);
-    await StorageService.remove('user_data');
-    final nav = navigatorKey.currentState;
-    if (nav != null) {
-      nav.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
+    final existing = _sessionExpiryInFlight;
+    if (existing != null) return existing;
+    final work = () async {
+      await StorageService.remove(_tokenKey);
+      await StorageService.remove('user_data');
+      final nav = navigatorKey.currentState;
+      if (nav != null && nav.mounted) {
+        nav.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+      }
+    }();
+    _sessionExpiryInFlight = work;
+    try {
+      await work;
+    } finally {
+      _sessionExpiryInFlight = null;
     }
   }
 

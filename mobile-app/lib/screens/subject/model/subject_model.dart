@@ -1,3 +1,5 @@
+import '../../../utils/json_parsing.dart';
+
 /// One line of the "what is inside" guide shown the first time a chapter opens.
 class SubjectGuidePoint {
   final String icon;
@@ -81,7 +83,7 @@ class SubjectModel {
       id: (json['_id'] ?? json['id'])?.toString() ?? '0',
       subject: (json['name'] ?? json['subject'])?.toString() ?? '',
       subImage: (json['image'] ?? json['sub_image'])?.toString(),
-      order: (json['order'] as num?)?.toInt() ?? 0,
+      order: jsonInt(json['order']) ?? 0,
       guideTitle: rawTitle.isEmpty ? defaultGuideTitle : rawTitle,
       guidePoints: parsed.isEmpty ? defaultGuidePoints : parsed,
       courseId: courseId,

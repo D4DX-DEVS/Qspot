@@ -6,6 +6,8 @@
 /// `correctAnswer` field, and it comes straight from the server.
 library;
 
+import '../../../utils/json_parsing.dart';
+
 /// Summary of the current user's attempt on a quiz, as embedded in
 /// [QuizListItem.myAttempt].
 class MyAttemptSummary {
@@ -26,9 +28,9 @@ class MyAttemptSummary {
   factory MyAttemptSummary.fromJson(Map<String, dynamic> json) {
     return MyAttemptSummary(
       attemptId: json['attemptId']?.toString() ?? '',
-      score: (json['score'] as num?)?.toInt() ?? 0,
-      totalQuestions: (json['totalQuestions'] as num?)?.toInt() ?? 0,
-      percentage: json['percentage'] as num? ?? 0,
+      score: jsonInt(json['score']) ?? 0,
+      totalQuestions: jsonInt(json['totalQuestions']) ?? 0,
+      percentage: jsonDouble(json['percentage']) ?? 0,
       createdAt: _parseDate(json['createdAt']),
     );
   }
@@ -76,14 +78,14 @@ class QuizListItem {
       assessmentType: json['assessmentType'] as String? ?? 'quiz',
       startDate: _parseDate(json['startDate']),
       endDate: _parseDate(json['endDate']),
-      numberOfQuestions: (json['numberOfQuestions'] as num?)?.toInt() ?? 0,
+      numberOfQuestions: jsonInt(json['numberOfQuestions']) ?? 0,
       questionsRandomization: json['questionsRandomization'] as bool? ?? false,
-      overallTimeLimit: (json['overallTimeLimit'] as num?)?.toInt(),
-      perQuestionTimeLimit: (json['perQuestionTimeLimit'] as num?)?.toInt(),
+      overallTimeLimit: jsonInt(json['overallTimeLimit']),
+      perQuestionTimeLimit: jsonInt(json['perQuestionTimeLimit']),
       timerMode: json['timerMode'] as String? ?? 'none',
-      optionsCount: (json['optionsCount'] as num?)?.toInt(),
+      optionsCount: jsonInt(json['optionsCount']),
       status: json['status'] as String? ?? 'ended',
-      questionCount: (json['questionCount'] as num?)?.toInt() ?? 0,
+      questionCount: jsonInt(json['questionCount']) ?? 0,
       myAttempt: json['myAttempt'] is Map<String, dynamic>
           ? MyAttemptSummary.fromJson(json['myAttempt'] as Map<String, dynamic>)
           : null,
@@ -184,8 +186,8 @@ class QuestionResult {
       questionMl: json['question_ml'] as String? ?? '',
       optionsEn: _parseOptions(json['options_en']),
       optionsMl: _parseOptions(json['options_ml']),
-      attemptedAnswer: (json['attemptedAnswer'] as num?)?.toInt(),
-      correctAnswer: (json['correctAnswer'] as num?)?.toInt() ?? -1,
+      attemptedAnswer: jsonInt(json['attemptedAnswer']),
+      correctAnswer: jsonInt(json['correctAnswer']) ?? -1,
       isCorrect: json['isCorrect'] as bool? ?? false,
     );
   }
@@ -238,10 +240,10 @@ class QuizAttemptResult {
       quizId: json['quizId']?.toString() ?? '',
       title: json['title'] as String? ?? '',
       language: json['language'] as String? ?? 'en',
-      score: (json['score'] as num?)?.toInt() ?? 0,
-      totalQuestions: (json['totalQuestions'] as num?)?.toInt() ?? 0,
-      percentage: json['percentage'] as num? ?? 0,
-      totalDuration: (json['totalDuration'] as num?)?.toInt() ?? 0,
+      score: jsonInt(json['score']) ?? 0,
+      totalQuestions: jsonInt(json['totalQuestions']) ?? 0,
+      percentage: jsonDouble(json['percentage']) ?? 0,
+      totalDuration: jsonInt(json['totalDuration']) ?? 0,
       createdAt: _parseDate(json['createdAt']),
       results:
           (json['results'] as List<dynamic>?)
@@ -283,10 +285,10 @@ class QuizHistoryItem {
       quizId: json['quizId']?.toString() ?? '',
       title: json['title'] as String? ?? '',
       language: json['language'] as String? ?? 'en',
-      score: (json['score'] as num?)?.toInt() ?? 0,
-      totalQuestions: (json['totalQuestions'] as num?)?.toInt() ?? 0,
-      percentage: json['percentage'] as num? ?? 0,
-      totalDuration: (json['totalDuration'] as num?)?.toInt() ?? 0,
+      score: jsonInt(json['score']) ?? 0,
+      totalQuestions: jsonInt(json['totalQuestions']) ?? 0,
+      percentage: jsonDouble(json['percentage']) ?? 0,
+      totalDuration: jsonInt(json['totalDuration']) ?? 0,
       createdAt: _parseDate(json['createdAt']),
     );
   }
