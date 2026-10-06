@@ -13,6 +13,7 @@ class InitialsAvatar extends StatelessWidget {
     this.size = 44,
     this.gradient,
     this.color,
+    this.imageProvider,
     this.ringWidth = 2,
   });
 
@@ -22,6 +23,10 @@ class InitialsAvatar extends StatelessWidget {
 
   /// Used when [gradient] is null.
   final Color? color;
+
+  /// Optional photo to show instead of initials. The initials remain the
+  /// fallback if the remote image cannot be decoded or loaded.
+  final ImageProvider<Object>? imageProvider;
 
   /// 0 hides the ring.
   final double ringWidth;
@@ -49,10 +54,31 @@ class InitialsAvatar extends StatelessWidget {
           ),
         ],
       ),
-      child: Text(
-        nameInitials(name),
-        style: AppFonts.bold(color: AppColors.white, fontSize: size * 0.36),
-      ),
+      child: imageProvider == null
+          ? Text(
+              nameInitials(name),
+              style: AppFonts.bold(
+                color: AppColors.white,
+                fontSize: size * 0.36,
+              ),
+            )
+          : ClipOval(
+              child: Image(
+                image: imageProvider!,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Center(
+                  child: Text(
+                    nameInitials(name),
+                    style: AppFonts.bold(
+                      color: AppColors.white,
+                      fontSize: size * 0.36,
+                    ),
+                  ),
+                ),
+              ),
+            ),
     );
   }
 }

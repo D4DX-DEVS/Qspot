@@ -77,6 +77,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
 
   Widget _buildBannerItem(BannerModel banner) {
     final p = HomePalette.of(context);
+    if (_isWeeklyQuizBanner(banner)) return _buildQuizBanner(p);
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -112,6 +113,96 @@ class _BannerCarouselState extends State<BannerCarousel> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  bool _isWeeklyQuizBanner(BannerModel banner) {
+    final type = banner.type?.trim().toLowerCase() ?? '';
+    final title = banner.title?.trim().toLowerCase() ?? '';
+    if (type == 'weekly_quiz' || title.contains('weekly quiz')) return true;
+
+    // Keep compatibility with the seeded placeholder banners until the API
+    // starts returning explicit banner metadata.
+    final uri = Uri.tryParse(banner.imageUrl);
+    final text = uri?.queryParameters['text']?.toLowerCase() ?? '';
+    return text.contains('weekly quiz');
+  }
+
+  Widget _buildQuizBanner(HomePalette palette) {
+    return Semantics(
+      label:
+          'Weekly Quiz is Live. Test your knowledge and keep your learning streak alive.',
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: const Color(0xFF111827),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.black.withValues(alpha: 0.1),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            Positioned(
+              right: 26,
+              top: 24,
+              child: Container(
+                width: 82,
+                height: 82,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: palette.amber.color.withValues(alpha: 0.14),
+                  border: Border.all(
+                    color: palette.amber.color.withValues(alpha: 0.42),
+                    width: 1.5,
+                  ),
+                ),
+                child: Icon(
+                  LucideIcons.trophy,
+                  color: palette.amber.color,
+                  size: 38,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 22, 128, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'WEEKLY QUIZ',
+                    style: AppFonts.bold(
+                      color: palette.amber.color,
+                      fontSize: 11,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    'Weekly Quiz is Live',
+                    style: AppFonts.bold(color: AppColors.white, fontSize: 21),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Test your knowledge and keep your learning streak alive.',
+                    style: AppFonts.regular(
+                      color: AppColors.white70,
+                      fontSize: 12,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

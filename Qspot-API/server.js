@@ -83,6 +83,7 @@ const assignmentRoutes = require('./routes/assignments');
 const learningStatsRoutes = require('./routes/learningStats');
 const analyticsRoutes = require('./routes/analytics');
 const facultyRoutes = require('./routes/faculty');
+const certificateRoutes = require('./routes/certificates');
 const { publicRouter: navigationRoutes, adminRouter: adminNavigationRoutes } = require('./routes/navigation');
 
 // Routes. More specific paths are mounted before their less specific parent
@@ -112,6 +113,7 @@ app.use('/api/video-questions', videoQuestionRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/navigation', navigationRoutes);
 app.use('/api/admin/navigation', adminNavigationRoutes);
+app.use('/api/certificates', certificateRoutes);
 
 // JSON 404 for anything unmatched.
 app.use((req, res) => {

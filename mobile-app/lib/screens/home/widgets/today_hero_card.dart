@@ -25,6 +25,7 @@ class TodayHeroCard extends StatelessWidget {
     this.thumbnailUrl,
     this.showSparkle = false,
     this.actionLabel = 'Start now',
+    this.progressLabel,
   });
 
   final String title;
@@ -36,6 +37,7 @@ class TodayHeroCard extends StatelessWidget {
   final String? thumbnailUrl;
   final bool showSparkle;
   final String actionLabel;
+  final String? progressLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -100,10 +102,12 @@ class TodayHeroCard extends StatelessWidget {
                   ],
                 )
               : null,
-          minHeight: hasThumb ? 240 : 178,
+          minHeight: hasThumb ? 220 : 158,
           padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
-          child: SizedBox(
-            height: hasThumb ? 240 - 42 : 178 - 42,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: hasThumb ? 220 - 42 : 158 - 42,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: hasThumb
@@ -141,6 +145,14 @@ class TodayHeroCard extends StatelessWidget {
                   titleSize: 15,
                   titleTrailing: showSparkle ? const SparkleAccent() : null,
                 ),
+                if (progressLabel != null)
+                  Text(
+                    progressLabel!,
+                    style: AppFonts.regular(
+                      color: AppColors.white70,
+                      fontSize: 11,
+                    ),
+                  ),
                 Align(
                   alignment: AlignmentDirectional.centerStart,
                   child: IdleAttention(

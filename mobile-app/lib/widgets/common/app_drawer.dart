@@ -108,6 +108,7 @@ class AppDrawer extends StatelessWidget {
                   0,
                   AppDrawerHeader(
                     name: name.isEmpty ? 'Welcome' : name,
+                    imageUrl: user?.profileImageUrl,
                     subtitle: classNumber.isNotEmpty
                         ? 'Class $classNumber'
                         : (user?.phone ?? ''),

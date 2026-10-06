@@ -17,11 +17,13 @@ class AppDrawerHeader extends StatelessWidget {
     required this.name,
     required this.subtitle,
     required this.onClose,
+    this.imageUrl,
   });
 
   final String name;
   final String subtitle;
   final VoidCallback onClose;
+  final String? imageUrl;
 
   static const double _avatarSize = 60;
 
@@ -88,6 +90,9 @@ class AppDrawerHeader extends StatelessWidget {
                 name: name,
                 size: _avatarSize,
                 color: p.brand,
+                imageProvider: imageUrl == null
+                    ? null
+                    : NetworkImage(imageUrl!),
                 ringWidth: 3,
               ),
             ],

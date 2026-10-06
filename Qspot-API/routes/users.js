@@ -1,6 +1,8 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
+const fs = require('fs/promises');
+const path = require('path');
 const User = require('../models/user');
 const Question = require('../models/question');
 const Video = require('../models/videos');
@@ -16,6 +18,12 @@ const Assignment = require('../models/assignment');
 const AssignmentSubmission = require('../models/assignmentSubmission');
 const { requestWhatsappOtp, verifyWhatsappOtp } = require('../services/otpWhatsapp');
 const { authenticateUser } = require('../middlewares/auth');
+const {
+  profileUpload,
+  CDN_ENABLED,
+  getCdnUrl,
+  deleteFile
+} = require('../services/cdnStorageService');
 
 const router = express.Router();
 
@@ -119,11 +127,51 @@ const publicUser = (user) => ({
   class: user.class,
   courseIds: (user.courseIds || []).map((id) => String(id)),
   email: user.email || '',
+  profileImage: user.profileImage || '',
   role: user.role || 'student',
   dob: user.dob || null,
   consent: user.consent && user.consent.by ? user.consent : null,
   language: user.language || 'en'
 });
+
+const uploadProfilePhoto = (req, res, next) => profileUpload.single('image')(req, res, next);
+
+const removeStoredProfileImage = async (user) => {
+  if (!user) return;
+  if (user.profileImageKey) {
+    try {
+      await deleteFile(user.profileImageKey);
+    } catch (error) {
+      console.warn('Could not delete old profile photo from CDN:', error.message);
+    }
+  }
+  if (!CDN_ENABLED && typeof user.profileImage === 'string' && user.profileImage.startsWith('/uploads/profile/')) {
+    const filename = path.basename(user.profileImage);
+    try {
+      await fs.unlink(path.join(__dirname, '..', 'uploads', 'profile', filename));
+    } catch (error) {
+      if (error.code !== 'ENOENT') console.warn('Could not delete old profile photo:', error.message);
+    }
+  }
+};
+
+const removeUploadedProfileFile = async (file) => {
+  if (!file) return;
+  if (CDN_ENABLED && file.key) {
+    try {
+      await deleteFile(file.key);
+    } catch (error) {
+      console.warn('Could not delete failed profile photo from CDN:', error.message);
+    }
+  }
+  if (!CDN_ENABLED && file.filename) {
+    try {
+      await fs.unlink(path.join(__dirname, '..', 'uploads', 'profile', path.basename(file.filename)));
+    } catch (error) {
+      if (error.code !== 'ENOENT') console.warn('Could not delete failed profile photo:', error.message);
+    }
+  }
+};
 
 // POST /api/user/register
 router.post('/register', async (req, res) => {
@@ -293,12 +341,19 @@ router.get('/me', authenticateUser, async (req, res) => {
 });
 
 // PUT /api/user/me
-router.put('/me', authenticateUser, async (req, res) => {
+router.put('/me', authenticateUser, uploadProfilePhoto, async (req, res) => {
   try {
     const { name, class: userClass, email, language, consent, courseIds } = req.body || {};
+    const removeProfileImage = String(req.body?.removeProfileImage || '').toLowerCase() === 'true';
     const update = {};
-    if (name !== undefined) update.name = name;
-    if (userClass !== undefined) update.class = userClass;
+    if (name !== undefined) {
+      if (!String(name).trim()) return res.status(400).json({ message: 'Name cannot be empty' });
+      update.name = String(name).trim();
+    }
+    if (userClass !== undefined) {
+      if (!String(userClass).trim()) return res.status(400).json({ message: 'Class cannot be empty' });
+      update.class = String(userClass).trim();
+    }
     if (email !== undefined) update.email = email;
     if (courseIds !== undefined) {
       if (!Array.isArray(courseIds)) {
@@ -328,11 +383,28 @@ router.put('/me', authenticateUser, async (req, res) => {
       update.consent = { by: consent.by, name: String(consent.name).trim().slice(0, 160), at: new Date() };
     }
 
+    const currentUser = await User.findById(req.user.id);
+    if (!currentUser) return res.status(404).json({ message: 'User not found' });
+    if (req.file) {
+      update.profileImage = CDN_ENABLED
+        ? getCdnUrl(req.file.key)
+        : `/uploads/profile/${req.file.filename}`;
+      update.profileImageKey = CDN_ENABLED ? req.file.key : '';
+    } else if (removeProfileImage) {
+      update.profileImage = '';
+      update.profileImageKey = '';
+    }
+
     const user = await User.findByIdAndUpdate(req.user.id, update, { new: true, runValidators: true });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    // Remove the previous asset only after the database points at the new
+    // value, so a failed update never destroys a working avatar.
+    if (req.file || removeProfileImage) await removeStoredProfileImage(currentUser);
+
     res.json({ message: 'Profile updated', user: publicUser(user) });
   } catch (error) {
+    await removeUploadedProfileFile(req.file);
     console.error('Error updating current user:', error);
     res.status(500).json({ message: 'Internal server error' });
   }

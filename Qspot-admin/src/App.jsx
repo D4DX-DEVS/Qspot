@@ -21,6 +21,7 @@ import AssignmentsPage from './pages/AssignmentsPage';
 import UserActivityPage from './pages/UserActivityPage';
 import LearningAnalyticsPage from './pages/LearningAnalyticsPage';
 import NavigationPage from './pages/NavigationPage';
+import CertificatesPage from './pages/CertificatesPage';
 import RequireAuth from './auth/RequireAuth';
 import ErrorBoundary from './components/ErrorBoundary';
 import NotFound from './components/NotFound';
@@ -181,6 +182,14 @@ function App() {
               element={
                 <RequireAuth>
                   <QuizAttemptDetailPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/admin/certificates"
+              element={
+                <RequireAuth>
+                  <CertificatesPage />
                 </RequireAuth>
               }
             />

@@ -7,7 +7,7 @@ import '../../auth/widgets/art/mosque_skyline_painter.dart';
 /// Warm sky fading into the page with a soft mosque skyline, drawn behind
 /// the Today greeting. Fills its (bounded) parent.
 class TodaySkyBackdrop extends StatelessWidget {
-  const TodaySkyBackdrop({super.key, this.skylineOpacity = 0.9});
+  const TodaySkyBackdrop({super.key, this.skylineOpacity = 0.08});
 
   final double skylineOpacity;
 
@@ -27,7 +27,7 @@ class TodaySkyBackdrop extends StatelessWidget {
       // top edge instead of leaving a band mid-sky.
       child: Opacity(
         // The night skyline's lit windows are loud; keep it further back.
-        opacity: palette.isDark ? skylineOpacity * 0.65 : skylineOpacity,
+        opacity: palette.isDark ? skylineOpacity * 1.25 : skylineOpacity,
         child: AuthArt(
           painter: (art) =>
               MosqueSkylinePainter(art, showBookStand: false, showMoon: false),

@@ -162,7 +162,7 @@ class AppColors {
   static const LinearGradient homeLightHeroGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF5C0A30), Color(0xFF86164A), Color(0xFFB0445E)],
+    colors: [Color(0xFF720B3A), Color(0xFFA9365B)],
   );
   static const LinearGradient homeDarkHeroGradient = LinearGradient(
     begin: Alignment.topLeft,
@@ -176,7 +176,7 @@ class AppColors {
   );
 
   /// Warm glow at the top of the Today header, behind the skyline.
-  static const Color homeLightSkyTop = Color(0xFFF4CFB8);
+  static const Color homeLightSkyTop = Color(0xFFFFFBF6);
   static const Color homeDarkSkyTop = Color(0xFF2A1522);
 
   static const Color homeLightAmber = Color(0xFFA8660F);

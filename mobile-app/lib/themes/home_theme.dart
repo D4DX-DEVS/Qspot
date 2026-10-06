@@ -20,7 +20,7 @@ class HomeTheme {
       brightness: p.brightness,
       primary: p.brand,
       onPrimary: AppColors.onPrimary,
-      primaryContainer: p.brandSoft,
+      primaryContainer: p.isDark ? p.brandSoft : const Color(0xFFF8E9EE),
       onPrimaryContainer: p.text,
       secondary: p.coral.color,
       onSecondary: AppColors.onPrimary,

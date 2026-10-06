@@ -1,4 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
@@ -11,6 +16,7 @@ import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/initials_avatar.dart';
 import '../../../widgets/common/nav_list_card.dart';
 import '../../../widgets/common/section_header.dart';
 import '../widgets/profile_identity_card.dart';
@@ -67,6 +73,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             if (classNumber.isNotEmpty) 'Class $classNumber',
             language == 'ml' ? 'മലയാളം' : 'English',
           ],
+          imageUrl: user?.profileImageUrl,
           onEdit: () => _editProfile(context, user),
         );
       },
@@ -79,6 +86,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       text: user?.classNumber ?? '',
     );
     String language = user?.language ?? 'en';
+    final picker = ImagePicker();
+    XFile? selectedPhoto;
+    Uint8List? selectedPhotoBytes;
+    var removePhoto = false;
+    String? photoError;
 
     final saved = await showDialog<bool>(
       context: context,
@@ -96,6 +108,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              InitialsAvatar(
+                name: (user?.name ?? '').trim().isEmpty
+                    ? 'Student'
+                    : user!.name!,
+                size: 84,
+                gradient: HomePalette.of(dialogContext).heroGradient,
+                imageProvider: selectedPhotoBytes != null
+                    ? MemoryImage(selectedPhotoBytes!)
+                    : (removePhoto || user?.profileImageUrl == null
+                          ? null
+                          : NetworkImage(user!.profileImageUrl!)),
+                ringWidth: 2.5,
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      try {
+                        final picked = await picker.pickImage(
+                          source: ImageSource.gallery,
+                          imageQuality: 85,
+                          maxWidth: 1000,
+                          maxHeight: 1000,
+                        );
+                        if (picked == null) return;
+                        final bytes = await picked.readAsBytes();
+                        setDialogState(() {
+                          selectedPhoto = picked;
+                          selectedPhotoBytes = bytes;
+                          removePhoto = false;
+                          photoError = null;
+                        });
+                      } catch (_) {
+                        setDialogState(() {
+                          photoError = 'Could not choose that photo.';
+                        });
+                      }
+                    },
+                    icon: const Icon(LucideIcons.imagePlus, size: 17),
+                    label: Text(
+                      selectedPhoto == null ? 'Choose photo' : 'Change photo',
+                    ),
+                  ),
+                  if (selectedPhotoBytes != null ||
+                      (!removePhoto && user?.profileImageUrl != null))
+                    TextButton(
+                      onPressed: () => setDialogState(() {
+                        selectedPhoto = null;
+                        selectedPhotoBytes = null;
+                        removePhoto = true;
+                        photoError = null;
+                      }),
+                      child: const Text('Remove'),
+                    ),
+                ],
+              ),
+              if (photoError != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    photoError!,
+                    style: AppFonts.regular(
+                      color: Theme.of(dialogContext).colorScheme.error,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
               TextField(
                 controller: nameController,
                 style: AppFonts.regular(
@@ -168,25 +250,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (saved != true || !context.mounted) return;
 
     try {
-      // `PUT /api/user/me` is the single source of truth for language here —
-      // `/api/user/prefs.language` is left alone to avoid double-writing the
-      // same value through two endpoints (see report for the deviation note).
-      //
-      // AuthProvider (owned by the auth agent) has no setter to apply the
-      // updated user back into its in-memory cache, so the new name/class/
-      // language only take full effect after the next login — the identity
-      // card below is refreshed by calling initialize() where possible.
-      await ApiClient.put(
-        '/api/user/me',
-        body: {
-          'name': nameController.text.trim(),
-          'class': classController.text.trim(),
-          'language': language,
-        },
-      );
+      final fields = <String, String>{
+        'name': nameController.text.trim(),
+        'class': classController.text.trim(),
+        'language': language,
+        if (removePhoto) 'removeProfileImage': 'true',
+      };
+      dynamic response;
+      if (selectedPhoto != null) {
+        final bytes = selectedPhotoBytes ?? await selectedPhoto!.readAsBytes();
+        response = await ApiClient.multipart(
+          '/api/user/me',
+          method: 'PUT',
+          fields: fields,
+          files: [
+            http.MultipartFile.fromBytes(
+              'image',
+              bytes,
+              filename: _photoFileName(selectedPhoto!.name),
+              contentType: MediaType.parse(_photoMimeType(selectedPhoto!.name)),
+            ),
+          ],
+        );
+      } else {
+        response = await ApiClient.put('/api/user/me', body: fields);
+      }
       if (!context.mounted) return;
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      await authProvider.initialize();
+      final userJson = response is Map && response['user'] is Map
+          ? Map<String, dynamic>.from(response['user'] as Map)
+          : null;
+      if (userJson != null) {
+        await authProvider.updateUser(UserModel.fromJson(userJson));
+      } else {
+        await authProvider.initialize();
+      }
       if (!context.mounted) return;
       AppSnackBar.show(
         context,
@@ -203,6 +301,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
         color: AppColors.danger,
       );
     }
+  }
+
+  String _photoMimeType(String filename) {
+    final extension = filename.toLowerCase().split('.').last;
+    return switch (extension) {
+      'png' => 'image/png',
+      'gif' => 'image/gif',
+      'webp' => 'image/webp',
+      _ => 'image/jpeg',
+    };
+  }
+
+  String _photoFileName(String filename) {
+    final extension = filename.toLowerCase().split('.').last;
+    final safeExtension =
+        const {'jpg', 'jpeg', 'png', 'gif', 'webp'}.contains(extension)
+        ? extension
+        : 'jpg';
+    return 'profile.$safeExtension';
   }
 
   Widget _shortcuts(BuildContext context) {

@@ -33,4 +33,19 @@ void main() {
       expect(find.byType(CarouselSlider), findsOneWidget);
     });
   }
+
+  testWidgets('explicit weekly quiz metadata renders the quiz artwork', (
+    tester,
+  ) async {
+    await _pump(tester, [
+      BannerModel(
+        id: 'quiz',
+        image: 'https://example.invalid/quiz.png',
+        type: 'weekly_quiz',
+      ),
+    ], Brightness.light);
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Weekly Quiz is Live'), findsOneWidget);
+  });
 }

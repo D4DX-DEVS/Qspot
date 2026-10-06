@@ -12,7 +12,8 @@ import {
   FiList,
   FiBarChart2,
   FiHelpCircle,
-  FiUsers
+  FiUsers,
+  FiAward
 } from 'react-icons/fi';
 import Sidebar from '../components/Sidebar';
 import ConfirmDialog from '../components/dialogs/ConfirmDialog';
@@ -38,7 +39,14 @@ const DEFAULT_FORM = {
   requireCompletedVideo: false,
   optionsCount: '',
   questionsRandomization: false,
-  isEnable: false
+  isEnable: false,
+  certificateEnabled: false,
+  certificateTitle: 'Certificate of Achievement',
+  certificateIssuerName: '',
+  certificateSignatoryName: '',
+  certificateDescription: 'For successfully completing the examination.',
+  certificateMinimumPercentage: '0',
+  certificateEligibleClasses: ''
 };
 
 const toDateInputValue = isoToLocalDateTimeInput;
@@ -107,7 +115,14 @@ const QuizzesPage = () => {
       requireCompletedVideo: Boolean(quiz.conditions?.requireCompletedVideo),
       optionsCount: quiz.optionsCount != null ? String(quiz.optionsCount) : '',
       questionsRandomization: Boolean(quiz.questionsRandomization),
-      isEnable: Boolean(quiz.isEnable)
+      isEnable: Boolean(quiz.isEnable),
+      certificateEnabled: Boolean(quiz.certificate?.enabled),
+      certificateTitle: quiz.certificate?.title || 'Certificate of Achievement',
+      certificateIssuerName: quiz.certificate?.issuerName || '',
+      certificateSignatoryName: quiz.certificate?.signatoryName || '',
+      certificateDescription: quiz.certificate?.description || 'For successfully completing the examination.',
+      certificateMinimumPercentage: String(quiz.certificate?.minimumPercentage ?? 0),
+      certificateEligibleClasses: Array.isArray(quiz.certificate?.eligibleClasses) ? quiz.certificate.eligibleClasses.join(', ') : ''
     });
     setFormError('');
     setShowModal(true);
@@ -157,6 +172,15 @@ const QuizzesPage = () => {
     payload.timerMode = form.timerMode;
     payload.allowedClasses = form.allowedClasses;
     payload.conditions = { requireCompletedVideo: form.requireCompletedVideo };
+    payload.certificate = {
+      enabled: form.certificateEnabled,
+      title: form.certificateTitle.trim(),
+      issuerName: form.certificateIssuerName.trim(),
+      signatoryName: form.certificateSignatoryName.trim(),
+      description: form.certificateDescription.trim(),
+      minimumPercentage: Number(form.certificateMinimumPercentage || 0),
+      eligibleClasses: form.certificateEligibleClasses
+    };
     if (form.overallTimeLimit !== '') payload.overallTimeLimit = Number(form.overallTimeLimit);
     if (form.perQuestionTimeLimit !== '') payload.perQuestionTimeLimit = Number(form.perQuestionTimeLimit);
     if (form.optionsCount !== '') payload.optionsCount = Number(form.optionsCount);
@@ -280,6 +304,12 @@ const QuizzesPage = () => {
                       className="inline-flex items-center gap-1.5 rounded-lg border border-white/12 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 transition hover:border-[#EFB078]/40 hover:text-white"
                     >
                       <FiBarChart2 size={13} /> Results
+                    </button>
+                    <button
+                      onClick={() => navigate(`/admin/certificates?quizId=${quiz._id}`)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#EFB078]/25 bg-[#EFB078]/5 px-3 py-1.5 text-xs font-semibold text-[#F4C58F] transition hover:border-[#EFB078]/60 hover:bg-[#EFB078]/15"
+                    >
+                      <FiAward size={13} /> Certificates
                     </button>
                     <button
                       onClick={() => openEditModal(quiz)}
@@ -505,6 +535,55 @@ const QuizzesPage = () => {
                     />
                   </button>
                 </div>
+              </div>
+
+              <div className="rounded-2xl border border-[#EFB078]/20 bg-[#EFB078]/5 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-white">Certificate settings</h3>
+                    <p className="mt-1 text-xs text-white/55">Configure the certificate issued after this exam ends.</p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-pressed={form.certificateEnabled}
+                    onClick={() => handleFieldChange('certificateEnabled', !form.certificateEnabled)}
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full border border-white/15 transition ${form.certificateEnabled ? 'bg-[#EFB078]/80' : 'bg-gray-700'}`}
+                  >
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${form.certificateEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+                {form.certificateEnabled && (
+                  <div className="mt-4 space-y-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="block text-xs font-semibold uppercase tracking-[0.16em] text-white/65">
+                        Certificate title
+                        <input value={form.certificateTitle} onChange={(e) => handleFieldChange('certificateTitle', e.target.value)} className="mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm normal-case tracking-normal text-white focus:border-[#EFB078]/60 focus:outline-none" placeholder="Certificate of Achievement" />
+                      </label>
+                      <label className="block text-xs font-semibold uppercase tracking-[0.16em] text-white/65">
+                        Minimum percentage
+                        <input type="number" min="0" max="100" value={form.certificateMinimumPercentage} onChange={(e) => handleFieldChange('certificateMinimumPercentage', e.target.value)} className="mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm normal-case tracking-normal text-white focus:border-[#EFB078]/60 focus:outline-none" />
+                      </label>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="block text-xs font-semibold uppercase tracking-[0.16em] text-white/65">
+                        Issuing organization
+                        <input value={form.certificateIssuerName} onChange={(e) => handleFieldChange('certificateIssuerName', e.target.value)} className="mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm normal-case tracking-normal text-white focus:border-[#EFB078]/60 focus:outline-none" placeholder="QSPOT Learning" />
+                      </label>
+                      <label className="block text-xs font-semibold uppercase tracking-[0.16em] text-white/65">
+                        Signatory
+                        <input value={form.certificateSignatoryName} onChange={(e) => handleFieldChange('certificateSignatoryName', e.target.value)} className="mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm normal-case tracking-normal text-white focus:border-[#EFB078]/60 focus:outline-none" placeholder="Director / Principal" />
+                      </label>
+                    </div>
+                    <label className="block text-xs font-semibold uppercase tracking-[0.16em] text-white/65">
+                      Eligible classes (optional)
+                      <input value={form.certificateEligibleClasses} onChange={(e) => handleFieldChange('certificateEligibleClasses', e.target.value)} className="mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm normal-case tracking-normal text-white focus:border-[#EFB078]/60 focus:outline-none" placeholder="8, 9" />
+                    </label>
+                    <label className="block text-xs font-semibold uppercase tracking-[0.16em] text-white/65">
+                      Certificate description
+                      <textarea rows={2} value={form.certificateDescription} onChange={(e) => handleFieldChange('certificateDescription', e.target.value)} className="mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm normal-case tracking-normal text-white focus:border-[#EFB078]/60 focus:outline-none" />
+                    </label>
+                  </div>
+                )}
               </div>
 
               {formError && (

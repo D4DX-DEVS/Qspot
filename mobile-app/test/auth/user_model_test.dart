@@ -87,5 +87,16 @@ void main() {
       expect(roundTripped.language, original.language);
       expect(roundTripped.token, original.token);
     });
+
+    test('parses and resolves a profile image URL', () {
+      final user = UserModel.fromJson({
+        'phone': '9876543210',
+        'profileImage': '/uploads/profile/student.jpg',
+      });
+
+      expect(user.profileImage, '/uploads/profile/student.jpg');
+      expect(user.profileImageUrl, endsWith('/uploads/profile/student.jpg'));
+      expect(user.toJson()['profileImage'], '/uploads/profile/student.jpg');
+    });
   });
 }

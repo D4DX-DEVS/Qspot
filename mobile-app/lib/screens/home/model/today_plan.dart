@@ -57,6 +57,8 @@ class TodayPlan {
     _ => comingUp.length,
   };
 
+  int get openItemCount => attention.length + todo.length + comingUp.length;
+
   /// Without an overview (not loaded, or the request failed) this is the
   /// plain layout: lessons, then subjects.
   factory TodayPlan.fromOverview(TodayOverview? overview) {

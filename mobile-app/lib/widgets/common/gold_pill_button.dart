@@ -48,15 +48,15 @@ class GoldPillButton extends StatelessWidget {
               onTap: onPressed,
               customBorder: const StadiumBorder(),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 46),
+                constraints: const BoxConstraints(minHeight: 44),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (icon != null) ...[
-                        Icon(icon, color: _ink, size: 19),
-                        const SizedBox(width: 10),
+                        Icon(icon, color: _ink, size: 18),
+                        const SizedBox(width: 8),
                       ],
                       Flexible(
                         child: Text(
@@ -64,8 +64,8 @@ class GoldPillButton extends StatelessWidget {
                           style: AppFonts.semiBold(color: _ink, fontSize: 14),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      const Icon(LucideIcons.arrowRight, color: _ink, size: 18),
+                      const SizedBox(width: 8),
+                      const Icon(LucideIcons.arrowRight, color: _ink, size: 17),
                     ],
                   ),
                 ),

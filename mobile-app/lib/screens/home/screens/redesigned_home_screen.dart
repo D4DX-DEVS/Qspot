@@ -220,9 +220,9 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
     return CommonAppBar(
       isDrawerNeeded: true,
       centerTitle: false,
-      backgroundColor: AppColors.transparent,
+      backgroundColor: palette.card,
       elevation: 0,
-      titleWidget: const AppLogo(),
+      titleWidget: const AppLogo(width: 154),
       actions: [
         BadgedIconButton(
           icon: LucideIcons.bell,
@@ -233,7 +233,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
             MaterialPageRoute(builder: (_) => const NotificationsScreen()),
           ),
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: 8),
         Semantics(
           label: 'Open Profile',
           button: true,
@@ -249,8 +249,11 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
               ),
               child: InitialsAvatar(
                 name: name.isEmpty ? 'Learner' : name,
-                size: 48,
-                gradient: palette.heroGradient,
+                size: 44,
+                color: AppColors.authBrand,
+                imageProvider: auth.user?.profileImageUrl == null
+                    ? null
+                    : NetworkImage(auth.user!.profileImageUrl!),
               ),
             ),
           ),
@@ -280,6 +283,9 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
       title: item.title,
       thumbnailUrl: video?.thumbnailUrl,
       actionLabel: _itemActionLabel(item),
+      progressLabel: _plan.openItemCount > 0
+          ? '${_plan.openItemCount} items in your plan'
+          : null,
       onAction: () => _openTodayItem(item, video),
     );
   }
@@ -307,7 +313,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
     final stats = [
       StatTile(
         icon: LucideIcons.flame,
-        color: palette.coral.color,
+        color: palette.amber.color,
         value: '${_today?.currentStreak ?? 0}',
         label: 'Day Streak',
       ),
@@ -551,7 +557,9 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   }
 
   String _itemActionLabel(TodayLearningItem item) {
-    if (item.status == 'overdue') return 'Handle now';
+    if (item.status == 'overdue') {
+      return item.kind == 'video' ? 'Continue lesson' : 'Start now';
+    }
     if (item.kind == 'assignment') return 'Open assignment';
     if (item.kind == 'quiz') return 'Start practice';
     if (item.kind == 'schedule') return 'View session';

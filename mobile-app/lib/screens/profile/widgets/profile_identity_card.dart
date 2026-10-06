@@ -18,6 +18,7 @@ class ProfileIdentityCard extends StatelessWidget {
     required this.onEdit,
     this.phone = '',
     this.tags = const [],
+    this.imageUrl,
   });
 
   final String name;
@@ -25,6 +26,7 @@ class ProfileIdentityCard extends StatelessWidget {
 
   /// Short facts shown as pills, e.g. class and language.
   final List<String> tags;
+  final String? imageUrl;
   final VoidCallback onEdit;
 
   @override
@@ -42,6 +44,9 @@ class ProfileIdentityCard extends StatelessWidget {
                   name: name,
                   size: 68,
                   gradient: HomePalette.of(context).heroGradient,
+                  imageProvider: imageUrl == null
+                      ? null
+                      : NetworkImage(imageUrl!),
                   ringWidth: 2.5,
                 ),
                 const SizedBox(width: 16),

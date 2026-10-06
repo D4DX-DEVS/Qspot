@@ -54,6 +54,21 @@ const fileFilter = (req, file, cb) => {
     cb(new Error('Invalid file type. Only JPEG, PNG, GIF, WEBP, and PDF files are allowed.'));
 };
 
+// Student profile photos are deliberately image-only. Keeping this separate
+// from the admin image/PDF uploader prevents a learner from storing a PDF as
+// an avatar while preserving the existing shared upload limits.
+const profileFileFilter = (req, file, cb) => {
+    const allowedTypes = /^(jpeg|jpg|png|gif|webp)$/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase().slice(1));
+    const mimetype = /^image\/(jpeg|png|gif|webp)$/i.test(file.mimetype);
+
+    if (mimetype && extname) return cb(null, true);
+    cb(Object.assign(
+        new Error('Invalid profile photo. Only JPEG, PNG, GIF, and WEBP images are allowed.'),
+        { status: 400 }
+    ));
+};
+
 // File filter for video uploads.
 const videoFileFilter = (req, file, cb) => {
     const allowedExt = /mp4|webm|mov|m4v/;
@@ -149,6 +164,31 @@ const buildUploader = (fileFilterFn, limitEnvVar, defaultLimit) => {
 
 // Image / PDF uploads (banners, subject/course covers, speaker photos, handouts).
 const upload = buildUploader(fileFilter, 'DO_MAX_FILE_SIZE', 5242880);
+
+// The local fallback keeps profile editing usable in local development when
+// DigitalOcean Spaces credentials are intentionally absent. Production uses
+// the same field with the CDN-backed uploader.
+const localProfileStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const directory = path.join(__dirname, '..', 'uploads', 'profile');
+        fs.mkdirSync(directory, { recursive: true });
+        cb(null, directory);
+    },
+    filename: (req, file, cb) => {
+        const extension = path.extname(file.originalname).toLowerCase() || '.jpg';
+        cb(null, `${Date.now()}-${Math.round(Math.random() * 1E9)}${extension}`);
+    }
+});
+
+const profileUpload = CDN_ENABLED
+    ? buildUploader(profileFileFilter, 'DO_MAX_FILE_SIZE', 5242880)
+    : process.env.NODE_ENV === 'production'
+        ? { single: disabledUpload, array: disabledUpload, fields: disabledUpload }
+    : multer({
+        storage: localProfileStorage,
+        fileFilter: profileFileFilter,
+        limits: { fileSize: 5242880 }
+    });
 
 // Document handouts (PDF workbooks, notes) are bigger than the images the main
 // uploader is sized for, so they get their own ceiling.
@@ -285,6 +325,7 @@ const getFileKeyFromUrl = (url) => {
 
 module.exports = {
     upload,
+    profileUpload,
     uploadLarge,
     uploadVideo,
     assignmentUpload,
