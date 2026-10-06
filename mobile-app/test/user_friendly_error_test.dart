@@ -78,6 +78,25 @@ void main() {
       );
     });
 
+    test('auth and permission failures explain the next step', () {
+      expect(
+        userFriendlyError(ApiException(401, 'Unauthorized')),
+        'Your session has expired. Please sign in again.',
+      );
+      expect(
+        userFriendlyError(ApiException(403, 'Forbidden')),
+        "You don't have permission to do that.",
+      );
+    });
+
+    test('technical 404 text is hidden', () {
+      final message = userFriendlyError(
+        ApiException(404, 'Request failed (404) uri=https://api.example.com'),
+      );
+      expect(message, "We couldn't find what you requested.");
+      _expectNoTechnicalText(message);
+    });
+
     test('unknown error falls back to a generic line', () {
       final message = userFriendlyError(StateError('boom'));
 

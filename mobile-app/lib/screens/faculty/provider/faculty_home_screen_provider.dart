@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../services/api_client.dart';
+import '../../../utils/user_friendly_error.dart';
 
 /// Screen-local state for the faculty workspace: the questions, lessons and
 /// assignments lists plus the loading / error flags around fetching them.
@@ -44,7 +45,7 @@ class FacultyHomeScreenProvider extends ChangeNotifier {
       if (_disposed) {
         return;
       }
-      _error = e.toString();
+      _error = userFriendlyError(e);
       _loading = false;
       notifyListeners();
     }

@@ -155,6 +155,8 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
               ),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
+                  if (_home.errorMessage != null)
+                    _todayErrorBanner(_home.errorMessage!),
                   if (_showHomeSection('banners')) _banners(),
                   if (_showHomeSection('stats'))
                     StaggeredEntrance(index: 1, child: _statsStrip()),
@@ -168,6 +170,37 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _todayErrorBanner(String message) {
+    final palette = HomePalette.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Material(
+        color: palette.rose.soft,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: _loadToday,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Icon(Icons.wifi_off_rounded, color: palette.rose.color),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Today could not be refreshed. $message',
+                    style: TextStyle(color: palette.text, fontSize: 13),
+                  ),
+                ),
+                TextButton(onPressed: _loadToday, child: const Text('Retry')),
+              ],
+            ),
+          ),
         ),
       ),
     );

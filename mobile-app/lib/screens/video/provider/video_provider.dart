@@ -5,6 +5,7 @@ import '../../subject/model/chapter_progress.dart';
 import '../../../services/api_client.dart';
 import '../../../services/common/storage_service.dart';
 import '../../../services/video_progress_service.dart';
+import '../../../utils/user_friendly_error.dart';
 
 enum VideoLoadingState { idle, loading, loaded, error }
 
@@ -123,7 +124,7 @@ class VideoProvider with ChangeNotifier {
       await loadProgress();
       await _setLoadingState(VideoLoadingState.loaded);
     } catch (e) {
-      await _handleError('Failed to initialize videos: $e');
+      await _handleError('We couldn’t load lessons. ${userFriendlyError(e)}');
     }
   }
 
@@ -212,7 +213,9 @@ class VideoProvider with ChangeNotifier {
       await loadProgress();
       await _setLoadingState(VideoLoadingState.loaded);
     } catch (e) {
-      await _handleError('Failed to refresh videos: $e');
+      await _handleError(
+        'We couldn’t refresh lessons. ${userFriendlyError(e)}',
+      );
     }
   }
 

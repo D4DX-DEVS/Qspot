@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../video/model/video_model.dart';
 import '../service/bookmark_service.dart';
+import '../../../utils/user_friendly_error.dart';
 
 class BookmarkProvider extends ChangeNotifier {
   /// The HTTP calls are injectable so widget/provider tests can supply a
@@ -46,7 +47,7 @@ class BookmarkProvider extends ChangeNotifier {
       _loadedOnce = true;
       notifyListeners();
     } catch (e) {
-      _setError('Failed to load bookmarks: $e');
+      _setError('We couldn’t load your bookmarks. ${userFriendlyError(e)}');
     } finally {
       _setLoading(false);
     }
@@ -62,7 +63,7 @@ class BookmarkProvider extends ChangeNotifier {
       return true;
     } catch (e) {
       _bookmarks = _bookmarks.where((v) => v.id != video.id).toList();
-      _setError('Failed to add bookmark: $e');
+      _setError('We couldn’t save that bookmark. ${userFriendlyError(e)}');
       return false;
     }
   }
@@ -76,7 +77,7 @@ class BookmarkProvider extends ChangeNotifier {
       return true;
     } catch (e) {
       if (removed.isNotEmpty) _bookmarks = [removed.first, ..._bookmarks];
-      _setError('Failed to remove bookmark: $e');
+      _setError('We couldn’t remove that bookmark. ${userFriendlyError(e)}');
       return false;
     }
   }
@@ -103,7 +104,7 @@ class BookmarkProvider extends ChangeNotifier {
       }
       return true;
     } catch (e) {
-      _setError('Failed to clear bookmarks: $e');
+      _setError('We couldn’t clear your bookmarks. ${userFriendlyError(e)}');
       await loadBookmarks();
       return false;
     }

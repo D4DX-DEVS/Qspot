@@ -127,15 +127,29 @@ class TodayOverview {
 
 class TodayService {
   static Future<TodayOverview?> fetch() async {
+    return _fetch(rethrowErrors: false);
+  }
+
+  /// Used by the redesigned Today screen, which needs to distinguish an
+  /// empty plan from a failed request so it can offer a retry instead of
+  /// showing a misleading healthy-looking fallback card.
+  static Future<TodayOverview?> fetchWithErrors() async {
+    return _fetch(rethrowErrors: true);
+  }
+
+  static Future<TodayOverview?> _fetch({required bool rethrowErrors}) async {
     try {
       final body = await ApiClient.get(
         '/api/user/today',
         query: {'tzOffsetMinutes': DateTime.now().timeZoneOffset.inMinutes},
       );
-      if (body is! Map) return null;
+      if (body is! Map) {
+        throw const FormatException('Today response was incomplete');
+      }
       return TodayOverview.fromJson(Map<String, dynamic>.from(body));
     } catch (error) {
       debugPrint('Today overview unavailable: $error');
+      if (rethrowErrors) rethrow;
       return null;
     }
   }

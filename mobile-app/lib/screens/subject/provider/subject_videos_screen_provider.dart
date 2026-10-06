@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../services/api_client.dart';
+import '../../../utils/user_friendly_error.dart';
 import '../../video/model/video_model.dart';
 
 /// Screen-local state for the subject videos screen: the chapter's videos and
@@ -57,7 +58,7 @@ class SubjectVideosScreenProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('📚 [SUBJECT VIDEOS] Error: $e');
       if (_disposed) return;
-      _errorMessage = 'Failed to load videos: $e';
+      _errorMessage = 'We couldn’t load videos. ${userFriendlyError(e)}';
       _isLoading = false;
       notifyListeners();
     }

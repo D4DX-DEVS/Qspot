@@ -23,7 +23,37 @@ class ApiException implements Exception {
   /// read it here instead of re-parsing `response.body` themselves.
   final dynamic body;
 
-  ApiException(this.status, this.message, [this.body]);
+  ApiException(this.status, String message, [this.body])
+    : message = _normaliseMessage(status, message);
+
+  static String _normaliseMessage(int status, String message) {
+    final trimmed = message.trim();
+    // Server diagnostics are useful in logs, but they are confusing and may
+    // disclose infrastructure details when rendered in the app.
+    final technical =
+        trimmed.isEmpty ||
+        trimmed.toLowerCase().contains('internal server error') ||
+        trimmed.toLowerCase().contains('bad gateway') ||
+        trimmed.toLowerCase().contains('service unavailable') ||
+        trimmed.toLowerCase().contains('socketexception') ||
+        trimmed.toLowerCase().contains('clientexception') ||
+        trimmed.toLowerCase().contains('failed host lookup') ||
+        trimmed.toLowerCase().contains('errno') ||
+        trimmed.toLowerCase().contains('uri=') ||
+        trimmed.toLowerCase().contains('exception:');
+
+    if (status == 401) return 'Your session has expired. Please sign in again.';
+    if (status == 403) return "You don't have permission to do that.";
+    if (status == 404 && technical) {
+      return "We couldn't find what you requested.";
+    }
+    if (status >= 500 || technical) {
+      return 'Something went wrong on our side. Please try again in a moment.';
+    }
+    return trimmed.isEmpty
+        ? 'Something went wrong. Please try again.'
+        : trimmed;
+  }
 
   @override
   String toString() => 'ApiException($status): $message';
@@ -96,7 +126,7 @@ class ApiClient {
 
     final message = (body is Map && body['message'] is String)
         ? body['message'] as String
-        : 'Something went wrong ($status)';
+        : 'Something went wrong. Please try again.';
 
     if (status == 401 || status == 403) {
       // Only force logout/navigation for calls that were actually

@@ -11,9 +11,14 @@ import 'offline_illustration.dart';
 /// Scrollable "progress is unavailable" state with a retry button, so it
 /// also works inside a pull-to-refresh.
 class ProgressUnavailableView extends StatelessWidget {
-  const ProgressUnavailableView({super.key, required this.onRetry});
+  const ProgressUnavailableView({
+    super.key,
+    required this.onRetry,
+    this.message,
+  });
 
   final VoidCallback onRetry;
+  final String? message;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +46,7 @@ class ProgressUnavailableView extends StatelessWidget {
         StaggeredEntrance(
           index: 2,
           child: Text(
-            'Check your connection and try again.',
+            message ?? 'Check your connection and try again.',
             textAlign: TextAlign.center,
             style: AppFonts.regular(color: palette.textMuted, fontSize: 14),
           ),

@@ -80,7 +80,12 @@ class _ProgressScreenState extends State<ProgressScreen> {
     }
 
     final data = progress.data;
-    if (data == null) return ProgressUnavailableView(onRetry: _load);
+    if (data == null) {
+      return ProgressUnavailableView(
+        onRetry: _load,
+        message: progress.errorMessage,
+      );
+    }
 
     final palette = HomePalette.of(context);
     return ListView(

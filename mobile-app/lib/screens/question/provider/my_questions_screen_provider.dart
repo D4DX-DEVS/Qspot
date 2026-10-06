@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../../../utils/api_urls.dart';
 import '../../auth/service/auth_service.dart';
 import '../model/user_question_model.dart';
+import '../../../utils/user_friendly_error.dart';
 
 enum QuestionFilter { all, answered, pending }
 
@@ -87,7 +88,7 @@ class MyQuestionsScreenProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('📝 [MY QUESTIONS] Error: $e');
-      _errorMessage = e.toString();
+      _errorMessage = userFriendlyError(e);
       _isLoading = false;
       _notify();
     }
