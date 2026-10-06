@@ -46,7 +46,9 @@ class ChapterClassTile extends StatelessWidget {
         color: palette.card,
         borderColor: palette.cardBorder,
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          // Keep the cover and its dynamic chapter/progress text visually
+          // centred against each other, even when a title wraps to two lines.
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Preserve the source artwork ratio while giving the text column
             // enough room on narrow phones and larger accessibility text.
@@ -89,14 +91,7 @@ class ChapterClassTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Icon(
-                LucideIcons.chevronRight,
-                size: 18,
-                color: palette.textMuted,
-              ),
-            ),
+            Icon(LucideIcons.chevronRight, size: 18, color: palette.textMuted),
           ],
         ),
       ),

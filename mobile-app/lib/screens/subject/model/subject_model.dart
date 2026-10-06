@@ -1,4 +1,5 @@
 import '../../../utils/json_parsing.dart';
+import '../../../utils/api_urls.dart';
 
 /// One line of the "what is inside" guide shown the first time a chapter opens.
 class SubjectGuidePoint {
@@ -113,6 +114,9 @@ class SubjectModel {
     if (subImage != null && subImage!.isNotEmpty) {
       if (subImage!.startsWith('http://') || subImage!.startsWith('https://')) {
         return subImage!;
+      }
+      if (subImage!.startsWith('/')) {
+        return '${ApiUrls.baseUrl}$subImage';
       }
     }
     return null;

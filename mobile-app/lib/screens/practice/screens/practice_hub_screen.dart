@@ -27,7 +27,7 @@ class PracticeHubScreen extends StatelessWidget {
         isDrawerNeeded: true,
         actions: [
           IconButton(
-            tooltip: 'Practice History',
+            tooltip: 'Quiz history',
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const QuizListScreen()),
@@ -69,7 +69,7 @@ class PracticeHubScreen extends StatelessWidget {
               tone: palette.amber,
               title: 'Assignments',
               body:
-                  'See what is due, submit your work, and read teacher feedback.',
+                  'See what is due, open assignment history, and read teacher feedback.',
               action: 'Open Assignments',
               onTap: () => Navigator.push(
                 context,

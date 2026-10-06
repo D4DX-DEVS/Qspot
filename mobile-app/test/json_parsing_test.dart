@@ -17,6 +17,13 @@ void main() {
     });
     expect(subject.order, 3);
 
+    final uploadedSubject = SubjectModel.fromJson({
+      '_id': 'subject-2',
+      'name': 'Tajweed',
+      'image': '/uploads/subjects/tajweed.png',
+    });
+    expect(uploadedSubject.imageUrl, endsWith('/uploads/subjects/tajweed.png'));
+
     final video = VideoModel.fromJson({
       '_id': 'video-1',
       'description': 'Lesson',

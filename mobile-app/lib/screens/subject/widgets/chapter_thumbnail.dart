@@ -77,8 +77,13 @@ class ChapterThumbnail extends StatelessWidget {
                 else
                   CachedNetworkImage(
                     imageUrl: url,
-                    fit: BoxFit.cover,
+                    // Preserve the complete dynamic thumbnail artwork. Cover
+                    // can crop baked chapter titles on narrow cards; contain
+                    // keeps them centred and readable at every width.
+                    fit: BoxFit.contain,
                     alignment: Alignment.center,
+                    color: palette.slate.soft,
+                    colorBlendMode: BlendMode.dstOver,
                     placeholder: (_, __) => fallback,
                     errorWidget: (_, __, ___) => fallback,
                   ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
+import '../../../themes/app_fonts.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/home_palette.dart';
 import '../../../widgets/animation/staggered_entrance.dart';
@@ -14,6 +15,8 @@ import '../provider/assignments_screen_provider.dart';
 import '../widgets/assignment_tile.dart';
 import 'assignment_detail_screen.dart';
 
+enum _AssignmentView { todo, history, all }
+
 class AssignmentsScreen extends StatefulWidget {
   const AssignmentsScreen({super.key});
 
@@ -23,6 +26,7 @@ class AssignmentsScreen extends StatefulWidget {
 
 class _AssignmentsScreenState extends State<AssignmentsScreen> {
   final AssignmentsScreenProvider _list = AssignmentsScreenProvider();
+  _AssignmentView _view = _AssignmentView.todo;
 
   @override
   void dispose() {
@@ -48,7 +52,17 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
   Widget _buildPage(BuildContext context, AssignmentsScreenProvider list) {
     final p = HomePalette.of(context);
     return Scaffold(
-      appBar: const CommonAppBar(title: 'Assignments'),
+      appBar: CommonAppBar(
+        title: 'Assignments',
+        actions: [
+          IconButton(
+            tooltip: 'Assignment history',
+            onPressed: () => setState(() => _view = _AssignmentView.history),
+            icon: const Icon(LucideIcons.history),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: FutureBuilder<List<AssignmentModel>>(
         future: list.assignments,
         builder: (context, snapshot) {
@@ -94,11 +108,18 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
               final bDue = b.dueAt ?? DateTime(2100);
               return aDue.compareTo(bDue);
             });
+          final visible = switch (_view) {
+            _AssignmentView.todo =>
+              sorted.where((item) => !item.isSubmitted).toList(),
+            _AssignmentView.history =>
+              sorted.where((item) => item.isSubmitted).toList(),
+            _AssignmentView.all => sorted,
+          };
           return RefreshIndicator(
             onRefresh: _reload,
             backgroundColor: p.card,
             color: p.brand,
-            child: ListView.separated(
+            child: ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: EdgeInsets.fromLTRB(
                 AppTheme.contentInset,
@@ -106,24 +127,58 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                 AppTheme.contentInset,
                 28 + MediaQuery.paddingOf(context).bottom,
               ),
-              itemCount: sorted.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemCount: visible.length + (visible.isEmpty ? 2 : 1),
               itemBuilder: (context, index) {
-                final item = sorted[index];
+                if (index == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _AssignmentViewPicker(
+                      selected: _view,
+                      onChanged: (value) => setState(() => _view = value),
+                      counts: (
+                        todo: sorted.where((item) => !item.isSubmitted).length,
+                        history: sorted
+                            .where((item) => item.isSubmitted)
+                            .length,
+                        all: sorted.length,
+                      ),
+                    ),
+                  );
+                }
+                if (visible.isEmpty) {
+                  return SizedBox(
+                    height: MediaQuery.sizeOf(context).height * 0.45,
+                    child: StateMessageView(
+                      icon: _view == _AssignmentView.history
+                          ? LucideIcons.history
+                          : LucideIcons.clipboardList,
+                      title: _view == _AssignmentView.history
+                          ? 'No Assignment History Yet'
+                          : 'No Assignments To Do',
+                      message: _view == _AssignmentView.history
+                          ? 'Submitted assignments will appear here.'
+                          : 'You have no pending assignments right now.',
+                    ),
+                  );
+                }
+                final item = visible[index - 1];
                 return StaggeredEntrance(
                   index: index,
-                  child: AssignmentTile(
-                    assignment: item,
-                    onTap: () async {
-                      final changed = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              AssignmentDetailScreen(assignment: item),
-                        ),
-                      );
-                      if (changed == true && mounted) _reload();
-                    },
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: AssignmentTile(
+                      assignment: item,
+                      onTap: () async {
+                        final changed = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                AssignmentDetailScreen(assignment: item),
+                          ),
+                        );
+                        if (changed == true && mounted) _reload();
+                      },
+                    ),
                   ),
                 );
               },
@@ -131,6 +186,57 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+class _AssignmentViewPicker extends StatelessWidget {
+  const _AssignmentViewPicker({
+    required this.selected,
+    required this.onChanged,
+    required this.counts,
+  });
+
+  final _AssignmentView selected;
+  final ValueChanged<_AssignmentView> onChanged;
+  final ({int todo, int history, int all}) counts;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = HomePalette.of(context);
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _chip(context, p, _AssignmentView.todo, 'To do', counts.todo),
+          const SizedBox(width: 8),
+          _chip(context, p, _AssignmentView.history, 'History', counts.history),
+          const SizedBox(width: 8),
+          _chip(context, p, _AssignmentView.all, 'All', counts.all),
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(
+    BuildContext context,
+    HomePalette p,
+    _AssignmentView value,
+    String label,
+    int count,
+  ) {
+    return ChoiceChip(
+      selected: selected == value,
+      label: Text('$label ($count)'),
+      onSelected: (_) => onChanged(value),
+      selectedColor: p.brandSoft,
+      labelStyle: AppFonts.semiBold(
+        color: selected == value ? p.brand : p.textMuted,
+        fontSize: 12,
+      ),
+      side: BorderSide(color: p.cardBorder),
+      backgroundColor: p.card,
+      showCheckmark: false,
     );
   }
 }

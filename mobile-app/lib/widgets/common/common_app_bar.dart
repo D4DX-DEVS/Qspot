@@ -10,8 +10,9 @@ import 'app_drawer.dart';
 /// Use [title] for plain text; pass [titleWidget] instead when the bar needs
 /// custom content (e.g. a search field). [titleWidget] wins when both are set.
 ///
-/// Set [isDrawerNeeded] to show a menu button that opens the [AppDrawer]. It is
-/// off by default and ignored when a custom [leading] is passed.
+/// Set [isDrawerNeeded] to show a menu button that opens the [AppDrawer] on a
+/// root destination. When the same screen is pushed as a child route, the
+/// normal back arrow takes priority so every destination remains escapable.
 ///
 /// [backgroundColor] and [elevation] override the theme for bars that sit over
 /// artwork (e.g. a transparent bar with no shadow); null keeps the theme's.
@@ -60,6 +61,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final showDrawer = isDrawerNeeded && !Navigator.of(context).canPop();
     return AppBar(
       title:
           titleWidget ??
@@ -68,7 +70,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
               : AppBarTitle(title!, centered: _isCentered(context))),
       leading:
           leading ??
-          (isDrawerNeeded
+          (showDrawer
               ? IconButton(
                   icon: const Icon(LucideIcons.menu),
                   tooltip: 'Menu',
