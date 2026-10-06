@@ -106,6 +106,15 @@ class ConsentCard extends StatelessWidget {
                     hint: consentBy == 'parent'
                         ? "Parent/Guardian's Name"
                         : 'School Name',
+                    validator: (value) {
+                      if (!this.value) return null;
+                      if (value == null || value.trim().isEmpty) {
+                        return consentBy == 'parent'
+                            ? 'Please enter the parent/guardian name'
+                            : 'Please enter the school name';
+                      }
+                      return null;
+                    },
                   ),
                 ),
               ),

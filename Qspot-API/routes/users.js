@@ -178,8 +178,14 @@ router.post('/register', async (req, res) => {
   try {
     const { name, phone, class: userClass, email, dob, consent, courseIds } = req.body || {};
 
-    if (!name || !phone || !userClass) {
+    if (!String(name || '').trim() || !String(phone || '').trim() || !String(userClass || '').trim()) {
       return res.status(400).json({ message: 'Name, phone, and class are required' });
+    }
+
+    const normalizedName = String(name).trim();
+    const normalizedClass = String(userClass).trim();
+    if (normalizedName.length < 3) {
+      return res.status(400).json({ message: 'Name must be at least 3 characters' });
     }
 
     const normalizedPhone = normalizePhone(phone);
@@ -218,13 +224,17 @@ router.post('/register', async (req, res) => {
       if (!['parent', 'school'].includes(consent.by)) {
         return res.status(400).json({ message: "consent.by must be 'parent' or 'school'" });
       }
-      consentValue = { by: consent.by, name: consent.name || '', at: new Date() };
+      const consentName = String(consent.name || '').trim();
+      if (!consentName) {
+        return res.status(400).json({ message: 'consent.name is required when consent is provided' });
+      }
+      consentValue = { by: consent.by, name: consentName.slice(0, 160), at: new Date() };
     }
 
     const user = await User.create({
-      name,
+      name: normalizedName,
       phone: normalizedPhone,
-      class: userClass,
+      class: normalizedClass,
       courseIds: selectedCourseIds,
       email: email || '',
       dob: dobValue,
@@ -251,6 +261,9 @@ router.post('/login/request-otp', async (req, res) => {
     if (!phone) return res.status(400).json({ message: 'Phone is required' });
 
     const normalizedPhone = normalizePhone(phone);
+    if (normalizedPhone.length !== 10) {
+      return res.status(400).json({ message: 'Enter a valid 10-digit phone number' });
+    }
     const user = await User.findOne({ phone: normalizedPhone });
     if (!user) {
       return res.status(404).json({ message: 'User not registered' });
@@ -283,6 +296,12 @@ router.post('/login/verify', async (req, res) => {
     if (!phone || !code) return res.status(400).json({ message: 'Phone and code are required' });
 
     const normalizedPhone = normalizePhone(phone);
+    if (normalizedPhone.length !== 10) {
+      return res.status(400).json({ message: 'Enter a valid 10-digit phone number' });
+    }
+    if (!/^\d{6}$/.test(String(code).trim())) {
+      return res.status(400).json({ message: 'OTP must be a 6-digit number' });
+    }
 
     const testLogin = process.env.TEST_LOGIN ? normalizePhone(process.env.TEST_LOGIN) : null;
     const testOtp = process.env.TEST_OTP;

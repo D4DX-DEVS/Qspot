@@ -143,9 +143,14 @@ router.get('/:id', authenticateUser, async (req, res) => {
 router.post('/', authenticateUser, async (req, res) => {
     try {
         const { description, faculty, subject } = req.body || {};
+        const cleanDescription = String(description || '').trim();
+        const cleanSubject = String(subject || '').trim();
 
-        if (!description || !faculty || !subject) {
+        if (!cleanDescription || !faculty || !cleanSubject) {
             return res.status(400).json({ message: 'Description, faculty, and subject are required' });
+        }
+        if (cleanDescription.length > 10000 || cleanSubject.length > 200) {
+            return res.status(400).json({ message: 'Subject must be 200 characters or fewer and question 10,000 characters or fewer' });
         }
 
         const existingFaculty = await Speaker.findById(faculty);
@@ -154,9 +159,9 @@ router.post('/', authenticateUser, async (req, res) => {
         }
 
         const question = new Question({
-            description,
+            description: cleanDescription,
             faculty,
-            subject,
+            subject: cleanSubject,
             user: req.user.id,
             class: req.user.class || ''
         });
@@ -179,6 +184,8 @@ router.post('/', authenticateUser, async (req, res) => {
 router.put('/:id', authenticateUser, async (req, res) => {
     try {
         const { description, faculty, subject } = req.body || {};
+        const cleanDescription = String(description || '').trim();
+        const cleanSubject = String(subject || '').trim();
         const oldQuestion = await Question.findById(req.params.id);
 
         if (!oldQuestion) {
@@ -189,8 +196,11 @@ router.put('/:id', authenticateUser, async (req, res) => {
             return res.status(403).json({ message: 'You can only update your own questions' });
         }
 
-        if (!description || !faculty || !subject) {
+        if (!cleanDescription || !faculty || !cleanSubject) {
             return res.status(400).json({ message: 'Description, faculty, and subject are required' });
+        }
+        if (cleanDescription.length > 10000 || cleanSubject.length > 200) {
+            return res.status(400).json({ message: 'Subject must be 200 characters or fewer and question 10,000 characters or fewer' });
         }
 
         const existingFaculty = await Speaker.findById(faculty);
@@ -200,7 +210,7 @@ router.put('/:id', authenticateUser, async (req, res) => {
 
         const question = await Question.findByIdAndUpdate(
             req.params.id,
-            { description, faculty, subject },
+            { description: cleanDescription, faculty, subject: cleanSubject },
             { new: true, runValidators: true }
         ).populate('faculty', 'name designation');
 
@@ -242,6 +252,9 @@ router.post('/:id/answer', authenticateAdmin, async (req, res) => {
         if (!answer || answer.trim() === '') {
             return res.status(400).json({ message: 'Answer is required' });
         }
+        if (answer.trim().length > 10000) {
+            return res.status(400).json({ message: 'Answer must be 10,000 characters or fewer' });
+        }
 
         const question = await Question.findById(questionId);
         if (!question) {
@@ -278,6 +291,9 @@ router.put('/:id/answer', authenticateAdmin, async (req, res) => {
 
         if (!answer || answer.trim() === '') {
             return res.status(400).json({ message: 'Answer is required' });
+        }
+        if (answer.trim().length > 10000) {
+            return res.status(400).json({ message: 'Answer must be 10,000 characters or fewer' });
         }
 
         const question = await Question.findById(questionId);

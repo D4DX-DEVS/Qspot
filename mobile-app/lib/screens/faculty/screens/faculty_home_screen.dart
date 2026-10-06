@@ -43,6 +43,7 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
         content: TextField(
           controller: controller,
           maxLines: 6,
+          maxLength: 10000,
           autofocus: true,
           decoration: const InputDecoration(hintText: 'Write a Clear Answer'),
         ),
@@ -58,6 +59,7 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
         ],
       ),
     );
+    controller.dispose();
     if (answer == null || answer.isEmpty) return;
     try {
       await ApiClient.put(
@@ -249,26 +251,55 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
     final feedback = TextEditingController(
       text: submission['feedback']?.toString() ?? '',
     );
+    final formKey = GlobalKey<FormState>();
+    final parsedMaxPoints = double.tryParse(
+      assignment['maxPoints']?.toString() ?? '',
+    );
+    final maxPoints =
+        parsedMaxPoints != null &&
+            parsedMaxPoints.isFinite &&
+            parsedMaxPoints > 0
+        ? parsedMaxPoints
+        : 100.0;
     final result = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Grade Submission'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: grade,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Grade (Max ${assignment['maxPoints'] ?? 100})',
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: grade,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: 'Grade (Max ${assignment['maxPoints'] ?? 100})',
+                ),
+                validator: (value) {
+                  final raw = value?.trim() ?? '';
+                  final parsed = double.tryParse(raw);
+                  if (raw.isEmpty) return 'Grade is required';
+                  if (parsed == null || !parsed.isFinite) {
+                    return 'Enter a valid number';
+                  }
+                  if (parsed < 0) return 'Grade cannot be negative';
+                  if (parsed > maxPoints) {
+                    return 'Grade cannot exceed $maxPoints';
+                  }
+                  return null;
+                },
               ),
-            ),
-            TextField(
-              controller: feedback,
-              maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Feedback'),
-            ),
-          ],
+              TextFormField(
+                controller: feedback,
+                maxLines: 3,
+                maxLength: 10000,
+                decoration: const InputDecoration(labelText: 'Feedback'),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -276,20 +307,28 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () {
+              if (formKey.currentState?.validate() != true) return;
+              Navigator.pop(context, true);
+            },
             child: const Text('Save'),
           ),
         ],
       ),
     );
-    if (result != true || grade.text.trim().isEmpty) return;
+    if (result != true) {
+      grade.dispose();
+      feedback.dispose();
+      return;
+    }
+    final gradeValue = double.parse(grade.text.trim());
+    final feedbackValue = feedback.text.trim();
+    grade.dispose();
+    feedback.dispose();
     try {
       await ApiClient.put(
         '/api/faculty/submissions/${submission['_id']}/grade',
-        body: {
-          'grade': double.tryParse(grade.text.trim()),
-          'feedback': feedback.text.trim(),
-        },
+        body: {'grade': gradeValue, 'feedback': feedbackValue},
       );
       if (mounted && sheetContext.mounted) {
         Navigator.of(sheetContext).pop();

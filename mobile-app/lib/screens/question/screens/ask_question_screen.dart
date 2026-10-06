@@ -230,6 +230,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                               index: 2,
                               child: TextFormField(
                                 controller: _subjectController,
+                                maxLength: 200,
                                 cursorColor: p.brand,
                                 style: AppFonts.regular(
                                   color: p.text,
@@ -279,6 +280,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                               child: TextFormField(
                                 controller: _descriptionController,
                                 maxLines: 8,
+                                maxLength: 10000,
                                 cursorColor: p.brand,
                                 style: AppFonts.regular(
                                   color: p.text,

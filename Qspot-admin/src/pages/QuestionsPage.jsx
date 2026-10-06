@@ -205,6 +205,10 @@ const QuestionsPage = () => {
       alert('Answer is required');
       return;
     }
+    if (answerText.trim().length > 10000) {
+      alert('Answer must be 10,000 characters or fewer');
+      return;
+    }
     try {
       setAnswerLoading(true);
       const questionId = expandedQuestion._id;
@@ -901,6 +905,7 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
                   className="mt-3 h-40 w-full resize-none rounded-2xl border border-white/12 bg-black/30 p-4 text-sm text-white placeholder-white/45 shadow-inner focus:border-[#EFB078]/60 focus:outline-none focus:ring-2 focus:ring-[#701845]/30"
                   placeholder={expandedQuestion.answer ? 'Type the updated answer...' : 'Type your answer here...'}
                   value={answerText}
+                  maxLength={10000}
                   onChange={(e) => setAnswerText(e.target.value)}
                   disabled={answerLoading}
                 />
@@ -962,4 +967,3 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
   );
 };
 export default QuestionsPage;
-

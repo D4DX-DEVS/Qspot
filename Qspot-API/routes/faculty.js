@@ -100,6 +100,7 @@ router.put('/questions/:id/answer', async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid question id' });
   const answer = String(req.body?.answer || '').trim();
   if (!answer) return res.status(400).json({ message: 'Answer is required' });
+  if (answer.length > 10000) return res.status(400).json({ message: 'Answer must be 10,000 characters or fewer' });
   const question = await Question.findOneAndUpdate(
     { _id: req.params.id, faculty: req.user.facultyProfile, status: { $ne: 'hidden' } },
     { answer, answeredBy: req.user.name, answeredAt: new Date() },
