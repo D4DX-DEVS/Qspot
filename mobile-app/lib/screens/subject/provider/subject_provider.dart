@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../model/subject_model.dart';
 import '../../../services/api_client.dart';
 import '../../../services/course_service.dart';
+import '../../../utils/user_friendly_error.dart';
 
 enum SubjectLoadingState { idle, loading, loaded, error }
 
@@ -84,7 +85,7 @@ class SubjectProvider with ChangeNotifier {
       await fetchSubjects();
       await _setLoadingState(SubjectLoadingState.loaded);
     } catch (e) {
-      await _handleError('Failed to initialize subjects: $e');
+      await _handleError(userFriendlyError(e));
     }
   }
 
@@ -151,7 +152,7 @@ class SubjectProvider with ChangeNotifier {
       await fetchSubjects();
       await _setLoadingState(SubjectLoadingState.loaded);
     } catch (e) {
-      await _handleError('Failed to refresh subjects: $e');
+      await _handleError(userFriendlyError(e));
     }
   }
 
