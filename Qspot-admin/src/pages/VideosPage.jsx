@@ -249,11 +249,11 @@ const VideoCard = ({ video, onEdit, onDelete, onOpenContent, onOpenStats }) => {
 
   return (
     <article
-      className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#18061c]/90 via-[#120514]/92 to-[#08040a]/95 p-3 shadow-[0_10px_28px_-18px_rgba(112,24,69,0.5)] transition-all duration-300 hover:-translate-y-1 hover:border-[#701845]/40 hover:shadow-[0_18px_40px_-20px_rgba(112,24,69,0.68)]"
+      className="@container group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#18061c]/90 via-[#120514]/92 to-[#08040a]/95 p-3 shadow-[0_10px_28px_-18px_rgba(112,24,69,0.5)] transition-all duration-300 hover:-translate-y-1 hover:border-[#701845]/40 hover:shadow-[0_18px_40px_-20px_rgba(112,24,69,0.68)]"
     >
       <div
         className={`flex gap-3 ${
-          isPortrait ? 'flex-col md:flex-row md:items-start' : 'flex-col'
+          isPortrait ? 'flex-col md:@[17.5rem]:flex-row md:@[17.5rem]:items-start' : 'flex-col'
         }`}
       >
         <div className={isPortrait ? 'w-24 md:w-28 lg:w-32 flex-shrink-0' : 'w-full relative'}>
@@ -273,7 +273,7 @@ const VideoCard = ({ video, onEdit, onDelete, onOpenContent, onOpenStats }) => {
 
         <div
           className={`flex min-w-0 flex-1 flex-col ${
-            isPortrait ? 'md:min-h-[240px] gap-3' : 'gap-3'
+            isPortrait ? 'md:@[17.5rem]:min-h-[240px] gap-3' : 'gap-3'
           }`}
         >
           <div className="px-0.5 pt-0.5 space-y-2">
@@ -299,11 +299,11 @@ const VideoCard = ({ video, onEdit, onDelete, onOpenContent, onOpenStats }) => {
           <div
             className={`mt-auto flex gap-2 ${
               isPortrait
-                ? 'flex-col items-stretch md:flex-row md:items-center md:justify-between'
+                ? 'flex-col items-stretch md:@[17.5rem]:flex-row md:@[17.5rem]:items-center md:@[17.5rem]:justify-between'
                 : 'items-center justify-start'
             }`}
           >
-            <div className={`flex items-center gap-2 opacity-100 transition-all duration-200 md:opacity-0 md:group-hover:opacity-100 ${isPortrait ? 'md:ml-auto' : ''}`}>
+            <div className={`flex min-w-0 max-w-full flex-wrap items-center gap-2 opacity-100 transition-all duration-200 md:opacity-0 md:group-hover:opacity-100 ${isPortrait ? 'md:@[17.5rem]:ml-auto' : ''}`}>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -601,7 +601,7 @@ const VideosPage = () => {
             </div>
 
             {/* Search and Filter Section */}
-            <div className="mt-4 flex flex-col sm:flex-row gap-3">
+            <div className="mt-4 flex flex-col sm:flex-row sm:flex-wrap gap-3">
                   <div className="relative flex-1 min-w-[240px]">
                 <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                 <input
