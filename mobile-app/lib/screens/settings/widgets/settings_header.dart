@@ -9,7 +9,7 @@ import '../../auth/widgets/auth_back_button.dart';
 import '../../home/widgets/today_sky_backdrop.dart';
 
 /// Top of the settings page: soft sky and skyline with a hanging lantern, a
-/// round back button, then a large title and a one-line subtitle.
+/// round back button, then a compact page title and a one-line subtitle.
 class SettingsHeader extends StatelessWidget {
   const SettingsHeader({
     super.key,
@@ -72,7 +72,8 @@ class SettingsHeader extends StatelessWidget {
                   title,
                   style: AppFonts.extraBold(
                     color: scheme.onSurface,
-                    fontSize: 32,
+                    fontSize: 28,
+                    height: 1.15,
                   ),
                 ),
               ),
