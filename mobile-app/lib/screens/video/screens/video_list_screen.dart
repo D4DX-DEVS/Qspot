@@ -11,6 +11,7 @@ import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/offline_notice.dart';
 import 'video_reels_screen.dart';
 
 class VideoListScreen extends StatefulWidget {
@@ -108,7 +109,7 @@ class _VideoListScreenState extends State<VideoListScreen> {
       ),
       body: Consumer<VideoProvider>(
         builder: (context, videoProvider, child) {
-          if (videoProvider.isLoading) {
+          if (videoProvider.isLoading && videoProvider.allVideos.isEmpty) {
             return const Center(
               child: CircularProgressIndicator(color: AppColors.primary),
             );
@@ -193,7 +194,7 @@ class _VideoListScreenState extends State<VideoListScreen> {
             );
           }
 
-          return RefreshIndicator(
+          final grid = RefreshIndicator(
             onRefresh: () => videoProvider.refresh(),
             backgroundColor: AppColors.surface,
             color: AppColors.primary,
@@ -216,6 +217,13 @@ class _VideoListScreenState extends State<VideoListScreen> {
                 );
               },
             ),
+          );
+          return Column(
+            children: [
+              if (videoProvider.offlineMode)
+                OfflineNotice(message: videoProvider.errorMessage),
+              Expanded(child: grid),
+            ],
           );
         },
       ),

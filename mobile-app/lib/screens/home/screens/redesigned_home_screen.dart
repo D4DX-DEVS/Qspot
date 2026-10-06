@@ -15,6 +15,7 @@ import '../../../widgets/common/badged_icon_button.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../../widgets/common/initials_avatar.dart';
 import '../../../widgets/common/nav_list_card.dart';
+import '../../../widgets/common/offline_notice.dart';
 import '../../../widgets/common/section_header.dart';
 import '../../../widgets/common/shortcut_tile.dart';
 import '../../../widgets/common/stat_tile.dart';
@@ -155,6 +156,10 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
               ),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
+                  if (context.watch<VideoProvider>().offlineMode)
+                    OfflineNotice(
+                      message: context.read<VideoProvider>().errorMessage,
+                    ),
                   if (_home.errorMessage != null)
                     _todayErrorBanner(_home.errorMessage!),
                   if (_showHomeSection('banners')) _banners(),

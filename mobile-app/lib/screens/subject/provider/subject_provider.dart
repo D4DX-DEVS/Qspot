@@ -4,6 +4,7 @@ import '../model/subject_model.dart';
 import '../../../services/api_client.dart';
 import '../../../services/course_service.dart';
 import '../../../utils/user_friendly_error.dart';
+import '../../../services/common/storage_service.dart';
 
 enum SubjectLoadingState { idle, loading, loaded, error }
 
@@ -80,12 +81,17 @@ class SubjectProvider with ChangeNotifier {
   // Initialize and load all subject data
   Future<void> initialize() async {
     await _setLoadingState(SubjectLoadingState.loading);
+    await _loadFromCache();
 
     try {
       await fetchSubjects();
       await _setLoadingState(SubjectLoadingState.loaded);
     } catch (e) {
-      await _handleError(userFriendlyError(e));
+      if (_subjects.isNotEmpty) {
+        await _useCachedData();
+      } else {
+        await _handleError(userFriendlyError(e));
+      }
     }
   }
 
@@ -94,7 +100,7 @@ class SubjectProvider with ChangeNotifier {
     try {
       final results = await Future.wait([
         ApiClient.get('/api/subjects'),
-        CourseService.fetchActive(),
+        CourseService.fetchActive(throwOnError: true),
       ]);
 
       final subjectsBody = results[0];
@@ -109,6 +115,10 @@ class SubjectProvider with ChangeNotifier {
 
       _subjects = subjects;
       _courses = results[1] as List<CourseModel>;
+      await StorageService.cacheSubjects(_subjects);
+      await StorageService.cacheCourses(
+        _courses.map((course) => course.toJson()).toList(),
+      );
       debugPrint(
         '📚 [SUBJECTS] Loaded ${_subjects.length} subjects, ${_courses.length} courses',
       );
@@ -152,7 +162,11 @@ class SubjectProvider with ChangeNotifier {
       await fetchSubjects();
       await _setLoadingState(SubjectLoadingState.loaded);
     } catch (e) {
-      await _handleError(userFriendlyError(e));
+      if (_subjects.isNotEmpty) {
+        await _useCachedData();
+      } else {
+        await _handleError(userFriendlyError(e));
+      }
     }
   }
 
@@ -167,6 +181,25 @@ class SubjectProvider with ChangeNotifier {
     _loadingState = SubjectLoadingState.error;
     _errorMessage = message;
     debugPrint('SubjectProvider Error: $message');
+    notifyListeners();
+  }
+
+  Future<void> _loadFromCache() async {
+    final cachedSubjects = await StorageService.getCachedSubjects();
+    if (cachedSubjects.isEmpty) return;
+    final cachedCourses = (await StorageService.getCachedCourses())
+        .map(CourseModel.fromJson)
+        .where((course) => course.title.isNotEmpty)
+        .toList();
+    _subjects = cachedSubjects;
+    _courses = cachedCourses;
+    notifyListeners();
+  }
+
+  Future<void> _useCachedData() async {
+    _loadingState = SubjectLoadingState.loaded;
+    _errorMessage =
+        'You’re offline. Showing saved chapters. Reconnect to sync updates.';
     notifyListeners();
   }
 

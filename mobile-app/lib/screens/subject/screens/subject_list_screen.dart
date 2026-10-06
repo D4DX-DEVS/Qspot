@@ -17,6 +17,7 @@ import '../../../widgets/common/section_header.dart';
 import '../../common/widgets/home_theme_scope.dart';
 import 'subject_videos_screen.dart';
 import '../../video/provider/video_provider.dart';
+import '../../../widgets/common/offline_notice.dart';
 
 class SubjectListScreen extends StatefulWidget {
   const SubjectListScreen({super.key});
@@ -59,7 +60,7 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
       ),
       body: Consumer2<SubjectProvider, VideoProvider>(
         builder: (context, subjectProvider, videoProvider, child) {
-          if (subjectProvider.isLoading) {
+          if (subjectProvider.isLoading && subjectProvider.subjects.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -133,67 +134,74 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
 
           final groups = subjectProvider.groupedByCourse;
 
-          return RefreshIndicator(
-            onRefresh: () => subjectProvider.refresh(),
-            child: ListView.builder(
-              padding: EdgeInsets.fromLTRB(
-                AppTheme.paddingMedium,
-                AppTheme.paddingSmall,
-                AppTheme.paddingMedium,
-                AppTheme.paddingMedium + MediaQuery.paddingOf(context).bottom,
-              ),
-              // The banner sits above the course groups.
-              itemCount: groups.length + 1,
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return StaggeredEntrance(child: _banner());
-                }
-                final groupIndex = index;
-                final group = groups[index - 1];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: AppTheme.paddingLarge),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (group.course.title.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            left: 4,
-                            bottom: AppTheme.paddingSmall,
-                          ),
-                          child: StaggeredEntrance(
-                            index: groupIndex,
-                            child: SectionHeader(
-                              title: '${group.course.title} Course',
-                              subtitle:
-                                  '${group.subjects.length} Chapter'
-                                  '${group.subjects.length == 1 ? '' : 's'}',
-                            ),
+          final list = ListView.builder(
+            padding: EdgeInsets.fromLTRB(
+              AppTheme.paddingMedium,
+              AppTheme.paddingSmall,
+              AppTheme.paddingMedium,
+              AppTheme.paddingMedium + MediaQuery.paddingOf(context).bottom,
+            ),
+            // The banner sits above the course groups.
+            itemCount: groups.length + 1,
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return StaggeredEntrance(child: _banner());
+              }
+              final groupIndex = index;
+              final group = groups[index - 1];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: AppTheme.paddingLarge),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (group.course.title.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          left: 4,
+                          bottom: AppTheme.paddingSmall,
+                        ),
+                        child: StaggeredEntrance(
+                          index: groupIndex,
+                          child: SectionHeader(
+                            title: '${group.course.title} Course',
+                            subtitle:
+                                '${group.subjects.length} Chapter'
+                                '${group.subjects.length == 1 ? '' : 's'}',
                           ),
                         ),
-                      AdaptiveCardColumns(
-                        spacing: AppTheme.paddingMedium,
-                        children: [
-                          for (var i = 0; i < group.subjects.length; i++)
-                            StaggeredEntrance(
-                              index: groupIndex + i + 1,
-                              child: ChapterClassTile(
-                                number: i + 1,
-                                title: group.subjects[i].displayName,
-                                imageUrl: group.subjects[i].imageUrl,
-                                progress: videoProvider.chapterProgressFor(
-                                  group.subjects[i].id,
-                                ),
-                                onTap: () =>
-                                    _navigateToSubjectVideos(group.subjects[i]),
-                              ),
-                            ),
-                        ],
                       ),
-                    ],
-                  ),
-                );
-              },
+                    AdaptiveCardColumns(
+                      spacing: AppTheme.paddingMedium,
+                      children: [
+                        for (var i = 0; i < group.subjects.length; i++)
+                          StaggeredEntrance(
+                            index: groupIndex + i + 1,
+                            child: ChapterClassTile(
+                              number: i + 1,
+                              title: group.subjects[i].displayName,
+                              imageUrl: group.subjects[i].imageUrl,
+                              progress: videoProvider.chapterProgressFor(
+                                group.subjects[i].id,
+                              ),
+                              onTap: () =>
+                                  _navigateToSubjectVideos(group.subjects[i]),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+          return RefreshIndicator(
+            onRefresh: () => subjectProvider.refresh(),
+            child: Column(
+              children: [
+                if (subjectProvider.errorMessage.isNotEmpty)
+                  OfflineNotice(message: subjectProvider.errorMessage),
+                Expanded(child: list),
+              ],
             ),
           );
         },

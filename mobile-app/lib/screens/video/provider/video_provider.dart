@@ -13,6 +13,7 @@ class VideoProvider with ChangeNotifier {
   // State variables
   VideoLoadingState _loadingState = VideoLoadingState.idle;
   String _errorMessage = '';
+  bool _offlineMode = false;
 
   // Video data
   VideoModel? _latestVideo;
@@ -38,6 +39,7 @@ class VideoProvider with ChangeNotifier {
   // Getters
   VideoLoadingState get loadingState => _loadingState;
   String get errorMessage => _errorMessage;
+  bool get offlineMode => _offlineMode;
   VideoModel? get latestVideo => _latestVideo;
   List<VideoModel> get videosByDate => _videosByDate;
   List<VideoModel> get allVideos => _allVideos;
@@ -117,15 +119,25 @@ class VideoProvider with ChangeNotifier {
 
     await _setLoadingState(VideoLoadingState.loading);
 
+    await _loadFromCache();
     try {
-      await _loadFromCache();
       await _fetchAllVideos();
-      // Watch status comes from the account, not the device.
-      await loadProgress();
-      await _setLoadingState(VideoLoadingState.loaded);
     } catch (e) {
-      await _handleError('We couldn’t load lessons. ${userFriendlyError(e)}');
+      if (_allVideos.isNotEmpty) {
+        _useCachedData();
+      } else {
+        await _handleError('We couldn’t load lessons. ${userFriendlyError(e)}');
+      }
+      return;
     }
+    // Watch status is account data. If it cannot be refreshed, keep the
+    // catalogue usable and let the next connected refresh sync progress.
+    try {
+      await loadProgress();
+    } catch (e) {
+      debugPrint('Video progress unavailable while loading lessons: $e');
+    }
+    await _setLoadingState(VideoLoadingState.loaded);
   }
 
   /// Refresh the per-video watch status for the signed-in user. Also used to
@@ -151,6 +163,7 @@ class VideoProvider with ChangeNotifier {
   // Fetch + partition everything from one network call.
   Future<void> _fetchAllVideos() async {
     final videos = await _fetchVideosFromAPI();
+    _offlineMode = false;
 
     // Sort all videos by date (newest first, including both available and
     // upcoming), videos without dates last.
@@ -180,23 +193,23 @@ class VideoProvider with ChangeNotifier {
   // Load videos from the local (1-hour) cache before the network responds.
   Future<void> _loadFromCache() async {
     try {
-      if (await StorageService.isCacheFresh()) {
-        final cachedVideos = await StorageService.getCachedVideos();
-        if (cachedVideos.isNotEmpty) {
-          _allVideos = cachedVideos;
+      // Stale metadata is still useful when the learner has no connection.
+      // A successful network fetch below always replaces it with fresh data.
+      final cachedVideos = await StorageService.getCachedVideos();
+      if (cachedVideos.isNotEmpty) {
+        _allVideos = cachedVideos;
 
-          final availableVideos = cachedVideos
-              .where((video) => video.isAvailable)
-              .toList();
-          _latestVideo = availableVideos.isNotEmpty
-              ? availableVideos.first
-              : null;
-          _videosByDate = VideoModel.distinctEpisodes(
-            availableVideos.where((video) => video.id != _latestVideo?.id),
-          ).take(6).toList();
+        final availableVideos = cachedVideos
+            .where((video) => video.isAvailable)
+            .toList();
+        _latestVideo = availableVideos.isNotEmpty
+            ? availableVideos.first
+            : null;
+        _videosByDate = VideoModel.distinctEpisodes(
+          availableVideos.where((video) => video.id != _latestVideo?.id),
+        ).take(6).toList();
 
-          notifyListeners();
-        }
+        notifyListeners();
       }
     } catch (e) {
       debugPrint('Error loading from cache: $e');
@@ -210,13 +223,22 @@ class VideoProvider with ChangeNotifier {
 
     try {
       await _fetchAllVideos();
-      await loadProgress();
-      await _setLoadingState(VideoLoadingState.loaded);
     } catch (e) {
-      await _handleError(
-        'We couldn’t refresh lessons. ${userFriendlyError(e)}',
-      );
+      if (_allVideos.isNotEmpty) {
+        _useCachedData();
+      } else {
+        await _handleError(
+          'We couldn’t refresh lessons. ${userFriendlyError(e)}',
+        );
+      }
+      return;
     }
+    try {
+      await loadProgress();
+    } catch (e) {
+      debugPrint('Video progress unavailable while refreshing lessons: $e');
+    }
+    await _setLoadingState(VideoLoadingState.loaded);
   }
 
   /// Applies a fresh [VideoProgressStatus] (e.g. the response of a heartbeat
@@ -225,6 +247,14 @@ class VideoProvider with ChangeNotifier {
   void applyProgress(VideoProgressStatus status) {
     if (status.videoId.isEmpty) return;
     _progressByVideo = {..._progressByVideo, status.videoId: status};
+    notifyListeners();
+  }
+
+  void _useCachedData() {
+    _offlineMode = true;
+    _loadingState = VideoLoadingState.loaded;
+    _errorMessage =
+        'You’re offline. Showing saved lessons. Reconnect to stream new content and sync progress.';
     notifyListeners();
   }
 
@@ -313,6 +343,7 @@ class VideoProvider with ChangeNotifier {
     _currentlyPlaying = null;
     _loadingState = VideoLoadingState.idle;
     _errorMessage = '';
+    _offlineMode = false;
     _fetchedThisSession = false;
     _progressByVideo = {};
     notifyListeners();

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:qspot/screens/video/model/video_model.dart';
+import 'package:qspot/screens/subject/model/subject_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // import '../models/video_model.dart';
@@ -9,6 +10,8 @@ class StorageService {
   static const String _progressKey = 'video_progress';
   static const String _videosKey = 'cached_videos';
   static const String _speakersKey = 'cached_speakers';
+  static const String _subjectsKey = 'cached_subjects';
+  static const String _coursesKey = 'cached_courses';
   static const String _lastUpdateKey = 'last_update';
   static const String _videoRemindersKey = 'video_reminders';
 
@@ -165,6 +168,61 @@ class StorageService {
     }
   }
 
+  static Future<void> cacheSubjects(List<SubjectModel> subjects) async {
+    try {
+      final prefs = await _preferences;
+      await prefs.setString(
+        _subjectsKey,
+        json.encode(subjects.map((subject) => subject.toJson()).toList()),
+      );
+    } catch (e) {
+      debugPrint('Error caching subjects: $e');
+    }
+  }
+
+  static Future<List<SubjectModel>> getCachedSubjects() async {
+    try {
+      final prefs = await _preferences;
+      final raw = prefs.getString(_subjectsKey);
+      if (raw == null) return [];
+      final decoded = json.decode(raw);
+      if (decoded is! List) return [];
+      return decoded
+          .whereType<Map>()
+          .map((item) => SubjectModel.fromJson(Map<String, dynamic>.from(item)))
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting cached subjects: $e');
+      return [];
+    }
+  }
+
+  static Future<void> cacheCourses(List<Map<String, dynamic>> courses) async {
+    try {
+      final prefs = await _preferences;
+      await prefs.setString(_coursesKey, json.encode(courses));
+    } catch (e) {
+      debugPrint('Error caching courses: $e');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getCachedCourses() async {
+    try {
+      final prefs = await _preferences;
+      final raw = prefs.getString(_coursesKey);
+      if (raw == null) return [];
+      final decoded = json.decode(raw);
+      if (decoded is! List) return [];
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting cached courses: $e');
+      return [];
+    }
+  }
+
   // Check if cache is fresh (within the last hour)
   static Future<bool> isCacheFresh({
     Duration maxAge = const Duration(hours: 1),
@@ -203,6 +261,8 @@ class StorageService {
       final prefs = await _preferences;
       await prefs.remove(_videosKey);
       await prefs.remove(_speakersKey);
+      await prefs.remove(_subjectsKey);
+      await prefs.remove(_coursesKey);
       await prefs.remove(_lastUpdateKey);
     } catch (e) {
       debugPrint('Error clearing cache: $e');
