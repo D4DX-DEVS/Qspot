@@ -17,6 +17,7 @@ import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../../widgets/common/initials_avatar.dart';
+import '../../../widgets/common/home_sheet_shell.dart';
 import '../../../widgets/common/nav_list_card.dart';
 import '../../../widgets/common/section_header.dart';
 import '../widgets/profile_identity_card.dart';
@@ -412,52 +413,133 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!context.mounted) return;
     final auth = context.read<AuthProvider>();
     final selected = {...auth.user?.courseIds ?? const <String>[]};
-    final saved = await showDialog<bool>(
+    final saved = await showModalBottomSheet<bool>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('My Courses'),
-          content: SizedBox(
-            width: 360,
-            child: courses.isEmpty
-                ? const Text('No active courses are available yet.')
-                : SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        for (final course in courses)
-                          CheckboxListTile(
-                            value: selected.contains(course.id),
-                            onChanged: (value) => setDialogState(() {
-                              if (value == true) {
-                                selected.add(course.id);
-                              } else {
-                                selected.remove(course.id);
-                              }
-                            }),
-                            title: Text(course.title),
-                            subtitle: course.subtitle.isEmpty
-                                ? null
-                                : Text(course.subtitle),
-                            activeColor: Theme.of(
-                              dialogContext,
-                            ).colorScheme.primary,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                      ],
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => HomeSheetShell(
+        child: StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            final palette = HomePalette.of(sheetContext);
+            return SafeArea(
+              top: false,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.78,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 10),
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: palette.cardBorder,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
                     ),
-                  ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Save'),
-            ),
-          ],
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 14, 12, 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'My Courses',
+                              style: AppFonts.bold(
+                                color: palette.text,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Close',
+                            onPressed: () => Navigator.pop(sheetContext, false),
+                            icon: const Icon(LucideIcons.x),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Choose the subjects you want to see.',
+                              style: AppFonts.regular(
+                                color: palette.textMuted,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            if (courses.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                child: Text(
+                                  'No active courses are available yet.',
+                                ),
+                              ),
+                            for (final course in courses)
+                              CheckboxListTile(
+                                value: selected.contains(course.id),
+                                onChanged: (value) => setSheetState(() {
+                                  if (value == true) {
+                                    selected.add(course.id);
+                                  } else {
+                                    selected.remove(course.id);
+                                  }
+                                }),
+                                title: Text(course.title),
+                                subtitle: course.subtitle.isEmpty
+                                    ? null
+                                    : Text(course.subtitle),
+                                activeColor: palette.brand,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () =>
+                                  Navigator.pop(sheetContext, false),
+                              child: const Text('Cancel'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: palette.brand,
+                                foregroundColor: palette.card,
+                                minimumSize: const Size(0, 48),
+                              ),
+                              onPressed: courses.isEmpty
+                                  ? null
+                                  : () => Navigator.pop(sheetContext, true),
+                              child: const Text('Save courses'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
