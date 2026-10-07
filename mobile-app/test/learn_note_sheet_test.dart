@@ -6,6 +6,7 @@ import 'package:qspot/screens/video/widgets/learn_note_sheet.dart';
 VideoModel episode({
   String learnText = '',
   List<String> learnPoints = const [],
+  List<VideoDownload> downloads = const [],
 }) {
   return VideoModel(
     id: '1',
@@ -14,6 +15,7 @@ VideoModel episode({
     video: 'https://example.com/clip',
     learnText: learnText,
     learnPoints: learnPoints,
+    downloads: downloads,
   );
 }
 
@@ -51,6 +53,34 @@ Future<void> openSheet(WidgetTester tester, VideoModel video) async {
 }
 
 void main() {
+  testWidgets('Learn shows file-only lessons instead of an empty note', (
+    tester,
+  ) async {
+    await openSheet(
+      tester,
+      episode(
+        downloads: const [
+          VideoDownload(
+            title: 'Practice checklist',
+            url: '/uploads/handouts/checklist.pdf',
+          ),
+          VideoDownload(
+            title: 'Practice notes',
+            url: 'https://example.com/notes.txt',
+          ),
+        ],
+      ),
+    );
+    expect(find.text('Learning materials'), findsOneWidget);
+    expect(find.text('Practice checklist'), findsOneWidget);
+    expect(find.text('PDF · Tap to open'), findsOneWidget);
+    await tester.drag(find.byType(ListView), const Offset(0, -150));
+    await tester.pumpAndSettle();
+    expect(find.text('Text file · Tap to open'), findsOneWidget);
+    expect(find.text('No notes for this episode yet.'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('shows the note and key points written for that video', (
     tester,
   ) async {

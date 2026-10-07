@@ -133,8 +133,11 @@ const customS3Storage = {
         }
     },
     _removeFile: function (req, file, cb) {
-        // No cleanup needed for S3
-        cb(null);
+        // Multer calls this for accepted files when a later batch item fails.
+        s3Client.send(new DeleteObjectCommand({
+            Bucket: file.bucket || process.env.DO_SPACES_BUCKET,
+            Key: file.key
+        })).then(() => cb(null), cb);
     }
 };
 
@@ -194,6 +197,33 @@ const profileUpload = CDN_ENABLED
 // uploader is sized for, so they get their own ceiling.
 const uploadLarge = buildUploader(fileFilter, 'DO_HANDOUT_MAX_FILE_SIZE', 26214400);
 
+// Lesson materials have their own allowlist, including plain-text handouts.
+const handoutFileFilter = (req, file, cb) => {
+    const types = {
+        '.pdf': ['application/pdf'], '.txt': ['text/plain'],
+        '.jpg': ['image/jpeg'], '.jpeg': ['image/jpeg'],
+        '.png': ['image/png'], '.webp': ['image/webp'], '.gif': ['image/gif']
+    };
+    const extension = path.extname(file.originalname).toLowerCase();
+    if (types[extension]?.includes(file.mimetype.toLowerCase())) return cb(null, true);
+    cb(Object.assign(new Error('Choose a PDF, TXT, JPEG, PNG, WEBP, or GIF file.'), { status: 400 }));
+};
+const localHandoutStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const directory = path.join(__dirname, '..', 'uploads', 'handouts');
+        fs.mkdirSync(directory, { recursive: true });
+        cb(null, directory);
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname).toLowerCase()}`);
+    }
+});
+const handoutUpload = CDN_ENABLED
+    ? buildUploader(handoutFileFilter, 'DO_HANDOUT_MAX_FILE_SIZE', 26214400)
+    : process.env.NODE_ENV === 'production'
+        ? { single: disabledUpload, array: disabledUpload, fields: disabledUpload }
+        : multer({ storage: localHandoutStorage, fileFilter: handoutFileFilter, limits: { fileSize: 26214400 } });
+
 // Video uploads (admin `POST/PUT /api/videos` with a `video` file field).
 const uploadVideo = buildUploader(videoFileFilter, 'DO_VIDEO_MAX_FILE_SIZE', 524288000);
 
@@ -226,6 +256,9 @@ const assignmentUpload = CDN_ENABLED
 // Helper function to get CDN URL
 const getCdnUrl = (fileKey) => {
     if (!fileKey) return '';
+    if (/^local:handouts\/[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(fileKey)) {
+        return `/uploads/${fileKey.slice('local:'.length)}`;
+    }
     const cdnEndpoint = process.env.DO_SPACES_CDN_ENDPOINT;
     if (cdnEndpoint) {
         return `${cdnEndpoint}/${fileKey}`;
@@ -238,6 +271,10 @@ const getCdnUrl = (fileKey) => {
 
 // Helper function to delete file from CDN
 const deleteFile = async (fileKey) => {
+    if (typeof fileKey === 'string' && /^local:handouts\/[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(fileKey)) {
+        await fs.promises.rm(path.join(__dirname, '..', 'uploads', fileKey.slice('local:'.length)), { force: true });
+        return { success: true };
+    }
     if (!s3Client || !fileKey) {
         return { success: false, error: 'S3 client not initialized' };
     }
@@ -327,6 +364,8 @@ module.exports = {
     upload,
     profileUpload,
     uploadLarge,
+    handoutUpload,
+    customS3Storage,
     uploadVideo,
     assignmentUpload,
     s3Client,

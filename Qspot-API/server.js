@@ -31,6 +31,10 @@ app.use(cors({ origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((o)
 app.use(express.json());
 // Local assignment uploads are served from the same API in development. In
 // production the upload middleware stores the same files in object storage.
+app.use('/uploads/handouts', (req, res, next) => {
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+});
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Express 5 leaves req.body undefined when no JSON body is sent; every

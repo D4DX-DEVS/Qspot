@@ -9,7 +9,7 @@ import '../../../widgets/common/home_sheet_shell.dart';
 import '../../../widgets/common/soft_icon_tile.dart';
 import '../model/video_model.dart';
 import 'episode_close_button.dart';
-import 'learn_note_body.dart';
+import 'learn_content_list.dart';
 import 'learn_note_empty.dart';
 
 /// The "Learn — quick note" bottom popup: a short note about the episode and
@@ -29,8 +29,7 @@ class LearnNoteSheet extends StatelessWidget {
     );
   }
 
-  bool get _hasContent =>
-      video.learnText.trim().isNotEmpty || video.learnPoints.isNotEmpty;
+  bool get _hasContent => video.hasLearnContent;
 
   @override
   Widget build(BuildContext context) {
@@ -94,12 +93,15 @@ class LearnNoteSheet extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-                child: _hasContent
-                    ? LearnNoteBody(video: video)
-                    : const LearnNoteEmpty(),
-              ),
+              child: _hasContent
+                  ? LearnContentList(
+                      video: video,
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                    )
+                  : const SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(20, 12, 20, 4),
+                      child: LearnNoteEmpty(),
+                    ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),

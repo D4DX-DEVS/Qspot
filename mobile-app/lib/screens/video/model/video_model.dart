@@ -1,4 +1,5 @@
 import '../../../utils/json_parsing.dart';
+import '../../../utils/api_urls.dart';
 
 /// A handout attached to an episode.
 class VideoDownload {
@@ -17,6 +18,26 @@ class VideoDownload {
   }
 
   Map<String, dynamic> toJson() => {'title': title, 'url': url, 'key': key};
+
+  /// Development uploads use API-relative paths; CDN links remain absolute.
+  String get resolvedUrl {
+    final parsed = Uri.tryParse(url);
+    if (parsed == null || url.isEmpty) return '';
+    final resolved = Uri.parse(ApiUrls.baseUrl).resolveUri(parsed);
+    if (!const {'http', 'https'}.contains(resolved.scheme) ||
+        resolved.host.isEmpty ||
+        RegExp(r'[\s%]').hasMatch(resolved.host)) {
+      return '';
+    }
+    return resolved.toString();
+  }
+
+  String get _extension =>
+      (Uri.tryParse(url)?.path ?? '').split('.').last.toLowerCase();
+  bool get isImage =>
+      const {'jpg', 'jpeg', 'png', 'webp', 'gif'}.contains(_extension);
+  bool get isPdf => _extension == 'pdf';
+  bool get isText => _extension == 'txt';
 }
 
 class VideoModel {
@@ -35,6 +56,11 @@ class VideoModel {
   final String learnText;
   final List<String> learnPoints;
   final List<VideoDownload> downloads;
+
+  bool get hasLearnContent =>
+      learnText.trim().isNotEmpty ||
+      learnPoints.isNotEmpty ||
+      downloads.isNotEmpty;
   final int order;
   final int durationSeconds;
   final int questionCount;
