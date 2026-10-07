@@ -23,7 +23,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.titleWidget,
     this.leading,
     this.actions,
-    this.centerTitle,
+    this.centerTitle = false,
     this.bottom,
     this.isDrawerNeeded = false,
     this.backgroundColor,
@@ -34,7 +34,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? titleWidget;
   final Widget? leading;
   final List<Widget>? actions;
-  final bool? centerTitle;
+  final bool centerTitle;
   final PreferredSizeWidget? bottom;
   final bool isDrawerNeeded;
   final Color? backgroundColor;
@@ -50,24 +50,13 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize =>
       Size.fromHeight(baseHeight + (bottom?.preferredSize.height ?? 0));
 
-  /// Same rule the [AppBar] uses to decide whether to centre its title.
-  bool _isCentered(BuildContext context) =>
-      centerTitle ??
-      Theme.of(context).appBarTheme.centerTitle ??
-      const [
-        TargetPlatform.iOS,
-        TargetPlatform.macOS,
-      ].contains(Theme.of(context).platform);
-
   @override
   Widget build(BuildContext context) {
     final showDrawer = isDrawerNeeded && !Navigator.of(context).canPop();
     return AppBar(
       title:
           titleWidget ??
-          (title == null
-              ? null
-              : AppBarTitle(title!, centered: _isCentered(context))),
+          (title == null ? null : AppBarTitle(title!, centered: centerTitle)),
       leading:
           leading ??
           (showDrawer

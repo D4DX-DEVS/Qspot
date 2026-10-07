@@ -11,7 +11,7 @@ class AppBarTitle extends StatelessWidget {
   const AppBarTitle(
     this.text, {
     super.key,
-    this.centered = true,
+    this.centered = false,
     this.height = kToolbarHeight,
   });
 
@@ -29,7 +29,10 @@ class AppBarTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       height: height,
-      child: Center(
+      child: Align(
+        alignment: centered
+            ? Alignment.center
+            : AlignmentDirectional.centerStart,
         child: FitText(
           text,
           maxHeight: height - _verticalGap,

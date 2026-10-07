@@ -55,7 +55,7 @@ class HomeTheme {
         elevation: 2,
         scrolledUnderElevation: 2,
         shadowColor: AppColors.black.withValues(alpha: p.isDark ? 0.6 : 0.25),
-        centerTitle: true,
+        centerTitle: false,
         iconTheme: IconThemeData(color: p.text),
         actionsIconTheme: IconThemeData(color: p.text),
         titleTextStyle: AppFonts.extraBold(color: p.text, fontSize: 21),
