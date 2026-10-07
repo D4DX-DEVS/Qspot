@@ -70,11 +70,7 @@ class SettingsHeader extends StatelessWidget {
               StaggeredEntrance(
                 child: Text(
                   title,
-                  style: AppFonts.extraBold(
-                    color: scheme.onSurface,
-                    fontSize: 28,
-                    height: 1.15,
-                  ),
+                  style: Theme.of(context).appBarTheme.titleTextStyle,
                 ),
               ),
               const SizedBox(height: 4),
