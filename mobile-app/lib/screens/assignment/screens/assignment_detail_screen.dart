@@ -6,13 +6,20 @@ import 'package:provider/provider.dart';
 import 'package:qspot/screens/assignment/model/assignment_model.dart';
 import 'package:qspot/screens/assignment/provider/assignment_detail_provider.dart';
 import 'package:qspot/screens/assignment/service/assignment_service.dart';
+import 'package:qspot/screens/auth/widgets/gradient_pill_button.dart';
+import 'package:qspot/screens/common/widgets/home_theme_scope.dart';
 import 'package:qspot/themes/app_colors.dart';
 import 'package:qspot/services/api_client.dart';
 import 'package:qspot/themes/app_fonts.dart';
+import 'package:qspot/themes/app_theme.dart';
+import 'package:qspot/themes/home_palette.dart';
 import 'package:qspot/widgets/animation/pressable_scale.dart';
 import 'package:qspot/widgets/animation/staggered_entrance.dart';
 import 'package:qspot/widgets/common/app_snack_bar.dart';
 import 'package:qspot/widgets/common/common_app_bar.dart';
+import 'package:qspot/widgets/common/info_note_card.dart';
+import 'package:qspot/widgets/common/surface_card.dart';
+import 'package:qspot/widgets/common/tone_chip.dart';
 
 class AssignmentDetailScreen extends StatefulWidget {
   const AssignmentDetailScreen({super.key, required this.assignment});
@@ -171,14 +178,22 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => ChangeNotifierProvider.value(
-    value: _detail,
-    child: Consumer<AssignmentDetailProvider>(
-      builder: (_, detail, __) => _buildPage(detail),
-    ),
-  );
+  Widget build(BuildContext context) {
+    // Burgundy home theme; the page reads colours from the context inside it.
+    return HomeThemeScope(
+      child: ChangeNotifierProvider.value(
+        value: _detail,
+        child: Consumer<AssignmentDetailProvider>(
+          builder: (context, detail, _) => _buildPage(context, detail),
+        ),
+      ),
+    );
+  }
 
-  Widget _buildPage(AssignmentDetailProvider detail) => Scaffold(
+  Widget _buildPage(
+    BuildContext context,
+    AssignmentDetailProvider detail,
+  ) => Scaffold(
     appBar: const CommonAppBar(title: 'Assignment'),
     body: FutureBuilder<AssignmentModel>(
       future: detail.assignment,
@@ -186,17 +201,21 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
+        final p = HomePalette.of(context);
         final assignment = snapshot.data ?? widget.assignment;
         final submitted = assignment.isSubmitted;
         return ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+          padding: EdgeInsets.fromLTRB(
+            AppTheme.contentInset,
+            AppTheme.paddingMedium,
+            AppTheme.contentInset,
+            32 + MediaQuery.paddingOf(context).bottom,
+          ),
           children: [
             StaggeredEntrance(
               child: Text(
                 assignment.title,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: AppFonts.extraBold(color: p.text, fontSize: 22),
               ),
             ),
             if (assignment.subject.isNotEmpty) ...[
@@ -205,52 +224,58 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                 index: 1,
                 child: Text(
                   assignment.subject,
-                  style: AppFonts.regular(color: AppColors.textMuted),
+                  style: AppFonts.regular(color: p.textMuted, fontSize: 14),
                 ),
               ),
             ],
-            const SizedBox(height: 18),
+            const SizedBox(height: 14),
             StaggeredEntrance(
               index: 2,
               child: _DetailMeta(assignment: assignment),
             ),
             if (assignment.instructions.isNotEmpty) ...[
-              const SizedBox(height: 24),
+              const SizedBox(height: AppTheme.sectionGap),
               StaggeredEntrance(
                 index: 3,
-                child: Text('What to Do', style: AppFonts.bold(fontSize: 16)),
+                child: _SectionLabel('What to Do', palette: p),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppTheme.paddingSmall),
               StaggeredEntrance(
                 index: 3,
-                child: Text(
-                  assignment.instructions,
-                  style: AppFonts.regular(height: 1.45),
+                child: SurfaceCard(
+                  child: Text(
+                    assignment.instructions,
+                    style: AppFonts.regular(
+                      color: p.text,
+                      fontSize: 15,
+                      height: 1.5,
+                    ),
+                  ),
                 ),
               ),
             ],
-            const SizedBox(height: 28),
+            const SizedBox(height: AppTheme.sectionGap),
             if (assignment.feedback.isNotEmpty) ...[
               StaggeredEntrance(
                 index: 4,
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.border),
-                  ),
+                child: SurfaceCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Teacher Feedback', style: AppFonts.bold()),
+                      Text(
+                        'Teacher Feedback',
+                        style: AppFonts.bold(color: p.text, fontSize: 15),
+                      ),
                       const SizedBox(height: 6),
-                      Text(assignment.feedback),
+                      Text(
+                        assignment.feedback,
+                        style: AppFonts.regular(color: p.text, height: 1.5),
+                      ),
                       if (assignment.grade != null) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          'Score: ${assignment.grade}',
-                          style: AppFonts.bold(),
+                        const SizedBox(height: 10),
+                        ToneChip(
+                          label: 'Score: ${assignment.grade}',
+                          tone: p.mint,
                         ),
                       ],
                     ],
@@ -265,30 +290,14 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppColors.success.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(
-                            LucideIcons.circleCheck,
-                            color: AppColors.success,
-                          ),
-                          SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'Your work has been sent to your teacher.',
-                            ),
-                          ),
-                        ],
-                      ),
+                    InfoNoteCard(
+                      icon: LucideIcons.circleCheck,
+                      tone: p.mint,
+                      message: 'Your work has been sent to your teacher.',
                     ),
                     if (assignment.submissionFiles.isNotEmpty) ...[
-                      const SizedBox(height: 14),
-                      Text('Attachments', style: AppFonts.bold()),
+                      const SizedBox(height: AppTheme.sectionGap),
+                      _SectionLabel('Attachments', palette: p),
                       ...assignment.submissionFiles.map(
                         (file) => ListTile(
                           contentPadding: EdgeInsets.zero,
@@ -296,9 +305,19 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                             file.mimeType.startsWith('audio')
                                 ? LucideIcons.music
                                 : LucideIcons.image,
+                            color: p.brand,
                           ),
-                          title: Text(file.name),
-                          subtitle: Text(file.mimeType),
+                          title: Text(
+                            file.name,
+                            style: AppFonts.medium(color: p.text),
+                          ),
+                          subtitle: Text(
+                            file.mimeType,
+                            style: AppFonts.regular(
+                              color: p.textMuted,
+                              fontSize: 12,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -308,9 +327,9 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
             else ...[
               StaggeredEntrance(
                 index: 5,
-                child: Text('Your Answer', style: AppFonts.bold(fontSize: 16)),
+                child: _SectionLabel('Your Answer', palette: p),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppTheme.paddingSmall),
               StaggeredEntrance(
                 index: 5,
                 child: TextField(
@@ -318,10 +337,24 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                   minLines: 5,
                   maxLines: 9,
                   maxLength: 5000,
-                  decoration: const InputDecoration(
+                  cursorColor: p.brand,
+                  style: AppFonts.regular(color: p.text, fontSize: 16),
+                  decoration: InputDecoration(
                     hintText: 'Share Your Answer Here',
+                    hintStyle: AppFonts.regular(color: p.textMuted),
+                    counterStyle: AppFonts.regular(
+                      color: p.textMuted,
+                      fontSize: 12,
+                    ),
                     alignLabelWithHint: true,
-                    border: OutlineInputBorder(),
+                    filled: true,
+                    fillColor: p.card,
+                    border: _fieldBorder(p.cardBorder),
+                    enabledBorder: _fieldBorder(p.cardBorder),
+                    focusedBorder: _fieldBorder(p.brand, 1.6),
+                    contentPadding: const EdgeInsets.all(
+                      AppTheme.paddingMedium,
+                    ),
                   ),
                 ),
               ),
@@ -348,43 +381,26 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                   ),
                 ),
               ],
-              const SizedBox(height: 6),
+              const SizedBox(height: AppTheme.sectionGap),
               StaggeredEntrance(
                 index: 7,
-                child: SizedBox(
-                  height: 48,
-                  child: PressableScale(
-                    enabled: !detail.submitting,
-                    child: FilledButton.icon(
-                      onPressed: detail.submitting
-                          ? null
-                          : () => _submit(assignment),
-                      icon: detail.submitting
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.white,
-                              ),
-                            )
-                          : const Icon(LucideIcons.send),
-                      label: Text(
-                        detail.submitting ? 'Sending...' : 'Submit Assignment',
-                      ),
-                    ),
-                  ),
+                child: GradientPillButton(
+                  label: 'Submit Assignment',
+                  onPressed: () => _submit(assignment),
+                  isLoading: detail.submitting,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               StaggeredEntrance(
                 index: 8,
                 child: Text(
                   'Add a voice recording or photo with your answer. You can attach up to 10 files.',
                   style: AppFonts.regular(
-                    color: AppColors.textMuted,
-                    fontSize: 12,
+                    color: p.textMuted,
+                    fontSize: 12.5,
+                    height: 1.45,
                   ),
+                  textAlign: TextAlign.center,
                 ),
               ),
             ],
@@ -393,6 +409,27 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
       },
     ),
   );
+
+  static OutlineInputBorder _fieldBorder(Color color, [double width = 1]) =>
+      OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: color, width: width),
+      );
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text, {required this.palette});
+
+  final String text;
+  final HomePalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: AppFonts.semiBold(color: palette.text, fontSize: 16),
+    );
+  }
 }
 
 class _AttachmentActions extends StatelessWidget {
@@ -412,6 +449,17 @@ class _AttachmentActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = HomePalette.of(context);
+    final style = OutlinedButton.styleFrom(
+      foregroundColor: p.brand,
+      backgroundColor: p.card,
+      disabledForegroundColor: p.textMuted,
+      side: BorderSide(color: p.cardBorder),
+      minimumSize: const Size(0, 46),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      textStyle: AppFonts.semiBold(fontSize: 14.5),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    );
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -420,24 +468,27 @@ class _AttachmentActions extends StatelessWidget {
           enabled: audioEnabled,
           child: OutlinedButton.icon(
             onPressed: audioEnabled ? onAudio : null,
-            icon: const Icon(LucideIcons.fileAudio),
+            icon: const Icon(LucideIcons.fileAudio, size: 19),
             label: const Text('Upload Audio'),
+            style: style,
           ),
         ),
         PressableScale(
           enabled: imageEnabled,
           child: OutlinedButton.icon(
             onPressed: imageEnabled ? onCamera : null,
-            icon: const Icon(LucideIcons.camera),
+            icon: const Icon(LucideIcons.camera, size: 19),
             label: const Text('Take Photo'),
+            style: style,
           ),
         ),
         PressableScale(
           enabled: imageEnabled,
           child: OutlinedButton.icon(
             onPressed: imageEnabled ? onGallery : null,
-            icon: const Icon(LucideIcons.images),
+            icon: const Icon(LucideIcons.images, size: 19),
             label: const Text('Choose Photo'),
+            style: style,
           ),
         ),
       ],
@@ -453,6 +504,7 @@ class _PendingAttachment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = HomePalette.of(context);
     return ListTile(
       dense: true,
       contentPadding: EdgeInsets.zero,
@@ -460,13 +512,17 @@ class _PendingAttachment extends StatelessWidget {
         file.mimeType.startsWith('audio')
             ? LucideIcons.music
             : LucideIcons.image,
+        color: p.brand,
       ),
-      title: Text(file.name),
-      subtitle: Text('${(file.bytes.length / 1024).ceil()} KB'),
+      title: Text(file.name, style: AppFonts.medium(color: p.text)),
+      subtitle: Text(
+        '${(file.bytes.length / 1024).ceil()} KB',
+        style: AppFonts.regular(color: p.textMuted, fontSize: 12),
+      ),
       trailing: IconButton(
         tooltip: 'Remove Attachment',
         onPressed: onRemove,
-        icon: const Icon(LucideIcons.x),
+        icon: Icon(LucideIcons.x, color: p.textMuted),
       ),
     );
   }
@@ -478,11 +534,12 @@ class _DetailMeta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = assignment.isSubmitted
-        ? AppColors.success
+    final p = HomePalette.of(context);
+    final tone = assignment.isSubmitted
+        ? p.mint
         : assignment.isOverdue
-        ? AppColors.danger
-        : AppColors.primary;
+        ? p.coral
+        : p.rose;
     final status = assignment.isSubmitted
         ? 'Submitted'
         : assignment.isOverdue
@@ -491,34 +548,20 @@ class _DetailMeta extends StatelessWidget {
     final due = assignment.dueAt == null
         ? 'No Due Date'
         : 'Due ${assignment.dueAt!.toLocal().day}/${assignment.dueAt!.toLocal().month}/${assignment.dueAt!.toLocal().year}';
-    return Row(
+    final dueColor = assignment.isOverdue ? p.error : p.textMuted;
+    return Wrap(
+      spacing: 10,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: statusColor.withValues(alpha: 0.09),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            status,
-            style: AppFonts.bold(color: statusColor, fontSize: 12),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Icon(
-          LucideIcons.calendarDays,
-          size: 16,
-          color: assignment.isOverdue ? AppColors.danger : AppColors.textMuted,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          due,
-          style: AppFonts.regular(
-            color: assignment.isOverdue
-                ? AppColors.danger
-                : AppColors.textMuted,
-            fontSize: 13,
-          ),
+        ToneChip(label: status, tone: tone),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(LucideIcons.calendarDays, size: 16, color: dueColor),
+            const SizedBox(width: 4),
+            Text(due, style: AppFonts.regular(color: dueColor, fontSize: 13)),
+          ],
         ),
       ],
     );

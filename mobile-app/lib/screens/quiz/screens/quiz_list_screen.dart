@@ -11,6 +11,7 @@ import '../../../widgets/common/app_snack_bar.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../../widgets/common/info_note_card.dart';
 import '../../../widgets/common/loading_skeleton.dart';
+import '../../../widgets/common/notice_sheet.dart';
 import '../../../widgets/common/section_header.dart';
 import '../../../widgets/common/state_message_view.dart';
 import '../../common/widgets/home_theme_scope.dart';
@@ -45,6 +46,31 @@ class _QuizListScreenState extends State<QuizListScreen> {
   Future<void> _onQuizTap(QuizListItem quiz) async {
     if (quiz.hasAttempted) {
       _showAttemptSummary(quiz);
+      return;
+    }
+    if (quiz.isEnded) {
+      NoticeSheet.show(
+        context,
+        icon: LucideIcons.calendarX,
+        title: "You Didn't Attempt This Quiz",
+        message:
+            'This quiz ended before you took it, so there is no score to show. '
+            "Keep an eye on Live Now so you don't miss the next one.",
+      );
+      return;
+    }
+    if (quiz.isUpcoming) {
+      final start = quiz.startDate;
+      NoticeSheet.show(
+        context,
+        icon: LucideIcons.calendarClock,
+        tone: (p) => p.amber,
+        title: "This Quiz Hasn't Started Yet",
+        message: start == null
+            ? 'Come back once it goes live to take it.'
+            : 'It opens on ${start.day}/${start.month}/${start.year}. '
+                  'Come back then to take it.',
+      );
       return;
     }
     if (!quiz.isLive) return;

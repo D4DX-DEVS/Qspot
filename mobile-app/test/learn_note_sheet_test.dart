@@ -53,9 +53,26 @@ Future<void> openSheet(WidgetTester tester, VideoModel video) async {
 }
 
 void main() {
-  testWidgets('Learn shows file-only lessons instead of an empty note', (
-    tester,
-  ) async {
+  testWidgets('Learn leaves files to the Downloads tab', (tester) async {
+    await openSheet(
+      tester,
+      episode(
+        learnText: 'A short note about this episode.',
+        downloads: const [
+          VideoDownload(
+            title: 'Practice checklist',
+            url: '/uploads/handouts/checklist.pdf',
+          ),
+        ],
+      ),
+    );
+    expect(find.text('A short note about this episode.'), findsOneWidget);
+    expect(find.text('Learning materials'), findsNothing);
+    expect(find.text('Practice checklist'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('file-only lessons show the empty note in Learn', (tester) async {
     await openSheet(
       tester,
       episode(
@@ -64,21 +81,14 @@ void main() {
             title: 'Practice checklist',
             url: '/uploads/handouts/checklist.pdf',
           ),
-          VideoDownload(
-            title: 'Practice notes',
-            url: 'https://example.com/notes.txt',
-          ),
         ],
       ),
     );
-    expect(find.text('Learning materials'), findsOneWidget);
-    expect(find.text('Practice checklist'), findsOneWidget);
-    expect(find.text('PDF · Tap to open'), findsOneWidget);
-    await tester.drag(find.byType(ListView), const Offset(0, -150));
-    await tester.pumpAndSettle();
-    expect(find.text('Text file · Tap to open'), findsOneWidget);
-    expect(find.text('No notes for this episode yet.'), findsNothing);
-    expect(tester.takeException(), isNull);
+    expect(
+      find.text('This episode\'s quick note isn\'t ready yet.'),
+      findsOneWidget,
+    );
+    expect(find.text('Practice checklist'), findsNothing);
   });
 
   testWidgets('shows the note and key points written for that video', (

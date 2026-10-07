@@ -27,7 +27,7 @@ class EpisodeDownloadsTab extends StatelessWidget {
         final item = downloads[index];
         return StaggeredEntrance(
           index: index,
-          child: LearningMaterialCard(material: item, showPreview: false),
+          child: LearningMaterialCard(material: item),
         );
       },
     );

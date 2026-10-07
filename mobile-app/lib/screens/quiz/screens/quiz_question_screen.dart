@@ -5,7 +5,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../../services/api_client.dart';
+import '../../../themes/accent_tone.dart';
 import '../../../themes/app_colors.dart';
+import '../../../themes/home_palette.dart';
 import '../../../widgets/animation/animated_progress_bar.dart';
 import '../../../widgets/animation/fade_on_change.dart';
 import '../../../widgets/animation/pop_on_change.dart';
@@ -14,6 +16,9 @@ import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/state_message_view.dart';
+import '../../../widgets/common/tone_chip.dart';
+import '../../common/widgets/home_theme_scope.dart';
 import '../provider/quiz_provider.dart';
 import '../provider/quiz_question_screen_provider.dart';
 import 'quiz_results_screen.dart';
@@ -86,10 +91,13 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: _q,
-      child: Consumer<QuizQuestionScreenProvider>(
-        builder: (_, q, __) => _buildPage(q),
+    // Burgundy home theme; the page reads colours from the context inside it.
+    return HomeThemeScope(
+      child: ChangeNotifierProvider.value(
+        value: _q,
+        child: Consumer<QuizQuestionScreenProvider>(
+          builder: (_, q, __) => _buildPage(q),
+        ),
       ),
     );
   }
@@ -102,7 +110,6 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
         _startTimerIfConfigured(quizProvider);
 
         return Scaffold(
-          backgroundColor: AppColors.background,
           appBar: CommonAppBar(
             title: totalQuestions > 0
                 ? 'Question ${quizProvider.currentQuestionIndex + 1} of $totalQuestions'
@@ -111,54 +118,18 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                 : 'Quiz',
           ),
           body: totalQuestions == 0
-              ? _buildEmptyState(context)
+              // Guards the 0-questions case (an empty `questions` array in
+              // the payload) instead of leaving the user on an infinite
+              // spinner; the app bar's back arrow takes them out.
+              ? const StateMessageView(
+                  icon: LucideIcons.listChecks,
+                  title: 'No Questions Available',
+                  message:
+                      'This quiz has no questions right now. Please try again later.',
+                )
               : _buildQuestionBody(context, quizProvider, locale, q),
         );
       },
-    );
-  }
-
-  /// Guards the 0-questions case (an empty `questions` array in the
-  /// payload) instead of leaving the user on an infinite spinner.
-  Widget _buildEmptyState(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.paddingLarge),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              LucideIcons.listChecks,
-              size: 64,
-              color: AppColors.textMuted,
-            ),
-            const SizedBox(height: AppTheme.paddingMedium),
-            Text(
-              'No Questions Available',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary),
-            ),
-            const SizedBox(height: AppTheme.paddingSmall),
-            Text(
-              'This quiz has no questions right now. Please try again later.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppTheme.paddingLarge),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.onPrimary,
-              ),
-              child: const Text('Go Back'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -168,11 +139,10 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
     String locale,
     QuizQuestionScreenProvider q,
   ) {
+    final p = HomePalette.of(context);
     final question = quizProvider.currentQuestion;
     if (question == null) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
+      return Center(child: CircularProgressIndicator(color: p.brand));
     }
 
     final selectedAnswer = quizProvider.getSelectedAnswer(question.id);
@@ -183,318 +153,336 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
 
     return Column(
       children: [
-        Container(
+        Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.paddingMedium,
+            horizontal: AppTheme.contentInset,
             vertical: AppTheme.paddingSmall,
           ),
           child: AnimatedProgressBar(
             value: (currentIndex + 1) / totalQuestions,
-            backgroundColor: AppColors.surfaceAlt,
-            color: AppColors.primary,
+            backgroundColor: p.brandSoft,
+            color: p.brand,
             minHeight: 4,
           ),
         ),
-        if (q.remainingSeconds != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: q.remainingSeconds! <= 10
-                      ? AppColors.danger.withValues(alpha: 0.12)
-                      : AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  child: Text(
-                    'Time ${q.timerLabel}',
-                    style: AppFonts.bold(
-                      color: q.remainingSeconds! <= 10
-                          ? AppColors.danger
-                          : AppColors.primary,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+        if (q.remainingSeconds != null) _timerChip(p, q),
         Expanded(
           child: FadeOnChange(
             trigger: question.id,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppTheme.paddingMedium),
+              padding: const EdgeInsets.all(AppTheme.contentInset),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _difficultyColor(
-                        question.difficulty,
-                      ).withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: _difficultyColor(question.difficulty),
-                        width: 1,
-                      ),
-                    ),
-                    child: Text(
-                      question.difficulty.toUpperCase(),
-                      style: AppFonts.bold(
-                        color: _difficultyColor(question.difficulty),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
+                  _difficultyChip(p, question.difficulty),
                   const SizedBox(height: AppTheme.paddingLarge),
                   Text(
                     questionText,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.bold,
+                    style: AppFonts.bold(
+                      color: p.text,
+                      fontSize: 20,
                       height: 1.4,
                     ),
                   ),
-                  const SizedBox(height: AppTheme.paddingLarge * 2),
-                  ...options.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final option = entry.value;
-                    final isSelected = selectedAnswer == index;
-
-                    return Padding(
+                  const SizedBox(height: AppTheme.sectionGap),
+                  for (final (index, option) in options.indexed)
+                    Padding(
                       padding: const EdgeInsets.only(
                         bottom: AppTheme.paddingMedium,
                       ),
-                      child: PressableScale(
-                        child: InkWell(
-                          onTap: () => quizProvider.selectAnswer(index),
-                          borderRadius: BorderRadius.circular(
-                            AppTheme.radiusMedium,
-                          ),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(
-                              AppTheme.paddingMedium,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : AppColors.background,
-                              borderRadius: BorderRadius.circular(
-                                AppTheme.radiusMedium,
-                              ),
-                              border: Border.all(
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : AppColors.border,
-                                width: isSelected ? 2 : 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                PopOnChange(
-                                  key: ValueKey('${question.id}-$index'),
-                                  active: isSelected,
-                                  child: Container(
-                                    width: 24,
-                                    height: 24,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: isSelected
-                                          ? AppColors.primary
-                                          : AppColors.surfaceAlt,
-                                    ),
-                                    child: isSelected
-                                        ? const Icon(
-                                            LucideIcons.check,
-                                            size: 16,
-                                            color: AppColors.onPrimary,
-                                          )
-                                        : null,
-                                  ),
-                                ),
-                                const SizedBox(width: AppTheme.paddingMedium),
-                                Expanded(
-                                  child: Text(
-                                    option,
-                                    style: Theme.of(context).textTheme.bodyLarge
-                                        ?.copyWith(
-                                          color: isSelected
-                                              ? AppColors.onPrimary
-                                              : AppColors.textPrimary,
-                                          fontWeight: isSelected
-                                              ? FontWeight.w600
-                                              : FontWeight.normal,
-                                        ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                      child: _optionTile(
+                        p,
+                        option: option,
+                        isSelected: selectedAnswer == index,
+                        popKey: ValueKey('${question.id}-$index'),
+                        onTap: () => quizProvider.selectAnswer(index),
                       ),
-                    );
-                  }),
+                    ),
                 ],
               ),
             ),
           ),
         ),
-        Container(
-          padding: const EdgeInsets.all(AppTheme.paddingMedium),
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            border: const Border(top: BorderSide(color: AppColors.border)),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.black.withValues(alpha: 0.06),
-                blurRadius: 10,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              PressableScale(
-                enabled: quizProvider.hasPreviousQuestion,
-                child: ElevatedButton.icon(
-                  onPressed: quizProvider.hasPreviousQuestion
-                      ? () => quizProvider.previousQuestion()
-                      : null,
-                  icon: const Icon(LucideIcons.arrowLeft),
-                  label: const Text('Previous'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.background,
-                    foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.border),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppTheme.paddingMedium,
-                  ),
-                  child: Row(
-                    children: List.generate(totalQuestions, (index) {
-                      final qId = quizProvider.sessionQuestions[index].id;
-                      final answered =
-                          quizProvider.getSelectedAnswer(qId) != null;
-                      return PressableScale(
-                        pressedScale: 0.88,
-                        child: GestureDetector(
-                          onTap: () => quizProvider.goToQuestion(index),
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            decoration: BoxDecoration(
-                              color: index == currentIndex
-                                  ? AppColors.primary
-                                  : answered
-                                  ? AppColors.primarySoft
-                                  : AppColors.surfaceAlt,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Center(
-                              child: Text(
-                                '${index + 1}',
-                                style: AppFonts.bold(
-                                  color: index == currentIndex
-                                      ? AppColors.onPrimary
-                                      : answered
-                                      ? AppColors.primary
-                                      : AppColors.textMuted,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-              ),
-              PressableScale(
-                enabled: !q.submitting,
-                child: ElevatedButton.icon(
-                  onPressed: q.submitting
-                      ? null
-                      : () {
-                          if (quizProvider.hasNextQuestion) {
-                            quizProvider.nextQuestion();
-                            _resetPerQuestionTimer(quizProvider);
-                          } else {
-                            _showSubmitDialog(context, quizProvider);
-                          }
-                        },
-                  icon: Icon(
-                    quizProvider.hasNextQuestion
-                        ? LucideIcons.arrowRight
-                        : LucideIcons.check,
-                  ),
-                  label: Text(quizProvider.hasNextQuestion ? 'Next' : 'Submit'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.onPrimary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        _bottomBar(context, p, quizProvider, q, currentIndex, totalQuestions),
       ],
     );
   }
 
-  Color _difficultyColor(String difficulty) {
+  /// Countdown pill, right-aligned above the question. Turns to the warning
+  /// tone in the last ten seconds.
+  Widget _timerChip(HomePalette p, QuizQuestionScreenProvider q) {
+    final tone = q.remainingSeconds! <= 10 ? p.coral : p.rose;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.contentInset,
+        4,
+        AppTheme.contentInset,
+        0,
+      ),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: ToneChip(label: 'Time ${q.timerLabel}', tone: tone),
+      ),
+    );
+  }
+
+  Widget _difficultyChip(HomePalette p, String difficulty) {
+    final tone = _difficultyTone(p, difficulty);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: tone.soft,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: tone.color.withValues(alpha: 0.5)),
+      ),
+      child: Text(
+        difficulty.toUpperCase(),
+        style: AppFonts.bold(color: tone.color, fontSize: 12),
+      ),
+    );
+  }
+
+  Widget _optionTile(
+    HomePalette p, {
+    required String option,
+    required bool isSelected,
+    required Key popKey,
+    required VoidCallback onTap,
+  }) {
+    return PressableScale(
+      child: Material(
+        color: isSelected ? p.brand : p.card,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+          side: BorderSide(
+            color: isSelected ? p.brand : p.cardBorder,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppTheme.paddingMedium),
+            child: Row(
+              children: [
+                PopOnChange(
+                  key: popKey,
+                  active: isSelected,
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isSelected ? AppColors.white24 : p.brandSoft,
+                      border: Border.all(
+                        color: isSelected ? AppColors.white : p.cardBorder,
+                      ),
+                    ),
+                    child: isSelected
+                        ? const Icon(
+                            LucideIcons.check,
+                            size: 15,
+                            color: AppColors.white,
+                          )
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: AppTheme.paddingMedium),
+                Expanded(
+                  child: Text(
+                    option,
+                    style: isSelected
+                        ? AppFonts.semiBold(
+                            color: AppColors.white,
+                            fontSize: 16,
+                          )
+                        : AppFonts.regular(color: p.text, fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _bottomBar(
+    BuildContext context,
+    HomePalette p,
+    QuizProvider quizProvider,
+    QuizQuestionScreenProvider q,
+    int currentIndex,
+    int totalQuestions,
+  ) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        AppTheme.paddingMedium,
+        AppTheme.paddingMedium,
+        AppTheme.paddingMedium,
+        AppTheme.paddingMedium + MediaQuery.paddingOf(context).bottom,
+      ),
+      decoration: BoxDecoration(
+        color: p.background,
+        border: Border(top: BorderSide(color: p.cardBorder)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: p.isDark ? 0.3 : 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          PressableScale(
+            enabled: quizProvider.hasPreviousQuestion,
+            child: ElevatedButton.icon(
+              onPressed: quizProvider.hasPreviousQuestion
+                  ? () => quizProvider.previousQuestion()
+                  : null,
+              icon: const Icon(LucideIcons.arrowLeft),
+              label: const Text('Previous'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: p.card,
+                foregroundColor: p.brand,
+                side: BorderSide(color: p.cardBorder),
+              ),
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.paddingMedium,
+              ),
+              child: Row(
+                children: List.generate(totalQuestions, (index) {
+                  final qId = quizProvider.sessionQuestions[index].id;
+                  final answered = quizProvider.getSelectedAnswer(qId) != null;
+                  return _questionDot(
+                    p,
+                    number: index + 1,
+                    isCurrent: index == currentIndex,
+                    answered: answered,
+                    onTap: () => quizProvider.goToQuestion(index),
+                  );
+                }),
+              ),
+            ),
+          ),
+          PressableScale(
+            enabled: !q.submitting,
+            child: ElevatedButton.icon(
+              onPressed: q.submitting
+                  ? null
+                  : () {
+                      if (quizProvider.hasNextQuestion) {
+                        quizProvider.nextQuestion();
+                        _resetPerQuestionTimer(quizProvider);
+                      } else {
+                        _showSubmitDialog(context, quizProvider);
+                      }
+                    },
+              icon: Icon(
+                quizProvider.hasNextQuestion
+                    ? LucideIcons.arrowRight
+                    : LucideIcons.check,
+              ),
+              label: Text(quizProvider.hasNextQuestion ? 'Next' : 'Submit'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: p.brand,
+                foregroundColor: AppColors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _questionDot(
+    HomePalette p, {
+    required int number,
+    required bool isCurrent,
+    required bool answered,
+    required VoidCallback onTap,
+  }) {
+    return PressableScale(
+      pressedScale: 0.88,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 32,
+          height: 32,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            color: isCurrent
+                ? p.brand
+                : answered
+                ? p.brandSoft
+                : p.cardBorder,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              '$number',
+              style: AppFonts.bold(
+                color: isCurrent
+                    ? AppColors.white
+                    : answered
+                    ? p.brand
+                    : p.textMuted,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  AccentTone _difficultyTone(HomePalette p, String difficulty) {
     switch (difficulty.toLowerCase()) {
       case 'easy':
-        return AppColors.success;
+        return p.mint;
       case 'medium':
-        return AppColors.warning;
+        return p.amber;
       case 'hard':
-        return AppColors.danger;
+        return p.coral;
       default:
-        return AppColors.textMuted;
+        return p.slate;
     }
   }
 
   void _showSubmitDialog(BuildContext context, QuizProvider quizProvider) {
+    final p = HomePalette.of(context);
     final answeredCount = quizProvider.answeredCount;
     final totalQuestions = quizProvider.totalQuestions;
 
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.background,
+        backgroundColor: p.card,
         title: Text(
           'Submit Quiz?',
-          style: AppFonts.medium(color: AppColors.textPrimary),
+          style: AppFonts.bold(color: p.text, fontSize: 18),
         ),
         content: Text(
           'You have answered $answeredCount out of $totalQuestions questions.\n\nDo you want to submit the quiz?',
-          style: AppFonts.regular(color: AppColors.textMuted),
+          style: AppFonts.regular(
+            color: p.textMuted,
+            fontSize: 14,
+            height: 1.5,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(
-              'Cancel',
-              style: AppFonts.medium(color: AppColors.textMuted),
-            ),
+            child: Text('Cancel', style: AppFonts.medium(color: p.textMuted)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -502,8 +490,8 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
               _submit(quizProvider);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.onPrimary,
+              backgroundColor: p.brand,
+              foregroundColor: AppColors.white,
             ),
             child: const Text('Submit'),
           ),

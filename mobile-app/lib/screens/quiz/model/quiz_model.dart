@@ -303,7 +303,8 @@ List<String> _parseOptions(dynamic options) {
 
 DateTime? _parseDate(dynamic value) {
   if (value is String && value.isNotEmpty) {
-    return DateTime.tryParse(value);
+    // Server sends UTC; show dates and times in the phone's time zone.
+    return DateTime.tryParse(value)?.toLocal();
   }
   return null;
 }

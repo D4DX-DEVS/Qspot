@@ -11,6 +11,7 @@ import '../../../themes/app_fonts.dart';
 import '../../../themes/home_palette.dart';
 import '../../../widgets/animation/motion.dart';
 import '../../../widgets/animation/staggered_entrance.dart';
+import '../../../widgets/common/gradient_card.dart';
 
 class BannerCarousel extends StatefulWidget {
   final List<BannerModel> banners;
@@ -81,7 +82,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+        borderRadius: BorderRadius.circular(GradientCard.radius),
         boxShadow: [
           BoxShadow(
             color: AppColors.black.withValues(alpha: 0.08),
@@ -91,7 +92,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+        borderRadius: BorderRadius.circular(GradientCard.radius),
         child: CachedNetworkImage(
           imageUrl: banner.imageUrl,
           fit: BoxFit.cover,
@@ -138,7 +139,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
         width: double.infinity,
         decoration: BoxDecoration(
           color: const Color(0xFF111827),
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          borderRadius: BorderRadius.circular(GradientCard.radius),
           boxShadow: [
             BoxShadow(
               color: AppColors.black.withValues(alpha: 0.1),

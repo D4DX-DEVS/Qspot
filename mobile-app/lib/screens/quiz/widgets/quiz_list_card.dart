@@ -87,7 +87,9 @@ class QuizListCard extends StatelessWidget {
     );
   }
 
-  String get _status => quiz.hasAttempted
+  String get _status => quiz.isEnded
+      ? 'Ended'
+      : quiz.hasAttempted
       ? 'Attempted'
       : quiz.isLive
       ? 'Live'
@@ -95,7 +97,9 @@ class QuizListCard extends StatelessWidget {
       ? 'Upcoming'
       : 'Ended';
 
-  AccentTone _tone(HomePalette p) => quiz.hasAttempted
+  AccentTone _tone(HomePalette p) => quiz.isEnded
+      ? p.slate
+      : quiz.hasAttempted
       ? p.rose
       : quiz.isLive
       ? p.mint

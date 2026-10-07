@@ -8,6 +8,7 @@ import '../../../themes/home_palette.dart';
 import '../../../widgets/common/app_snack_bar.dart';
 import '../../../widgets/common/soft_icon_tile.dart';
 import '../../../widgets/common/surface_card.dart';
+import '../../pdf_viewer/screens/pdf_viewer_screen.dart';
 import '../model/video_model.dart';
 
 /// Shared Learn/Downloads attachment card; images preview inside Learn.
@@ -26,6 +27,14 @@ class LearningMaterialCard extends StatelessWidget {
       final uri = Uri.parse(material.resolvedUrl);
       if (!const {'http', 'https'}.contains(uri.scheme) || uri.host.isEmpty) {
         throw const FormatException('Invalid material URL');
+      }
+      if (material.isPdf) {
+        await PdfViewerScreen.open(
+          context,
+          url: material.resolvedUrl,
+          title: material.title,
+        );
+        return;
       }
       if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
     } catch (_) {
@@ -115,7 +124,13 @@ class LearningMaterialCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(LucideIcons.externalLink, size: 18, color: p.textMuted),
+              Icon(
+                material.isPdf
+                    ? LucideIcons.chevronRight
+                    : LucideIcons.externalLink,
+                size: 18,
+                color: p.textMuted,
+              ),
             ],
           ),
         ],

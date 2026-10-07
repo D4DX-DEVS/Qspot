@@ -202,6 +202,26 @@ class AppColors {
   static const Color homeDarkSlateSoft = Color(0xFF1A2131);
 
   // ---------------------------------------------------------------------------
+  // Exam certificate artwork. Same in light and dark: it is a printed page,
+  // matching the admin panel's print layout.
+  // ---------------------------------------------------------------------------
+
+  static const Color certificatePaper = Color(0xFFF7F1EB);
+  static const Color certificateBrand = Color(0xFF701845);
+  static const Color certificateGold = Color(0xFFE0AE73);
+  static const Color certificateInk = Color(0xFF1C1220);
+  static const Color certificateName = Color(0xFF111827);
+  static const Color certificateBody = Color(0xFF4B4350);
+  static const Color certificateMuted = Color(0xFF5C5360);
+
+  /// Sheet fill, warm white to rose.
+  static const LinearGradient certificateGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFFFFAF6), Color(0xFFF8E9EE)],
+  );
+
+  // ---------------------------------------------------------------------------
   // System
   // ---------------------------------------------------------------------------
 

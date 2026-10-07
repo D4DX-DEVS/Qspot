@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:qspot/screens/pdf_viewer/screens/pdf_viewer_screen.dart';
 import 'package:qspot/screens/video/model/video_model.dart';
 import 'package:qspot/screens/video/widgets/learning_material_card.dart';
-import 'package:qspot/screens/video/widgets/learn_content_list.dart';
+import 'package:qspot/screens/video/widgets/episode_downloads_tab.dart';
 import 'package:qspot/utils/api_urls.dart';
 
 void main() {
@@ -18,7 +19,7 @@ void main() {
     }
   });
 
-  testWidgets('large material lists build only nearby previews', (
+  testWidgets('large Downloads lists build only nearby previews', (
     tester,
   ) async {
     final video = VideoModel(
@@ -32,7 +33,7 @@ void main() {
     );
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(body: LearnContentList(video: video)),
+        home: Scaffold(body: EpisodeDownloadsTab(video: video)),
       ),
     );
     await tester.pumpAndSettle();
@@ -45,7 +46,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('PDF cards open the resolved file in the device viewer', (
+  testWidgets('PDF cards open the resolved file in the in-app viewer', (
     tester,
   ) async {
     const channel = MethodChannel('plugins.flutter.io/url_launcher');
@@ -70,14 +71,13 @@ void main() {
       ),
     );
     await tester.tap(find.text('Checklist'));
-    await tester.pumpAndSettle();
-    expect(launched?.method, 'launch');
-    expect(
-      launched?.arguments['url'],
-      '${ApiUrls.baseUrl}/uploads/handouts/checklist.pdf',
-    );
-    expect(launched?.arguments['useWebView'], false);
-    expect(tester.takeException(), isNull);
+    // The viewer's loading spinner never settles, so pump the route in.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    final screen = tester.widget<PdfViewerScreen>(find.byType(PdfViewerScreen));
+    expect(screen.url, '${ApiUrls.baseUrl}/uploads/handouts/checklist.pdf');
+    expect(screen.title, 'Checklist');
+    expect(launched, isNull);
   });
 
   test(
@@ -96,7 +96,8 @@ void main() {
         ],
       });
       final cached = VideoModel.fromJson(video.toJson());
-      expect(cached.hasLearnContent, isTrue);
+      // Files alone show in Downloads, not as Learn content.
+      expect(cached.hasLearnContent, isFalse);
       expect(cached.downloads[0].isImage, isTrue);
       expect(
         cached.downloads[0].resolvedUrl,

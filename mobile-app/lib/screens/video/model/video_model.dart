@@ -57,10 +57,9 @@ class VideoModel {
   final List<String> learnPoints;
   final List<VideoDownload> downloads;
 
+  /// Note or key points to show in Learn; files show only in Downloads.
   bool get hasLearnContent =>
-      learnText.trim().isNotEmpty ||
-      learnPoints.isNotEmpty ||
-      downloads.isNotEmpty;
+      learnText.trim().isNotEmpty || learnPoints.isNotEmpty;
   final int order;
   final int durationSeconds;
   final int questionCount;

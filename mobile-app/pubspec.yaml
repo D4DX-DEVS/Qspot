@@ -68,6 +68,9 @@ dependencies:
   flutter_timezone: ^3.0.1
   flutter_ringtone_player: ^4.0.0+3
   lucide_icons_flutter: ^3.1.21
+  pdf: ^3.13.1
+  printing: ^5.15.1
+  pdfrx: ^2.4.8
 
 # QSpot copy of youtube_player_flutter 9.1.2 with one added flag,
 # `hideYoutubeOverlay` (see packages/youtube_player_flutter/lib/src/utils/
