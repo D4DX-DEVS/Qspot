@@ -27,7 +27,7 @@ class TodayGreeting extends StatelessWidget {
         children: [
           Text(
             'Hey ${first.isEmpty ? 'There' : first} 👋',
-            style: AppFonts.extraBold(color: palette.text, fontSize: 22),
+            style: AppFonts.extraBold(color: palette.text, fontSize: 18),
           ),
           const SizedBox(height: 2),
           Text(
