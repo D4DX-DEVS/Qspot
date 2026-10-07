@@ -13,7 +13,6 @@ import '../../../themes/home_palette.dart';
 import '../../../widgets/animation/pop_on_change.dart';
 import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/app_snack_bar.dart';
-import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../../widgets/common/initials_avatar.dart';
@@ -94,183 +93,294 @@ class _ProfileScreenState extends State<ProfileScreen> {
     var removePhoto = false;
     String? photoError;
 
-    final saved = await showDialog<bool>(
+    final saved = await showModalBottomSheet<bool>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-          ),
-          title: Text(
-            'Edit Profile',
-            style: AppFonts.medium(
-              color: Theme.of(dialogContext).colorScheme.onSurface,
-            ),
-          ),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                InitialsAvatar(
-                  name: (user?.name ?? '').trim().isEmpty
-                      ? 'Student'
-                      : user!.name!,
-                  size: 84,
-                  gradient: HomePalette.of(dialogContext).heroGradient,
-                  imageProvider: selectedPhotoBytes != null
-                      ? MemoryImage(selectedPhotoBytes!)
-                      : (removePhoto || user?.profileImageUrl == null
-                            ? null
-                            : NetworkImage(user!.profileImageUrl!)),
-                  ringWidth: 2.5,
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 8,
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        try {
-                          final picked = await picker.pickImage(
-                            source: ImageSource.gallery,
-                            imageQuality: 85,
-                            maxWidth: 1000,
-                            maxHeight: 1000,
-                          );
-                          if (picked == null) return;
-                          final bytes = await picked.readAsBytes();
-                          setDialogState(() {
-                            selectedPhoto = picked;
-                            selectedPhotoBytes = bytes;
-                            removePhoto = false;
-                            photoError = null;
-                          });
-                        } catch (_) {
-                          setDialogState(() {
-                            photoError = 'Could not choose that photo.';
-                          });
-                        }
-                      },
-                      icon: const Icon(LucideIcons.imagePlus, size: 17),
-                      label: Text(
-                        selectedPhoto == null ? 'Choose photo' : 'Change photo',
-                      ),
-                    ),
-                    if (selectedPhotoBytes != null ||
-                        (!removePhoto && user?.profileImageUrl != null))
-                      TextButton(
-                        onPressed: () => setDialogState(() {
-                          selectedPhoto = null;
-                          selectedPhotoBytes = null;
-                          removePhoto = true;
-                          photoError = null;
-                        }),
-                        child: const Text('Remove'),
-                      ),
-                  ],
-                ),
-                if (photoError != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      photoError!,
-                      style: AppFonts.regular(
-                        color: Theme.of(dialogContext).colorScheme.error,
-                        fontSize: 12,
-                      ),
-                    ),
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => HomeSheetShell(
+        child: StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            final palette = HomePalette.of(sheetContext);
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
+              ),
+              child: SafeArea(
+                top: false,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.85,
                   ),
-                TextFormField(
-                  controller: nameController,
-                  style: AppFonts.regular(
-                    color: Theme.of(dialogContext).colorScheme.onSurface,
-                  ),
-                  decoration: const InputDecoration(labelText: 'Name'),
-                  textCapitalization: TextCapitalization.words,
-                  validator: (value) {
-                    final name = value?.trim() ?? '';
-                    if (name.isEmpty) return 'Name is required';
-                    if (name.length < 3) {
-                      return 'Name must be at least 3 characters';
-                    }
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  controller: classController,
-                  style: AppFonts.regular(
-                    color: Theme.of(dialogContext).colorScheme.onSurface,
-                  ),
-                  decoration: const InputDecoration(labelText: 'Class'),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    final classNumber = int.tryParse(value?.trim() ?? '');
-                    if (classNumber == null) return 'Class is required';
-                    if (classNumber < 1 || classNumber > 12) {
-                      return 'Enter a class from 1 to 12';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Text(
-                      'Language',
-                      style: AppFonts.regular(
-                        color: Theme.of(
-                          dialogContext,
-                        ).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const Spacer(),
-                    ToggleButtons(
-                      isSelected: [language == 'en', language == 'ml'],
-                      onPressed: (index) {
-                        setDialogState(
-                          () => language = index == 0 ? 'en' : 'ml',
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(8),
-                      children: [
-                        PopOnChange(
-                          active: language == 'en',
-                          peak: 1.15,
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 12),
-                            child: Text('EN'),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 10),
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: palette.cardBorder,
+                            borderRadius: BorderRadius.circular(2),
                           ),
                         ),
-                        PopOnChange(
-                          active: language == 'ml',
-                          peak: 1.15,
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 12),
-                            child: Text('ML'),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 14, 12, 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Edit Profile',
+                                style: AppFonts.bold(
+                                  color: palette.text,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: 'Close',
+                              onPressed: () =>
+                                  Navigator.pop(sheetContext, false),
+                              icon: const Icon(LucideIcons.x),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Flexible(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Form(
+                            key: formKey,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                InitialsAvatar(
+                                  name: (user?.name ?? '').trim().isEmpty
+                                      ? 'Student'
+                                      : user!.name!,
+                                  size: 84,
+                                  gradient: HomePalette.of(
+                                    sheetContext,
+                                  ).heroGradient,
+                                  imageProvider: selectedPhotoBytes != null
+                                      ? MemoryImage(selectedPhotoBytes!)
+                                      : (removePhoto ||
+                                                user?.profileImageUrl == null
+                                            ? null
+                                            : NetworkImage(
+                                                user!.profileImageUrl!,
+                                              )),
+                                  ringWidth: 2.5,
+                                ),
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  alignment: WrapAlignment.center,
+                                  spacing: 8,
+                                  children: [
+                                    OutlinedButton.icon(
+                                      onPressed: () async {
+                                        try {
+                                          final picked = await picker.pickImage(
+                                            source: ImageSource.gallery,
+                                            imageQuality: 85,
+                                            maxWidth: 1000,
+                                            maxHeight: 1000,
+                                          );
+                                          if (picked == null) return;
+                                          final bytes = await picked
+                                              .readAsBytes();
+                                          if (!sheetContext.mounted) return;
+                                          setSheetState(() {
+                                            selectedPhoto = picked;
+                                            selectedPhotoBytes = bytes;
+                                            removePhoto = false;
+                                            photoError = null;
+                                          });
+                                        } catch (_) {
+                                          if (!sheetContext.mounted) return;
+                                          setSheetState(() {
+                                            photoError =
+                                                'Could not choose that photo.';
+                                          });
+                                        }
+                                      },
+                                      icon: const Icon(
+                                        LucideIcons.imagePlus,
+                                        size: 17,
+                                      ),
+                                      label: Text(
+                                        selectedPhoto == null
+                                            ? 'Choose photo'
+                                            : 'Change photo',
+                                      ),
+                                    ),
+                                    if (selectedPhotoBytes != null ||
+                                        (!removePhoto &&
+                                            user?.profileImageUrl != null))
+                                      TextButton(
+                                        onPressed: () => setSheetState(() {
+                                          selectedPhoto = null;
+                                          selectedPhotoBytes = null;
+                                          removePhoto = true;
+                                          photoError = null;
+                                        }),
+                                        child: const Text('Remove'),
+                                      ),
+                                  ],
+                                ),
+                                if (photoError != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 4),
+                                    child: Text(
+                                      photoError!,
+                                      style: AppFonts.regular(
+                                        color: Theme.of(
+                                          sheetContext,
+                                        ).colorScheme.error,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                TextFormField(
+                                  controller: nameController,
+                                  style: AppFonts.regular(
+                                    color: Theme.of(
+                                      sheetContext,
+                                    ).colorScheme.onSurface,
+                                  ),
+                                  decoration: const InputDecoration(
+                                    labelText: 'Name',
+                                  ),
+                                  textCapitalization: TextCapitalization.words,
+                                  validator: (value) {
+                                    final name = value?.trim() ?? '';
+                                    if (name.isEmpty) return 'Name is required';
+                                    if (name.length < 3) {
+                                      return 'Name must be at least 3 characters';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                TextFormField(
+                                  controller: classController,
+                                  style: AppFonts.regular(
+                                    color: Theme.of(
+                                      sheetContext,
+                                    ).colorScheme.onSurface,
+                                  ),
+                                  decoration: const InputDecoration(
+                                    labelText: 'Class',
+                                  ),
+                                  keyboardType: TextInputType.number,
+                                  validator: (value) {
+                                    final classNumber = int.tryParse(
+                                      value?.trim() ?? '',
+                                    );
+                                    if (classNumber == null) {
+                                      return 'Class is required';
+                                    }
+                                    if (classNumber < 1 || classNumber > 12) {
+                                      return 'Enter a class from 1 to 12';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Language',
+                                      style: AppFonts.regular(
+                                        color: Theme.of(
+                                          sheetContext,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    ToggleButtons(
+                                      isSelected: [
+                                        language == 'en',
+                                        language == 'ml',
+                                      ],
+                                      onPressed: (index) {
+                                        setSheetState(
+                                          () => language = index == 0
+                                              ? 'en'
+                                              : 'ml',
+                                        );
+                                      },
+                                      borderRadius: BorderRadius.circular(8),
+                                      children: [
+                                        PopOnChange(
+                                          active: language == 'en',
+                                          peak: 1.15,
+                                          child: const Padding(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                            ),
+                                            child: Text('EN'),
+                                          ),
+                                        ),
+                                        PopOnChange(
+                                          active: language == 'ml',
+                                          peak: 1.15,
+                                          child: const Padding(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                            ),
+                                            child: Text('ML'),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextButton(
+                                onPressed: () =>
+                                    Navigator.pop(sheetContext, false),
+                                child: const Text('Cancel'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: FilledButton(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: palette.brand,
+                                  foregroundColor: palette.card,
+                                  minimumSize: const Size(0, 48),
+                                ),
+                                onPressed: () {
+                                  if (formKey.currentState?.validate() !=
+                                      true) {
+                                    return;
+                                  }
+                                  Navigator.pop(sheetContext, true);
+                                },
+                                child: const Text('Save profile'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (formKey.currentState?.validate() != true) return;
-                Navigator.of(dialogContext).pop(true);
-              },
-              child: const Text('Save'),
-            ),
-          ],
+              ),
+            );
+          },
         ),
       ),
     );
