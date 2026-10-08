@@ -23,6 +23,14 @@ class CertificatesScreenProvider extends ChangeNotifier {
   /// First load: nothing to show yet.
   bool get showSkeleton => _loading && _items.isEmpty && _error == null;
 
+  /// The certificate issued for [quizId], or null when there is none.
+  CertificateModel? forQuiz(String quizId) {
+    for (final item in _items) {
+      if (item.quizId == quizId) return item;
+    }
+    return null;
+  }
+
   /// Failed with nothing cached to fall back on.
   bool get showError => !_loading && _error != null && _items.isEmpty;
 

@@ -11,6 +11,7 @@ import '../../../utils/json_parsing.dart';
 class CertificateModel {
   const CertificateModel({
     required this.id,
+    required this.quizId,
     required this.certificateNumber,
     required this.studentName,
     required this.title,
@@ -26,6 +27,9 @@ class CertificateModel {
   });
 
   final String id;
+
+  /// The exam this certificate was issued for.
+  final String quizId;
   final String certificateNumber;
   final String studentName;
   final String title;
@@ -51,6 +55,10 @@ class CertificateModel {
     final student = _map(json['student']);
     return CertificateModel(
       id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
+      quizId: _text(
+        exam['_id'],
+        json['quizId'] is String ? json['quizId'] : '',
+      ),
       certificateNumber: _text(json['certificateNumber']),
       studentName: _text(student['name'], 'Student'),
       title: _text(snapshot['title'], 'Certificate of Achievement'),

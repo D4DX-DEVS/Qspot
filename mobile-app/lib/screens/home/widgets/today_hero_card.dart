@@ -145,7 +145,8 @@ class TodayHeroCard extends StatelessWidget {
                   titleSize: 15,
                   titleTrailing: showSparkle ? const SparkleAccent() : null,
                 ),
-                if (progressLabel != null)
+                if (progressLabel != null) ...[
+                  const SizedBox(height: 4),
                   Text(
                     progressLabel!,
                     style: AppFonts.regular(
@@ -153,6 +154,8 @@ class TodayHeroCard extends StatelessWidget {
                       fontSize: 11,
                     ),
                   ),
+                ],
+                const SizedBox(height: 16),
                 Align(
                   alignment: AlignmentDirectional.centerStart,
                   child: IdleAttention(

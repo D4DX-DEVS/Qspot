@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:qspot/screens/home/widgets/today_greeting.dart';
 import 'package:qspot/screens/home/widgets/today_hero_card.dart';
 import 'package:qspot/themes/home_theme.dart';
+import 'package:qspot/widgets/common/gold_pill_button.dart';
 
 void main() {
   testWidgets('greeting and hero fit a narrow, enlarged-text viewport', (
@@ -40,6 +41,13 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Hey Test 👋'), findsOneWidget);
     expect(find.text('Record Surah Al-Fatihah'), findsOneWidget);
+
+    // The CTA keeps clear space below the title/progress line.
+    final progressBottom = tester.getBottomLeft(
+      find.text('3 items in your plan'),
+    );
+    final buttonTop = tester.getTopLeft(find.byType(GoldPillButton));
+    expect(buttonTop.dy - progressBottom.dy, greaterThanOrEqualTo(16));
   });
 }
 

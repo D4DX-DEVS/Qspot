@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:qspot/screens/subject/model/chapter_progress.dart';
 import 'package:qspot/screens/subject/widgets/chapter_class_tile.dart';
 import 'package:qspot/screens/subject/widgets/chapter_thumbnail.dart';
@@ -219,6 +220,24 @@ void main() {
           matching: find.byType(AspectRatio),
         );
         expect(tester.getSize(thumbnail), const Size(96, 60));
+      });
+
+      testWidgets('the cover and chevron sit vertically centred in the card', (
+        tester,
+      ) async {
+        await _pump(
+          tester,
+          brightness: brightness,
+          _tile(
+            imageUrl: 'https://example.invalid/art.png',
+            progress: const ChapterProgress(total: 1),
+          ),
+        );
+        final tile = tester.getRect(find.byType(ChapterClassTile));
+        final cover = tester.getRect(find.byType(ChapterThumbnail));
+        final chevron = tester.getRect(find.byIcon(LucideIcons.chevronRight));
+        expect(cover.center.dy, moreOrLessEquals(tile.center.dy, epsilon: 1));
+        expect(chevron.center.dy, moreOrLessEquals(tile.center.dy, epsilon: 1));
       });
 
       testWidgets('a long name on a small phone with big text is shown whole', (

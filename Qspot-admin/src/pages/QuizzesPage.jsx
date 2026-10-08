@@ -354,7 +354,8 @@ const QuizzesPage = () => {
 
       {showModal && (
         <div className="fixed inset-0 z-[140] flex items-center justify-center px-4 py-8">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={closeModal} aria-hidden="true" />
+          {/* No click-to-close: an outside tap would throw away the half-filled form. */}
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-md" aria-hidden="true" />
           <section
             className="relative z-[150] w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[32px] border border-white/10 bg-gradient-to-br from-[#0d0711]/90 via-[#160b19]/75 to-[#0e0611]/88 shadow-[0_26px_64px_-18px_rgba(112,24,69,0.55)] backdrop-blur-2xl p-5 sm:p-6"
             onClick={(e) => e.stopPropagation()}

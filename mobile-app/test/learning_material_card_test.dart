@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:qspot/screens/pdf_viewer/screens/pdf_viewer_screen.dart';
 import 'package:qspot/screens/video/model/video_model.dart';
 import 'package:qspot/screens/video/widgets/learning_material_card.dart';
@@ -38,10 +39,12 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byType(LearningMaterialCard).evaluate().length, lessThan(20));
+    // Thumbnails decode at twice their 56px box, not at full size.
+    final pixels = (56 * 2 * tester.view.devicePixelRatio).round();
     final image = tester.widget<Image>(find.byType(Image).first);
     final resized = image.image as ResizeImage;
-    expect(resized.width, 640);
-    expect(resized.height, 640);
+    expect(resized.width, pixels);
+    expect(resized.height, pixels);
     expect(resized.policy, ResizeImagePolicy.fit);
     expect(tester.takeException(), isNull);
   });
@@ -108,7 +111,7 @@ void main() {
     },
   );
 
-  testWidgets('failed image previews explain how to open the original', (
+  testWidgets('failed image previews fall back to the file icon', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -124,10 +127,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(
-      find.text('Preview unavailable. Tap to open the image.'),
-      findsOneWidget,
-    );
+    expect(find.byIcon(LucideIcons.image), findsOneWidget);
     expect(find.text('Practice chart'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

@@ -73,7 +73,8 @@ const shapeQuiz = (quiz, questionCount, myAttempt, user) => ({
     optionsCount: quiz.optionsCount,
     status: statusOf(quiz),
     certificate: certificateFor(quiz, user),
-    questionCount,
+    // What a student is actually served, not the size of the pool.
+    questionCount: Math.min(questionCount, quiz.numberOfQuestions),
     myAttempt: myAttempt
         ? {
               attemptId: myAttempt._id,
@@ -179,8 +180,23 @@ router.get('/:id/questions', authenticateUser, async (req, res) => {
         // if one exists instead of re-selecting.
         let session = await QuizSession.findOne({ userId: req.user.id, quizId: id });
 
+        // A session that no longer holds numberOfQuestions existing questions
+        // (saved before the quiz had enough, or some were deleted since) is
+        // re-picked. Only this student opening the quiz gets here, and opening
+        // it already resets their in-app answers, so no progress is lost.
+        if (session) {
+            const live = await QuizQuestion.countDocuments({ _id: { $in: session.questionIds }, quizId: id });
+            if (live !== quiz.numberOfQuestions) {
+                await QuizSession.deleteOne({ _id: session._id });
+                session = null;
+            }
+        }
+
         if (!session) {
             const pool = await QuizQuestion.find({ quizId: id }).select('_id');
+            if (pool.length < quiz.numberOfQuestions) {
+                return res.status(403).json({ message: "This quiz isn't ready yet. Please check back later." });
+            }
             let selected = pool.map((q) => q._id);
 
             if (quiz.questionsRandomization) {

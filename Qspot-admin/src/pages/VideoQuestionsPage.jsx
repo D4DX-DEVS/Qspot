@@ -647,16 +647,9 @@ const VideoQuestionsPage = () => {
                         </div>
                       ))}
                     </div>
-                    <button
-                      onClick={() => setDownloads((prev) => [...prev, { title: '', url: '' }])}
-                      disabled={uploading || savingContent || downloads.length >= 20}
-                      className="mt-3 inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs text-white/80 transition hover:bg-white/10"
-                    >
-                      <FiPlus /> Add file link
-                    </button>
 
-                    {/* Upload handouts instead of pasting links: pick several
-                        files, give each a title, then upload them together. */}
+                    {/* Upload handouts: pick several files, give each a
+                        title, then upload them together. */}
                     <div className="mt-4 rounded-lg border border-dashed border-white/15 bg-white/[0.03] p-3">
                       <p className="text-xs uppercase tracking-wide text-slate-300/70">
                         Upload files

@@ -42,8 +42,15 @@ class ApiException implements Exception {
         trimmed.toLowerCase().contains('uri=') ||
         trimmed.toLowerCase().contains('exception:');
 
-    if (status == 401) return 'Your session has expired. Please sign in again.';
-    if (status == 403) return "You don't have permission to do that.";
+    if (status == 401 ||
+        (status == 403 && trimmed == ApiClient._expiredTokenMessage)) {
+      return 'Your session has expired. Please sign in again.';
+    }
+    // Other 403s are business rules ("Quiz is not live right now") whose
+    // message is the useful part.
+    if (status == 403 && technical) {
+      return "You don't have permission to do that.";
+    }
     if (status == 404 && technical) {
       return "We couldn't find what you requested.";
     }
@@ -65,10 +72,16 @@ class ApiException implements Exception {
 ///   token is stored.
 /// - Applies a 15 second timeout to every request.
 /// - Parses error bodies as `{message}` and throws [ApiException].
-/// - On 401/403 for an authenticated call, clears the local session and
-///   routes to [LoginScreen] using [navigatorKey].
+/// - On 401, or a 403 carrying [_expiredTokenMessage], for an authenticated
+///   call, clears the local session and routes to [LoginScreen] using
+///   [navigatorKey].
 class ApiClient {
   ApiClient._();
+
+  /// What the server's auth middleware (Qspot-API/middlewares/auth.js) sends
+  /// with a 403 for a bad or expired token. Every other 403 is a business
+  /// rule (quiz not live, not ready, ...) and must not sign the user out.
+  static const String _expiredTokenMessage = 'Invalid or expired token';
 
   static const Duration timeout = Duration(seconds: 15);
   static const String _tokenKey = 'auth_token';
@@ -110,7 +123,7 @@ class ApiClient {
   }
 
   /// Handles the raw [http.Response]: decodes JSON, throws [ApiException]
-  /// on non-2xx, and triggers session-expiry handling on 401/403.
+  /// on non-2xx, and triggers session-expiry handling on auth failures.
   static Future<dynamic> _handle(http.Response response) async {
     final status = response.statusCode;
     dynamic body;
@@ -128,7 +141,7 @@ class ApiClient {
         ? body['message'] as String
         : 'Something went wrong. Please try again.';
 
-    if (status == 401 || status == 403) {
+    if (status == 401 || (status == 403 && message == _expiredTokenMessage)) {
       // Only force logout/navigation for calls that were actually
       // authenticated (i.e. a token was present). Public endpoints that
       // happen to return 403 for other reasons should not log the user out.

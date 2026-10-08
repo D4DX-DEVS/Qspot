@@ -136,7 +136,12 @@ router.post('/attempt', authenticateUser, async (req, res) => {
             });
         }
 
-        const totalQuestions = session.questionIds.length;
+        // Questions deleted since the session was saved are skipped above, so
+        // they must not count toward the total either.
+        if (gradedAnswers.length === 0) {
+            return res.status(400).json({ message: 'The questions in this quiz have changed. Please reopen it.' });
+        }
+        const totalQuestions = gradedAnswers.length;
         const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
 
         let attempt;

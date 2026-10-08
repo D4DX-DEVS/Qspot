@@ -13,6 +13,7 @@ import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../../widgets/common/gradient_card.dart';
 import '../../../widgets/common/surface_card.dart';
+import '../../certificate/widgets/view_certificate_button.dart';
 import '../../common/widgets/home_theme_scope.dart';
 import '../model/quiz_model.dart';
 import 'quiz_review_screen.dart';
@@ -35,6 +36,10 @@ class QuizResultsScreen extends StatelessWidget {
   final String language;
   final VoidCallback? onDone;
 
+  /// When set, a "View Certificate" button shows once a certificate has
+  /// been issued for this quiz.
+  final String? quizId;
+
   const QuizResultsScreen({
     super.key,
     required this.title,
@@ -45,6 +50,7 @@ class QuizResultsScreen extends StatelessWidget {
     required this.results,
     this.language = 'en',
     this.onDone,
+    this.quizId,
   });
 
   factory QuizResultsScreen.fromAttempt(
@@ -64,6 +70,7 @@ class QuizResultsScreen extends StatelessWidget {
       // Malayalam attempt would always render its review in English.
       language: attempt.language == 'Malayalam' ? 'ml' : 'en',
       onDone: onDone,
+      quizId: attempt.quizId,
     );
   }
 
@@ -106,6 +113,13 @@ class QuizResultsScreen extends StatelessWidget {
                 _statRow(context, p),
                 const SizedBox(height: AppTheme.sectionGap),
                 if (results.isNotEmpty) _reviewButton(context, p),
+                if (quizId != null)
+                  ViewCertificateButton(
+                    quizId: quizId!,
+                    padding: EdgeInsets.only(
+                      top: results.isNotEmpty ? AppTheme.paddingMedium : 0,
+                    ),
+                  ),
                 const SizedBox(height: AppTheme.paddingLarge),
                 if (completedAt != null)
                   StaggeredEntrance(

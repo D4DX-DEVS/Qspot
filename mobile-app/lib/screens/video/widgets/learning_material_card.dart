@@ -6,21 +6,16 @@ import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../themes/home_palette.dart';
 import '../../../widgets/common/app_snack_bar.dart';
-import '../../../widgets/common/soft_icon_tile.dart';
 import '../../../widgets/common/surface_card.dart';
 import '../../pdf_viewer/screens/pdf_viewer_screen.dart';
 import '../model/video_model.dart';
+import 'material_thumbnail.dart';
 
-/// Shared Learn/Downloads attachment card; images preview inside Learn.
+/// Downloads attachment card with a small preview of the file.
 class LearningMaterialCard extends StatelessWidget {
-  const LearningMaterialCard({
-    super.key,
-    required this.material,
-    this.showPreview = true,
-  });
+  const LearningMaterialCard({super.key, required this.material});
 
   final VideoDownload material;
-  final bool showPreview;
 
   Future<void> _open(BuildContext context) async {
     try {
@@ -63,75 +58,33 @@ class LearningMaterialCard extends StatelessWidget {
       radius: 16,
       padding: const EdgeInsets.all(14),
       onTap: () => _open(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Row(
         children: [
-          if (showPreview && material.isImage) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: AspectRatio(
-                aspectRatio: 1.6,
-                child: Image(
-                  image: ResizeImage(
-                    NetworkImage(material.resolvedUrl),
-                    width: 640,
-                    height: 640,
-                    policy: ResizeImagePolicy.fit,
-                  ),
-                  fit: BoxFit.contain,
-                  semanticLabel: material.title,
-                  loadingBuilder: (_, child, progress) => progress == null
-                      ? child
-                      : const Center(child: CircularProgressIndicator()),
-                  errorBuilder: (_, _, _) => Center(
-                    child: Text(
-                      'Preview unavailable. Tap to open the image.',
-                      textAlign: TextAlign.center,
-                      style: AppFonts.regular(color: p.textMuted, fontSize: 13),
-                    ),
-                  ),
+          MaterialThumbnail(material: material),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  material.title,
+                  style: AppFonts.semiBold(color: p.text, fontSize: 15),
                 ),
-              ),
+                const SizedBox(height: 3),
+                Text(
+                  '$type · Tap to open',
+                  style: AppFonts.regular(color: p.textMuted, fontSize: 12),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-          ],
-          Row(
-            children: [
-              SoftIconTile(
-                icon: material.isImage
-                    ? LucideIcons.image
-                    : material.isText
-                    ? LucideIcons.fileText
-                    : LucideIcons.file,
-                tone: p.rose,
-                size: 42,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      material.title,
-                      style: AppFonts.semiBold(color: p.text, fontSize: 15),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '$type · Tap to open',
-                      style: AppFonts.regular(color: p.textMuted, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                material.isPdf
-                    ? LucideIcons.chevronRight
-                    : LucideIcons.externalLink,
-                size: 18,
-                color: p.textMuted,
-              ),
-            ],
+          ),
+          const SizedBox(width: 8),
+          Icon(
+            material.isPdf
+                ? LucideIcons.chevronRight
+                : LucideIcons.externalLink,
+            size: 18,
+            color: p.textMuted,
           ),
         ],
       ),
