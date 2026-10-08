@@ -18,6 +18,7 @@ import {
 import Sidebar from '../components/Sidebar';
 import ConfirmDialog from '../components/dialogs/ConfirmDialog';
 import ErrorState from '../components/ui/ErrorState';
+import ClassMultiSelect from '../components/ui/ClassMultiSelect';
 import Spinner from '../components/ui/Spinner';
 import Pagination from '../components/ui/Pagination';
 import PageHeader from '../components/ui/PageHeader';
@@ -35,7 +36,7 @@ const DEFAULT_FORM = {
   overallTimeLimit: '',
   perQuestionTimeLimit: '',
   timerMode: 'none',
-  allowedClasses: '',
+  allowedClasses: [],
   requireCompletedVideo: false,
   optionsCount: '',
   questionsRandomization: false,
@@ -46,7 +47,7 @@ const DEFAULT_FORM = {
   certificateSignatoryName: '',
   certificateDescription: 'For successfully completing the examination.',
   certificateMinimumPercentage: '0',
-  certificateEligibleClasses: ''
+  certificateEligibleClasses: []
 };
 
 const toDateInputValue = isoToLocalDateTimeInput;
@@ -111,7 +112,7 @@ const QuizzesPage = () => {
       overallTimeLimit: quiz.overallTimeLimit != null ? String(quiz.overallTimeLimit) : '',
       perQuestionTimeLimit: quiz.perQuestionTimeLimit != null ? String(quiz.perQuestionTimeLimit) : '',
       timerMode: quiz.timerMode || 'none',
-      allowedClasses: Array.isArray(quiz.allowedClasses) ? quiz.allowedClasses.join(', ') : '',
+      allowedClasses: Array.isArray(quiz.allowedClasses) ? quiz.allowedClasses : [],
       requireCompletedVideo: Boolean(quiz.conditions?.requireCompletedVideo),
       optionsCount: quiz.optionsCount != null ? String(quiz.optionsCount) : '',
       questionsRandomization: Boolean(quiz.questionsRandomization),
@@ -122,7 +123,7 @@ const QuizzesPage = () => {
       certificateSignatoryName: quiz.certificate?.signatoryName || '',
       certificateDescription: quiz.certificate?.description || 'For successfully completing the examination.',
       certificateMinimumPercentage: String(quiz.certificate?.minimumPercentage ?? 0),
-      certificateEligibleClasses: Array.isArray(quiz.certificate?.eligibleClasses) ? quiz.certificate.eligibleClasses.join(', ') : ''
+      certificateEligibleClasses: Array.isArray(quiz.certificate?.eligibleClasses) ? quiz.certificate.eligibleClasses : []
     });
     setFormError('');
     setShowModal(true);
@@ -429,16 +430,16 @@ const QuizzesPage = () => {
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/65">
-                  Allowed classes
-                  <input
-                    type="text"
+                <div className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/65">
+                  <span id="quiz-allowed-classes">Allowed classes</span>
+                  <ClassMultiSelect
+                    labelId="quiz-allowed-classes"
                     value={form.allowedClasses}
-                    onChange={(e) => handleFieldChange('allowedClasses', e.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-[#EFB078]/60 focus:outline-none"
-                    placeholder="Class 8, Class 9 (optional)"
+                    onChange={(next) => handleFieldChange('allowedClasses', next)}
+                    placeholder="All classes"
+                    className="mt-2"
                   />
-                </label>
+                </div>
                 <label className="mt-7 flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/65">
                   <input
                     type="checkbox"
@@ -574,10 +575,16 @@ const QuizzesPage = () => {
                         <input value={form.certificateSignatoryName} onChange={(e) => handleFieldChange('certificateSignatoryName', e.target.value)} className="mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm normal-case tracking-normal text-white focus:border-[#EFB078]/60 focus:outline-none" placeholder="Director / Principal" />
                       </label>
                     </div>
-                    <label className="block text-xs font-semibold uppercase tracking-[0.16em] text-white/65">
-                      Eligible classes (optional)
-                      <input value={form.certificateEligibleClasses} onChange={(e) => handleFieldChange('certificateEligibleClasses', e.target.value)} className="mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm normal-case tracking-normal text-white focus:border-[#EFB078]/60 focus:outline-none" placeholder="8, 9" />
-                    </label>
+                    <div className="block text-xs font-semibold uppercase tracking-[0.16em] text-white/65">
+                      <span id="quiz-certificate-classes">Eligible classes (optional)</span>
+                      <ClassMultiSelect
+                        labelId="quiz-certificate-classes"
+                        value={form.certificateEligibleClasses}
+                        onChange={(next) => handleFieldChange('certificateEligibleClasses', next)}
+                        placeholder="All classes that took the exam"
+                        className="mt-2"
+                      />
+                    </div>
                     <label className="block text-xs font-semibold uppercase tracking-[0.16em] text-white/65">
                       Certificate description
                       <textarea rows={2} value={form.certificateDescription} onChange={(e) => handleFieldChange('certificateDescription', e.target.value)} className="mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm normal-case tracking-normal text-white focus:border-[#EFB078]/60 focus:outline-none" />

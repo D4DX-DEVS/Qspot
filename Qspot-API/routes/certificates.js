@@ -191,6 +191,8 @@ router.get('/mine', authenticateUser, async (req, res) => {
     try {
         const certificates = await Certificate.find({ userId: req.user.id, status: 'issued' })
             .populate({ path: 'quizId', select: 'title assessmentType endDate' })
+            // The printed certificate needs the student's name.
+            .populate({ path: 'userId', select: 'name class' })
             .sort({ issuedAt: -1 })
             .lean();
         res.json({ items: certificates.map((item) => ({
