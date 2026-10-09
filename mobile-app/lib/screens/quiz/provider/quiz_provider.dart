@@ -118,6 +118,17 @@ class QuizProvider with ChangeNotifier {
   bool get isQuizActive =>
       _sessionState == QuizLoadingState.loaded && _sessionQuestions.isNotEmpty;
 
+  /// Whether the whole quiz has a time limit.
+  bool get hasOverallTimer =>
+      (_timerMode == 'overall' || _timerMode == 'both') &&
+      (_overallTimeLimit ?? 0) > 0;
+
+  /// Whether each question has its own time limit. Such a quiz only moves
+  /// forward: there is no going back to an earlier question.
+  bool get hasPerQuestionTimer =>
+      (_timerMode == 'per-question' || _timerMode == 'both') &&
+      (_perQuestionTimeLimit ?? 0) > 0;
+
   QuizQuestion? get currentQuestion =>
       _currentQuestionIndex >= 0 &&
           _currentQuestionIndex < _sessionQuestions.length
@@ -197,9 +208,18 @@ class QuizProvider with ChangeNotifier {
   void seedSessionForTest(
     List<Map<String, dynamic>> questionsJson, {
     String? quizId,
+    String timerMode = 'none',
+    int? overallTimeLimit,
+    int? perQuestionTimeLimit,
   }) {
     _quizId = quizId ?? 'test-quiz';
-    _applySessionData({'title': 'Test Quiz', 'questions': questionsJson});
+    _applySessionData({
+      'title': 'Test Quiz',
+      'questions': questionsJson,
+      'timerMode': timerMode,
+      'overallTimeLimit': overallTimeLimit,
+      'perQuestionTimeLimit': perQuestionTimeLimit,
+    });
   }
 
   void selectAnswer(int answerIndex) {

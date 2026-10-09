@@ -254,13 +254,12 @@ void main() {
         );
       }
 
-      expect(sizes.toSet(), {
-        const Size.square(YoutubeCentreButton.minDiameter),
-      });
+      expect(sizes.toSet(), {const Size.square(YoutubeCentreButton.diameter)});
     });
 
-    testWidgets('grows with a wider player so it still covers YouTube\'s own '
-        'button', (tester) async {
+    testWidgets('stays the same size in a wider (landscape) player', (
+      tester,
+    ) async {
       emit(state: PlayerState.paused);
       await tester.pumpWidget(
         MaterialApp(
@@ -280,8 +279,7 @@ void main() {
       final size = tester.getSize(
         find.descendant(of: button, matching: find.byType(DecoratedBox)).first,
       );
-      expect(size, Size.square(YoutubeCentreButton.diameterFor(760)));
-      expect(size.width, greaterThan(YoutubeCentreButton.minDiameter));
+      expect(size, const Size.square(YoutubeCentreButton.diameter));
     });
 
     testWidgets('before the player is ready the ring shows at once, no icon', (

@@ -140,26 +140,33 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   Widget _buildPage(MainNavigationProvider nav) {
-    return HomeThemeScope(
-      child: Scaffold(
-        extendBody: true,
-        body: FadeOnChange(
-          trigger: nav.currentIndex,
-          child: IndexedStack(
-            index: nav.currentIndex,
-            children: [
-              for (final tab in _tabs)
-                TickerMode(
-                  enabled: tab.keyName == nav.currentKey,
-                  child: KeyedSubtree(
-                    key: ValueKey(tab.keyName),
-                    child: tab.screen,
+    // Back from any other tab returns to Today first; back on Today exits.
+    return PopScope(
+      canPop: nav.isOnHome,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) nav.goHome();
+      },
+      child: HomeThemeScope(
+        child: Scaffold(
+          extendBody: true,
+          body: FadeOnChange(
+            trigger: nav.currentIndex,
+            child: IndexedStack(
+              index: nav.currentIndex,
+              children: [
+                for (final tab in _tabs)
+                  TickerMode(
+                    enabled: tab.keyName == nav.currentKey,
+                    child: KeyedSubtree(
+                      key: ValueKey(tab.keyName),
+                      child: tab.screen,
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
+          bottomNavigationBar: _bottomBar(nav),
         ),
-        bottomNavigationBar: _bottomBar(nav),
       ),
     );
   }

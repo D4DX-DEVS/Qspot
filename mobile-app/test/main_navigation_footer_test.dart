@@ -17,6 +17,7 @@ import 'package:qspot/screens/subject/provider/subject_provider.dart';
 import 'package:qspot/screens/video/provider/video_provider.dart';
 import 'package:qspot/services/api_client.dart';
 import 'package:qspot/services/common/storage_service.dart';
+import 'package:qspot/widgets/common/floating_nav_bar.dart';
 
 Future<void> pumpNav(WidgetTester tester) async {
   tester.view.physicalSize = const Size(390 * 3, 844 * 3);
@@ -121,5 +122,29 @@ void main() {
       find.text('Your completed lessons and assessments will appear here.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('back on another tab returns to Today before exiting', (
+    tester,
+  ) async {
+    await pumpNav(tester);
+    int selectedIndex() =>
+        tester.widget<FloatingNavBar>(find.byType(FloatingNavBar)).currentIndex;
+
+    await tester.tap(find.text('Practice').last);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(selectedIndex(), 2);
+
+    // Shell is the root route, so the first back is consumed by the tab switch.
+    expect(await tester.binding.handlePopRoute(), isTrue);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(selectedIndex(), 0);
+
+    // On Today, back is no longer consumed, so the system closes the app.
+    expect(await tester.binding.handlePopRoute(), isFalse);
+    await tester.pump();
+    expect(selectedIndex(), 0);
   });
 }

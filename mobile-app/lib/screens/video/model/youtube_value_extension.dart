@@ -61,6 +61,8 @@ extension YoutubeSeeking on YoutubePlayerController {
           debugPrint('Seek skipped: $error');
           return null;
         });
+    // The player keeps reporting the old spot until the new one loads.
+    holdPositionAt(position);
     updateValue(value.copyWith(position: position));
   }
 }

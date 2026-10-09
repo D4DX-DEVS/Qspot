@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
-import '../../../services/api_client.dart';
 import '../../../themes/app_colors.dart';
+import '../../../utils/user_friendly_error.dart';
 import '../../../widgets/animation/pressable_scale.dart';
 import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/app_snack_bar.dart';
@@ -54,10 +54,20 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
   Widget build(BuildContext context) {
     // Burgundy home theme; the sheet reads colours from the context inside it.
     return HomeThemeScope(
-      child: ChangeNotifierProvider.value(
-        value: _state,
-        child: Consumer<AskQuestionScreenProvider>(
-          builder: (context, state, _) => _buildPage(context, state),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.86,
+        // The sheet's own messenger shows snack bars on top of the sheet
+        // (and above the keyboard) instead of on the screen hidden behind it.
+        child: ScaffoldMessenger(
+          child: Scaffold(
+            backgroundColor: AppColors.transparent,
+            body: ChangeNotifierProvider.value(
+              value: _state,
+              child: Consumer<AskQuestionScreenProvider>(
+                builder: (context, state, _) => _buildPage(context, state),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -72,8 +82,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
       );
     }
 
-    return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.86,
+    return SizedBox.expand(
       child: Container(
         decoration: BoxDecoration(
           color: p.background,
@@ -320,7 +329,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                                 width: double.infinity,
                                 child: GradientPillButton(
                                   label: 'Submit Question',
-                                  onPressed: _submitQuestion,
+                                  onPressed: () => _submitQuestion(context),
                                   isLoading: state.isSubmitting,
                                 ),
                               ),
@@ -390,10 +399,12 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
     );
   }
 
-  Future<void> _submitQuestion() async {
+  /// [sheetContext] sits under the sheet's messenger, so snack bars show on
+  /// the sheet.
+  Future<void> _submitQuestion(BuildContext sheetContext) async {
     if (_state.selectedFaculty == null) {
       AppSnackBar.show(
-        context,
+        sheetContext,
         message: 'Please choose a faculty to send your question to',
         color: AppColors.warningOrange,
       );
@@ -409,25 +420,26 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
           description: _descriptionController.text.trim(),
         );
 
-        if (mounted) {
+        if (sheetContext.mounted) {
           // Clear the form
           _subjectController.clear();
           _descriptionController.clear();
           _state.finishSubmitting(clearFaculty: true);
 
           AppSnackBar.show(
-            context,
+            sheetContext,
             message: 'Your question has been sent to the faculty',
             color: AppColors.success,
           );
         }
       } catch (e) {
-        final message = e is ApiException
-            ? e.message
-            : 'We couldn\'t send your question. Please try again.';
-        if (mounted) {
+        if (sheetContext.mounted) {
           _state.finishSubmitting();
-          AppSnackBar.show(context, message: message, color: AppColors.danger);
+          AppSnackBar.show(
+            sheetContext,
+            message: 'We couldn\'t send your question. ${userFriendlyError(e)}',
+            color: AppColors.danger,
+          );
         }
       }
     }

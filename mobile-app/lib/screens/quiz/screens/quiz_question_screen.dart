@@ -36,12 +36,20 @@ class QuizQuestionScreen extends StatefulWidget {
 }
 
 class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
+  // Each number dot is [_dotSize] wide with [_dotGap] margin on both sides.
+  static const double _dotSize = 32;
+  static const double _dotGap = 4;
+
   final QuizQuestionScreenProvider _q = QuizQuestionScreenProvider();
+  final ScrollController _dotsController = ScrollController();
+  late QuizProvider _quizProvider;
   Timer? _timer;
+  int? _dotsScrolledFor;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _quizProvider = context.read<QuizProvider>();
     if (!_q.timerStarted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _startTimerIfConfigured(context.read<QuizProvider>());
@@ -53,40 +61,72 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
   void dispose() {
     _timer?.cancel();
     _q.dispose();
+    _dotsController.dispose();
+    // The session is over once this screen goes (submitted, timed out or
+    // left). Deferred: listeners can't be notified while the tree is being
+    // torn down.
+    Future.microtask(_quizProvider.resetSession);
     super.dispose();
   }
 
   void _startTimerIfConfigured(QuizProvider quizProvider) {
     if (_q.timerStarted || !quizProvider.isQuizActive) return;
-    final mode = quizProvider.timerMode;
-    final overall = mode == 'overall' || mode == 'both'
+    final overall = quizProvider.hasOverallTimer
         ? quizProvider.overallTimeLimit
         : null;
-    final perQuestion = mode == 'per-question' || mode == 'both'
+    final perQuestion = quizProvider.hasPerQuestionTimer
         ? quizProvider.perQuestionTimeLimit
         : null;
-    final initial = overall ?? perQuestion;
-    if (initial == null || initial <= 0) return;
-    _q.startTimer(initial);
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      final remaining = _q.remainingSeconds;
-      if (!mounted || remaining == null) return;
-      if (remaining <= 1) {
-        _timer?.cancel();
-        _q.setRemainingSeconds(0);
-        _submit(quizProvider);
-      } else {
-        _q.setRemainingSeconds(remaining - 1);
-      }
-    });
+    if (overall == null && perQuestion == null) return;
+    _q.startTimers(overall: overall, perQuestion: perQuestion);
+    _timer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _onTick(quizProvider),
+    );
   }
 
-  void _resetPerQuestionTimer(QuizProvider quizProvider) {
-    if (!_q.timerStarted || quizProvider.timerMode == 'overall') return;
-    final perQuestion = quizProvider.perQuestionTimeLimit;
-    if (perQuestion != null && perQuestion > 0) {
-      _q.setRemainingSeconds(perQuestion);
+  void _onTick(QuizProvider quizProvider) {
+    // Paused while a submit is in flight, so it can't fire a second one.
+    if (!mounted || _q.submitting) return;
+    switch (_q.tick()) {
+      case QuizTimerExpiry.overall:
+        _submit(quizProvider);
+      case QuizTimerExpiry.question:
+        // Time's up for this question: move on keeping whatever answer is
+        // selected (none stays unanswered), or submit after the last one.
+        if (quizProvider.hasNextQuestion) {
+          quizProvider.nextQuestion();
+          _q.resetQuestionTimer();
+        } else {
+          _submit(quizProvider);
+        }
+      case QuizTimerExpiry.none:
+        break;
     }
+  }
+
+  /// Brings the current question's number dot into view (centred) when it
+  /// sits outside the visible part of the strip. Runs once per question
+  /// change, so timer rebuilds don't undo a manual scroll of the strip.
+  void _revealCurrentDot(int index) {
+    if (_dotsScrolledFor == index) return;
+    _dotsScrolledFor = index;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_dotsController.hasClients) return;
+      final position = _dotsController.position;
+      const extent = _dotSize + _dotGap * 2;
+      final start = AppTheme.paddingMedium + index * extent;
+      final end = start + extent;
+      final visibleEnd = position.pixels + position.viewportDimension;
+      if (start >= position.pixels && end <= visibleEnd) return;
+      final target = (start + extent / 2 - position.viewportDimension / 2)
+          .clamp(position.minScrollExtent, position.maxScrollExtent);
+      _dotsController.animateTo(
+        target,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   @override
@@ -165,7 +205,8 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
             minHeight: 4,
           ),
         ),
-        if (q.remainingSeconds != null) _timerChip(p, q),
+        if (q.overallRemaining != null || q.questionRemaining != null)
+          _timerChips(p, q),
         Expanded(
           child: FadeOnChange(
             trigger: question.id,
@@ -208,10 +249,12 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
     );
   }
 
-  /// Countdown pill, right-aligned above the question. Turns to the warning
-  /// tone in the last ten seconds.
-  Widget _timerChip(HomePalette p, QuizQuestionScreenProvider q) {
-    final tone = q.remainingSeconds! <= 10 ? p.coral : p.rose;
+  /// Countdown pills, right-aligned above the question: the whole-quiz time
+  /// and/or this question's time. Each turns to the warning tone in its last
+  /// ten seconds.
+  Widget _timerChips(HomePalette p, QuizQuestionScreenProvider q) {
+    final overall = q.overallRemaining;
+    final question = q.questionRemaining;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppTheme.contentInset,
@@ -221,10 +264,23 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
       ),
       child: Align(
         alignment: Alignment.centerRight,
-        child: ToneChip(label: 'Time ${q.timerLabel}', tone: tone),
+        child: Wrap(
+          alignment: WrapAlignment.end,
+          spacing: AppTheme.paddingSmall,
+          runSpacing: 4,
+          children: [
+            if (overall != null) _timerChip(p, 'Time', overall),
+            if (question != null) _timerChip(p, 'This question', question),
+          ],
+        ),
       ),
     );
   }
+
+  Widget _timerChip(HomePalette p, String label, int seconds) => ToneChip(
+    label: '$label ${QuizQuestionScreenProvider.timerLabel(seconds)}',
+    tone: seconds <= 10 ? p.coral : p.rose,
+  );
 
   Widget _difficultyChip(HomePalette p, String difficulty) {
     final tone = _difficultyTone(p, difficulty);
@@ -317,6 +373,10 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
     int currentIndex,
     int totalQuestions,
   ) {
+    _revealCurrentDot(currentIndex);
+    // A per-question timer makes the quiz one-way: no Previous and no
+    // jumping between numbers (jumping ahead would skip questions for good).
+    final freeNavigation = !quizProvider.hasPerQuestionTimer;
     return Container(
       padding: EdgeInsets.fromLTRB(
         AppTheme.paddingMedium,
@@ -338,23 +398,29 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          PressableScale(
-            enabled: quizProvider.hasPreviousQuestion,
-            child: ElevatedButton.icon(
-              onPressed: quizProvider.hasPreviousQuestion
-                  ? () => quizProvider.previousQuestion()
-                  : null,
-              icon: const Icon(LucideIcons.arrowLeft),
-              label: const Text('Previous'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: p.card,
-                foregroundColor: p.brand,
-                side: BorderSide(color: p.cardBorder),
+          if (freeNavigation)
+            PressableScale(
+              enabled: quizProvider.hasPreviousQuestion,
+              child: ElevatedButton(
+                onPressed: quizProvider.hasPreviousQuestion
+                    ? () => quizProvider.previousQuestion()
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: p.card,
+                  foregroundColor: p.brand,
+                  side: BorderSide(color: p.cardBorder),
+                  padding: const EdgeInsets.all(12),
+                  minimumSize: const Size.square(48),
+                ),
+                child: const Icon(
+                  LucideIcons.arrowLeft,
+                  semanticLabel: 'Previous',
+                ),
               ),
             ),
-          ),
           Expanded(
             child: SingleChildScrollView(
+              controller: _dotsController,
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(
                 horizontal: AppTheme.paddingMedium,
@@ -368,7 +434,9 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                     number: index + 1,
                     isCurrent: index == currentIndex,
                     answered: answered,
-                    onTap: () => quizProvider.goToQuestion(index),
+                    onTap: freeNavigation
+                        ? () => quizProvider.goToQuestion(index)
+                        : null,
                   );
                 }),
               ),
@@ -376,26 +444,28 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
           ),
           PressableScale(
             enabled: !q.submitting,
-            child: ElevatedButton.icon(
+            child: ElevatedButton(
               onPressed: q.submitting
                   ? null
                   : () {
                       if (quizProvider.hasNextQuestion) {
                         quizProvider.nextQuestion();
-                        _resetPerQuestionTimer(quizProvider);
+                        _q.resetQuestionTimer();
                       } else {
                         _showSubmitDialog(context, quizProvider);
                       }
                     },
-              icon: Icon(
-                quizProvider.hasNextQuestion
-                    ? LucideIcons.arrowRight
-                    : LucideIcons.check,
-              ),
-              label: Text(quizProvider.hasNextQuestion ? 'Next' : 'Submit'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: p.brand,
                 foregroundColor: AppColors.white,
+                padding: const EdgeInsets.all(12),
+                minimumSize: const Size.square(48),
+              ),
+              child: Icon(
+                quizProvider.hasNextQuestion
+                    ? LucideIcons.arrowRight
+                    : LucideIcons.check,
+                semanticLabel: quizProvider.hasNextQuestion ? 'Next' : 'Submit',
               ),
             ),
           ),
@@ -409,16 +479,17 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
     required int number,
     required bool isCurrent,
     required bool answered,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
   }) {
     return PressableScale(
+      enabled: onTap != null,
       pressedScale: 0.88,
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 32,
-          height: 32,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
+          width: _dotSize,
+          height: _dotSize,
+          margin: const EdgeInsets.symmetric(horizontal: _dotGap),
           decoration: BoxDecoration(
             color: isCurrent
                 ? p.brand
@@ -501,8 +572,15 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
   }
 
   Future<void> _submit(QuizProvider quizProvider) async {
+    // The timer and the dialog can both trigger a submit; only the first
+    // one goes through.
+    if (_q.submitting) return;
     _q.setSubmitting(true);
     final navigator = Navigator.of(context);
+    final route = ModalRoute.of(context)!;
+    // A timed-out submit can fire while the "Submit Quiz?" dialog is open.
+    // Close it so the results replace this screen, not the dialog.
+    navigator.popUntil((r) => r == route);
 
     try {
       final attempt = await quizProvider.submitQuiz();
@@ -514,27 +592,30 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
         MaterialPageRoute(
           builder: (_) => QuizResultsScreen.fromAttempt(
             attempt,
-            onDone: () =>
-                Navigator.of(navigator.context).popUntil((r) => r.isFirst),
+            // Back to the quiz list, same as the system back button.
+            onDone: () => navigator.pop(),
           ),
         ),
       );
+      // Stays "submitting" while this screen leaves, so the timer can't
+      // fire another submit during the transition.
     } on ApiException catch (e) {
       if (!mounted) return;
       AppSnackBar.show(context, message: e.message, color: AppColors.danger);
       if (e.status == 403) {
         // Quiz is no longer live — route back to the quiz list.
         navigator.pop();
+      } else {
+        _q.setSubmitting(false);
       }
     } catch (e) {
       if (!mounted) return;
+      _q.setSubmitting(false);
       AppSnackBar.show(
         context,
         message: 'We couldn\'t submit your quiz. Please try again.',
         color: AppColors.danger,
       );
-    } finally {
-      if (mounted) _q.setSubmitting(false);
     }
   }
 }

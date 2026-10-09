@@ -289,7 +289,11 @@ adminRouter.post('/', authenticateAdmin, async (req, res) => {
         res.status(201).json({ message: 'Assignment created successfully', assignment });
     } catch (error) {
         console.error('Error creating assignment:', error);
-        res.status(error.status || 500).json({ message: error.status ? error.message : 'Internal server error' });
+        const body = { message: error.status ? error.message : 'Internal server error' };
+        // Admin-only route: return the underlying reason so a production failure
+        // can be diagnosed from the browser's Network tab without server log access.
+        if (!error.status) body.reason = error.message;
+        res.status(error.status || 500).json(body);
     }
 });
 

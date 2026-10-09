@@ -89,6 +89,26 @@ void main() {
     }
   });
 
+  test('after release, the handle stays put while the new spot loads', () {
+    seek.startDrag(0.75);
+    seek.endDrag(0.75);
+
+    // What the player's time reports do: it keeps reporting the old spot
+    // until the new one has loaded.
+    void report(Duration reported) {
+      if (controller.acceptsReportedPosition(reported)) {
+        emit(position: reported);
+      }
+    }
+
+    report(const Duration(seconds: 30));
+    expect(seek.fraction, 0.75);
+    expect(seek.position, const Duration(seconds: 90));
+
+    report(const Duration(seconds: 90, milliseconds: 200));
+    expect(seek.position, const Duration(seconds: 90, milliseconds: 200));
+  });
+
   test('handle and times stay within range', () {
     emit(position: const Duration(minutes: 5));
 

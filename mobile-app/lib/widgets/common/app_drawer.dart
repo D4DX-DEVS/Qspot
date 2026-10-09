@@ -7,6 +7,7 @@ import '../../screens/bookmark/screens/bookmarks_screen.dart';
 import '../../screens/common/screens/contact_us_screen.dart';
 import '../../screens/common/widgets/home_theme_scope.dart';
 import '../../screens/notification/screens/notifications_screen.dart';
+import '../../screens/question/screens/my_questions_screen.dart';
 import '../../screens/schedule/screens/schedule_screen.dart';
 import '../../screens/settings/screens/settings_screen.dart';
 import '../../services/session.dart';
@@ -83,7 +84,7 @@ class AppDrawer extends StatelessWidget {
   /// Rows glide in one after another when the drawer opens.
   Widget _entrance(int index, Widget child) => StaggeredEntrance(
     index: index,
-    maxStaggered: 12,
+    maxStaggered: 13,
     step: const Duration(milliseconds: 35),
     rise: 12,
     child: child,
@@ -133,22 +134,30 @@ class AppDrawer extends StatelessWidget {
                   _entrance(
                     3,
                     AppDrawerTile(
+                      icon: LucideIcons.messageSquareText,
+                      label: 'My Questions',
+                      onTap: () => _open(context, const MyQuestionsScreen()),
+                    ),
+                  ),
+                  _entrance(
+                    4,
+                    AppDrawerTile(
                       icon: LucideIcons.calendar,
                       label: 'Schedule',
                       onTap: () => _open(context, const ScheduleScreen()),
                     ),
                   ),
                   _entrance(
-                    4,
+                    5,
                     AppDrawerTile(
                       icon: LucideIcons.bell,
                       label: 'Notifications',
                       onTap: () => _open(context, const NotificationsScreen()),
                     ),
                   ),
-                  _entrance(5, const AppDrawerSectionLabel('Support')),
+                  _entrance(6, const AppDrawerSectionLabel('Support')),
                   _entrance(
-                    6,
+                    7,
                     AppDrawerTile(
                       icon: LucideIcons.headset,
                       label: 'Contact Us',
@@ -156,16 +165,16 @@ class AppDrawer extends StatelessWidget {
                     ),
                   ),
                   _entrance(
-                    7,
+                    8,
                     AppDrawerTile(
                       icon: LucideIcons.messageSquareWarning,
                       label: 'Feedback',
                       onTap: () => _sendFeedback(context),
                     ),
                   ),
-                  _entrance(8, const AppDrawerSectionLabel('Account')),
+                  _entrance(9, const AppDrawerSectionLabel('Account')),
                   _entrance(
-                    9,
+                    10,
                     AppDrawerTile(
                       icon: LucideIcons.settings,
                       label: 'Settings',
@@ -173,7 +182,7 @@ class AppDrawer extends StatelessWidget {
                     ),
                   ),
                   _entrance(
-                    10,
+                    11,
                     AppDrawerTile(
                       icon: LucideIcons.logOut,
                       label: 'Logout',
@@ -182,7 +191,7 @@ class AppDrawer extends StatelessWidget {
                     ),
                   ),
                   _entrance(
-                    11,
+                    12,
                     const SafeArea(top: false, child: AppDrawerFooter()),
                   ),
                 ],
