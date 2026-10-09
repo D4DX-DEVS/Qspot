@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../../services/api_client.dart';
 import '../provider/faculty_home_screen_provider.dart';
 import 'package:qspot/themes/app_colors.dart';
+import 'package:qspot/widgets/animation/pressable_scale.dart';
+import 'package:qspot/widgets/animation/staggered_entrance.dart';
 import 'package:qspot/widgets/common/app_snack_bar.dart';
 
 class FacultyHomeScreen extends StatefulWidget {
@@ -36,12 +39,13 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
     final answer = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Answer student question'),
+        title: const Text('Answer Student Question'),
         content: TextField(
           controller: controller,
           maxLines: 6,
+          maxLength: 10000,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'Write a clear answer'),
+          decoration: const InputDecoration(hintText: 'Write a Clear Answer'),
         ),
         actions: [
           TextButton(
@@ -50,11 +54,12 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('Save answer'),
+            child: const Text('Save Answer'),
           ),
         ],
       ),
     );
+    controller.dispose();
     if (answer == null || answer.isEmpty) return;
     try {
       await ApiClient.put(
@@ -79,35 +84,42 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
     padding: const EdgeInsets.all(16),
     children: [
       Text(
-        'Questions assigned to you',
+        'Questions Assigned to You',
         style: Theme.of(context).textTheme.headlineSmall,
       ),
       const SizedBox(height: 12),
       if (_f.questions.isEmpty)
         const Padding(
           padding: EdgeInsets.only(top: 50),
-          child: Center(child: Text('No questions yet')),
+          child: Center(child: Text('No Questions Yet')),
         ),
-      ..._f.questions.map((raw) {
+      ..._f.questions.indexed.map((entry) {
+        final (index, raw) = entry;
         final q = Map<String, dynamic>.from(raw as Map);
         final student = q['user'] is Map ? q['user']['name'] : 'Student';
         final answered =
             q['answer'] != null && q['answer'].toString().isNotEmpty;
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            isThreeLine: true,
-            title: Text(q['description']?.toString() ?? ''),
-            subtitle: Text(
-              '$student • ${q['subject'] ?? ''}\n${answered ? q['answer'] : 'Awaiting your answer'}',
+        return StaggeredEntrance(
+          index: index,
+          child: PressableScale(
+            pressedScale: 0.98,
+            child: Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: ListTile(
+                isThreeLine: true,
+                title: Text(q['description']?.toString() ?? ''),
+                subtitle: Text(
+                  '$student • ${q['subject'] ?? ''}\n${answered ? q['answer'] : 'Awaiting Your Answer'}',
+                ),
+                trailing: Icon(
+                  answered ? LucideIcons.circleCheck : LucideIcons.reply,
+                  color: answered
+                      ? AppColors.success
+                      : Theme.of(context).colorScheme.primary,
+                ),
+                onTap: () => _answer(q),
+              ),
             ),
-            trailing: Icon(
-              answered ? Icons.check_circle : Icons.reply,
-              color: answered
-                  ? AppColors.success
-                  : Theme.of(context).colorScheme.primary,
-            ),
-            onTap: () => _answer(q),
           ),
         );
       }),
@@ -117,18 +129,22 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
   Widget _contentTab(BuildContext context) => ListView(
     padding: const EdgeInsets.all(16),
     children: [
-      Text('Your lessons', style: Theme.of(context).textTheme.headlineSmall),
+      Text('Your Lessons', style: Theme.of(context).textTheme.headlineSmall),
       const SizedBox(height: 12),
       if (_f.content.isEmpty) const Text('No lessons assigned yet.'),
-      ..._f.content.map((raw) {
+      ..._f.content.indexed.map((entry) {
+        final (index, raw) = entry;
         final item = Map<String, dynamic>.from(raw as Map);
         final subject = item['subject'] is Map ? item['subject']['name'] : '';
         final status = item['isPublished'] == true ? 'Published' : 'Draft';
-        return Card(
-          child: ListTile(
-            leading: const Icon(Icons.play_circle_outline),
-            title: Text(item['title']?.toString() ?? 'Lesson'),
-            subtitle: Text('$subject • $status'),
+        return StaggeredEntrance(
+          index: index,
+          child: Card(
+            child: ListTile(
+              leading: const Icon(LucideIcons.circlePlay),
+              title: Text(item['title']?.toString() ?? 'Lesson'),
+              subtitle: Text('$subject • $status'),
+            ),
           ),
         );
       }),
@@ -139,22 +155,29 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
     padding: const EdgeInsets.all(16),
     children: [
       Text(
-        'Assignments and submissions',
+        'Assignments and Submissions',
         style: Theme.of(context).textTheme.headlineSmall,
       ),
       const SizedBox(height: 12),
       if (_f.assignments.isEmpty) const Text('No assignments assigned yet.'),
-      ..._f.assignments.map((raw) {
+      ..._f.assignments.indexed.map((entry) {
+        final (index, raw) = entry;
         final item = Map<String, dynamic>.from(raw as Map);
-        return Card(
-          child: ListTile(
-            leading: const Icon(Icons.assignment_outlined),
-            title: Text(item['title']?.toString() ?? 'Assignment'),
-            subtitle: Text(
-              '${item['submissionCount'] ?? 0} submissions • ${item['pendingSubmissions'] ?? 0} awaiting review',
+        return StaggeredEntrance(
+          index: index,
+          child: PressableScale(
+            pressedScale: 0.98,
+            child: Card(
+              child: ListTile(
+                leading: const Icon(LucideIcons.clipboardList),
+                title: Text(item['title']?.toString() ?? 'Assignment'),
+                subtitle: Text(
+                  '${item['submissionCount'] ?? 0} Submissions • ${item['pendingSubmissions'] ?? 0} Awaiting Review',
+                ),
+                trailing: const Icon(LucideIcons.chevronRight),
+                onTap: () => _showSubmissions(item),
+              ),
             ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showSubmissions(item),
           ),
         );
       }),
@@ -192,10 +215,10 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
                 return ListTile(
                   title: Text(student.toString()),
                   subtitle: Text(
-                    '${s['status'] ?? 'submitted'} • ${s['grade'] ?? 'Not graded'}',
+                    '${s['status'] ?? 'submitted'} • ${s['grade'] ?? 'Not Graded'}',
                   ),
                   trailing: IconButton(
-                    icon: const Icon(Icons.rate_review_outlined),
+                    icon: const Icon(LucideIcons.messageSquareText),
                     onPressed: () => _gradeSubmission(s, assignment, context),
                   ),
                 );
@@ -228,26 +251,55 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
     final feedback = TextEditingController(
       text: submission['feedback']?.toString() ?? '',
     );
+    final formKey = GlobalKey<FormState>();
+    final parsedMaxPoints = double.tryParse(
+      assignment['maxPoints']?.toString() ?? '',
+    );
+    final maxPoints =
+        parsedMaxPoints != null &&
+            parsedMaxPoints.isFinite &&
+            parsedMaxPoints > 0
+        ? parsedMaxPoints
+        : 100.0;
     final result = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Grade submission'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: grade,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Grade (max ${assignment['maxPoints'] ?? 100})',
+        title: const Text('Grade Submission'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: grade,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: 'Grade (Max ${assignment['maxPoints'] ?? 100})',
+                ),
+                validator: (value) {
+                  final raw = value?.trim() ?? '';
+                  final parsed = double.tryParse(raw);
+                  if (raw.isEmpty) return 'Grade is required';
+                  if (parsed == null || !parsed.isFinite) {
+                    return 'Enter a valid number';
+                  }
+                  if (parsed < 0) return 'Grade cannot be negative';
+                  if (parsed > maxPoints) {
+                    return 'Grade cannot exceed $maxPoints';
+                  }
+                  return null;
+                },
               ),
-            ),
-            TextField(
-              controller: feedback,
-              maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Feedback'),
-            ),
-          ],
+              TextFormField(
+                controller: feedback,
+                maxLines: 3,
+                maxLength: 10000,
+                decoration: const InputDecoration(labelText: 'Feedback'),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -255,22 +307,30 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () {
+              if (formKey.currentState?.validate() != true) return;
+              Navigator.pop(context, true);
+            },
             child: const Text('Save'),
           ),
         ],
       ),
     );
-    if (result != true || grade.text.trim().isEmpty) return;
+    if (result != true) {
+      grade.dispose();
+      feedback.dispose();
+      return;
+    }
+    final gradeValue = double.parse(grade.text.trim());
+    final feedbackValue = feedback.text.trim();
+    grade.dispose();
+    feedback.dispose();
     try {
       await ApiClient.put(
         '/api/faculty/submissions/${submission['_id']}/grade',
-        body: {
-          'grade': double.tryParse(grade.text.trim()),
-          'feedback': feedback.text.trim(),
-        },
+        body: {'grade': gradeValue, 'feedback': feedbackValue},
       );
-      if (mounted) {
+      if (mounted && sheetContext.mounted) {
         Navigator.of(sheetContext).pop();
         _load();
       }
@@ -299,9 +359,9 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
     length: 3,
     child: Scaffold(
       appBar: CommonAppBar(
-        title: 'Faculty workspace',
+        title: 'Faculty Workspace',
         actions: [
-          IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
+          IconButton(onPressed: _load, icon: const Icon(LucideIcons.refreshCw)),
         ],
         bottom: const TabBar(
           tabs: [

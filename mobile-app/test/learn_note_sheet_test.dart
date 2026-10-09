@@ -6,6 +6,7 @@ import 'package:qspot/screens/video/widgets/learn_note_sheet.dart';
 VideoModel episode({
   String learnText = '',
   List<String> learnPoints = const [],
+  List<VideoDownload> downloads = const [],
 }) {
   return VideoModel(
     id: '1',
@@ -14,6 +15,7 @@ VideoModel episode({
     video: 'https://example.com/clip',
     learnText: learnText,
     learnPoints: learnPoints,
+    downloads: downloads,
   );
 }
 
@@ -51,6 +53,44 @@ Future<void> openSheet(WidgetTester tester, VideoModel video) async {
 }
 
 void main() {
+  testWidgets('Learn leaves files to the Downloads tab', (tester) async {
+    await openSheet(
+      tester,
+      episode(
+        learnText: 'A short note about this episode.',
+        downloads: const [
+          VideoDownload(
+            title: 'Practice checklist',
+            url: '/uploads/handouts/checklist.pdf',
+          ),
+        ],
+      ),
+    );
+    expect(find.text('A short note about this episode.'), findsOneWidget);
+    expect(find.text('Learning materials'), findsNothing);
+    expect(find.text('Practice checklist'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('file-only lessons show the empty note in Learn', (tester) async {
+    await openSheet(
+      tester,
+      episode(
+        downloads: const [
+          VideoDownload(
+            title: 'Practice checklist',
+            url: '/uploads/handouts/checklist.pdf',
+          ),
+        ],
+      ),
+    );
+    expect(
+      find.text('This episode\'s quick note isn\'t ready yet.'),
+      findsOneWidget,
+    );
+    expect(find.text('Practice checklist'), findsNothing);
+  });
+
   testWidgets('shows the note and key points written for that video', (
     tester,
   ) async {
@@ -62,7 +102,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Learn — quick note'), findsOneWidget);
+    expect(find.text('Learn — Quick Note'), findsOneWidget);
     expect(find.text('A short note about this episode.'), findsOneWidget);
     expect(find.text('KEY POINTS'), findsOneWidget);
     expect(find.text('First point'), findsOneWidget);
@@ -91,11 +131,11 @@ void main() {
 
   testWidgets('Got it closes the popup', (tester) async {
     await openSheet(tester, episode(learnText: 'Something to read.'));
-    expect(find.text('Learn — quick note'), findsOneWidget);
+    expect(find.text('Learn — Quick Note'), findsOneWidget);
 
-    await tester.tap(find.text('Got it'));
+    await tester.tap(find.text('Got It'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Learn — quick note'), findsNothing);
+    expect(find.text('Learn — Quick Note'), findsNothing);
   });
 }

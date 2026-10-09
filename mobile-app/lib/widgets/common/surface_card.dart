@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../animation/pressable_scale.dart';
+
 /// Plain rounded card on the page: theme card colour, hairline border and a
 /// soft shadow. Tappable when [onTap] is set.
 class SurfaceCard extends StatelessWidget {
@@ -29,7 +31,7 @@ class SurfaceCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(radius),
       side: BorderSide(color: borderColor ?? scheme.outlineVariant),
     );
-    return DecoratedBox(
+    final card = DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius),
         boxShadow: [
@@ -50,5 +52,8 @@ class SurfaceCard extends StatelessWidget {
         ),
       ),
     );
+    return onTap == null
+        ? card
+        : PressableScale(pressedScale: 0.97, child: card);
   }
 }

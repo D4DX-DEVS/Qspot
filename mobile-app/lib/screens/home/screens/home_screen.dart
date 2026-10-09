@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../../video/model/video_model.dart';
@@ -124,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(
-                          Icons.school_outlined,
+                          LucideIcons.graduationCap,
                           color: AppColors.primary,
                           size: 22,
                         ),
@@ -160,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const Icon(
-                        Icons.chevron_right,
+                        LucideIcons.chevronRight,
                         color: AppColors.textMuted,
                         size: 20,
                       ),
@@ -189,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: Row(
           children: [
-            Icon(Icons.search, color: AppColors.textMuted, size: 20),
+            Icon(LucideIcons.search, color: AppColors.textMuted, size: 20),
             SizedBox(width: 10),
             Text(
               'Search',
@@ -288,7 +289,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   height: 100,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) {
-                    return Icon(Icons.book, color: AppColors.primary, size: 24);
+                    return Icon(
+                      LucideIcons.book,
+                      color: AppColors.primary,
+                      size: 24,
+                    );
                   },
                 ),
               ),
@@ -314,7 +319,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   IconButton(
                     onPressed: _navigateToNotifications,
                     icon: const Icon(
-                      Icons.notifications_outlined,
+                      LucideIcons.bell,
                       color: AppColors.textPrimary,
                       size: 24,
                     ),
@@ -545,7 +550,7 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Recent videos',
+              'Recent Videos',
               style: AppFonts.bold(color: AppColors.textPrimary, fontSize: 18),
             ),
             SeeAllButton(onPressed: _navigateToVideoList),
@@ -686,7 +691,7 @@ class _HomeScreenState extends State<HomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Next up',
+          'Next Up',
           style: AppFonts.bold(color: AppColors.textPrimary, fontSize: 18),
         ),
         const SizedBox(height: 12),
@@ -707,7 +712,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.check_circle_outline, color: AppColors.success, size: 24),
+          Icon(LucideIcons.circleCheck, color: AppColors.success, size: 24),
           SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -733,22 +738,22 @@ class _HomeScreenState extends State<HomeScreen> {
     final label = switch (item.kind) {
       _TodayItemKind.overdue =>
         item.remote?.dueAt != null && _isBeforeToday(item.remote!.dueAt!)
-            ? 'Past due'
-            : 'Due soon',
-      _TodayItemKind.upcoming => 'Coming soon',
-      _TodayItemKind.continueWatching => 'In progress',
-      _TodayItemKind.practice => 'Practice ready',
+            ? 'Past Due'
+            : 'Due Soon',
+      _TodayItemKind.upcoming => 'Coming Soon',
+      _TodayItemKind.continueWatching => 'In Progress',
+      _TodayItemKind.practice => 'Practice Ready',
       _TodayItemKind.quiz =>
         item.remote?.assessmentType == 'practical'
-            ? 'Practical exam ready'
-            : 'Quiz ready',
-      _TodayItemKind.start => 'Ready to learn',
+            ? 'Practical Exam Ready'
+            : 'Quiz Ready',
+      _TodayItemKind.start => 'Ready to Learn',
     };
     final detail = switch (item.kind) {
       _TodayItemKind.overdue =>
         item.remote?.dueAt == null
             ? 'This activity needs your attention'
-            : 'Past due ${_formatDate(item.remote!.dueAt!)}',
+            : 'Past Due ${_formatDate(item.remote!.dueAt!)}',
       _TodayItemKind.upcoming =>
         item.remote?.releaseAt != null
             ? 'Available ${_formatDate(item.remote!.releaseAt!)}'
@@ -765,7 +770,7 @@ class _HomeScreenState extends State<HomeScreen> {
     };
     final progress = item.progress;
     final title =
-        video?.displayTitle ?? item.remote?.title ?? 'Learning activity';
+        video?.displayTitle ?? item.remote?.title ?? 'Learning Activity';
     final subjectName = video?.subjectName ?? item.remote?.subject ?? '';
     final remotePercent = item.remote?.percent;
     final actionVideo = video;
@@ -809,7 +814,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? Container(
                           color: AppColors.primarySoft,
                           child: const Icon(
-                            Icons.play_lesson_outlined,
+                            LucideIcons.monitorPlay,
                             color: AppColors.primary,
                             size: 28,
                           ),
@@ -820,7 +825,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           errorWidget: (_, __, ___) => Container(
                             color: AppColors.primarySoft,
                             child: const Icon(
-                              Icons.play_lesson_outlined,
+                              LucideIcons.monitorPlay,
                               color: AppColors.primary,
                             ),
                           ),
@@ -910,7 +915,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(width: 8),
               Icon(
-                isUpcoming ? Icons.chevron_right : Icons.arrow_forward,
+                isUpcoming ? LucideIcons.chevronRight : LucideIcons.arrowRight,
                 color: AppColors.primary,
                 size: 20,
               ),
@@ -940,16 +945,12 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.local_fire_department_outlined,
-            color: AppColors.warning,
-            size: 22,
-          ),
+          const Icon(LucideIcons.flame, color: AppColors.warning, size: 22),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               (_todayOverview?.currentStreak ?? 0) > 0
-                  ? '${_todayOverview!.currentStreak} day learning streak${_todayOverview!.currentStreak == 1 ? '' : 's'}'
+                  ? '${_todayOverview!.currentStreak} Day Learning Streak${_todayOverview!.currentStreak == 1 ? '' : 's'}'
                   : _todayOverview?.summary.isNotEmpty == true
                   ? _todayOverview!.summary
                   : activeToday
@@ -1018,7 +1019,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     errorWidget: (_, __, ___) => Container(
                       color: AppColors.surfaceAlt,
                       child: const Icon(
-                        Icons.play_circle_outline,
+                        LucideIcons.circlePlay,
                         color: AppColors.textMuted,
                       ),
                     ),
@@ -1031,7 +1032,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         radius: 9,
                         backgroundColor: AppColors.success,
                         child: Icon(
-                          Icons.check,
+                          LucideIcons.check,
                           size: 12,
                           color: AppColors.white,
                         ),
@@ -1076,22 +1077,22 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildQuickAccess() {
     final actions = <_HomeAction>[
       _HomeAction(
-        icon: Icons.smart_display_outlined,
+        icon: LucideIcons.squarePlay,
         label: 'Videos',
         onTap: _navigateToVideoList,
       ),
       _HomeAction(
-        icon: Icons.menu_book_outlined,
+        icon: LucideIcons.bookOpen,
         label: 'Subjects',
         onTap: _navigateToSubjectList,
       ),
       _HomeAction(
-        icon: Icons.groups_outlined,
+        icon: LucideIcons.users,
         label: 'Faculties',
         onTap: _navigateToFaculties,
       ),
       _HomeAction(
-        icon: Icons.quiz_outlined,
+        icon: LucideIcons.listChecks,
         label: 'Quiz',
         onTap: _navigateToQuiz,
       ),
@@ -1101,7 +1102,7 @@ class _HomeScreenState extends State<HomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Quick access',
+          'Quick Access',
           style: AppFonts.bold(color: AppColors.textPrimary, fontSize: 18),
         ),
         const SizedBox(height: 12),
@@ -1168,10 +1169,10 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: AppColors.textMuted),
+            Icon(LucideIcons.circleAlert, size: 64, color: AppColors.textMuted),
             const SizedBox(height: AppTheme.paddingMedium),
             Text(
-              'Something went wrong',
+              'Something Went Wrong',
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary),
@@ -1212,7 +1213,11 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, size: 18, color: AppColors.danger),
+          const Icon(
+            LucideIcons.circleAlert,
+            size: 18,
+            color: AppColors.danger,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

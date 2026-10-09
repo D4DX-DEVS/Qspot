@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../themes/home_palette.dart';
+import '../../../widgets/animation/pop_on_change.dart';
+import '../../../widgets/animation/pressable_scale.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../../widgets/common/soft_icon_tile.dart';
 import '../../common/widgets/home_theme_scope.dart';
@@ -48,7 +52,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
     final p = HomePalette.of(context);
     return Scaffold(
       appBar: CommonAppBar(
-        title: 'My questions',
+        title: 'My Questions',
         actions: [
           TextButton(
             onPressed: () async {
@@ -56,7 +60,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
               _state.loadQuestions();
             },
             child: Text(
-              'Ask new',
+              'Ask New',
               style: AppFonts.bold(color: p.brand, fontSize: 15),
             ),
           ),
@@ -114,25 +118,31 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
     String label,
     bool selected,
   ) {
-    return InkWell(
-      onTap: () => state.setFilter(switch (label) {
-        'Answered' => QuestionFilter.answered,
-        'Pending' => QuestionFilter.pending,
-        _ => QuestionFilter.all,
-      }),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? p.brandSoft : p.card,
+    return PressableScale(
+      child: PopOnChange(
+        active: selected,
+        peak: 1.08,
+        child: InkWell(
+          onTap: () => state.setFilter(switch (label) {
+            'Answered' => QuestionFilter.answered,
+            'Pending' => QuestionFilter.pending,
+            _ => QuestionFilter.all,
+          }),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? p.brand : p.cardBorder),
-        ),
-        child: Text(
-          label,
-          style: AppFonts.semiBold(
-            color: selected ? p.brand : p.textMuted,
-            fontSize: 13,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: selected ? p.brandSoft : p.card,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: selected ? p.brand : p.cardBorder),
+            ),
+            child: Text(
+              label,
+              style: AppFonts.semiBold(
+                color: selected ? p.brand : p.textMuted,
+                fontSize: 13,
+              ),
+            ),
           ),
         ),
       ),
@@ -146,10 +156,10 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.cloud_off, size: 48, color: p.textMuted),
+            Icon(LucideIcons.cloudOff, size: 48, color: p.textMuted),
             const SizedBox(height: 14),
             Text(
-              'Could not load your questions',
+              'Could Not Load Your Questions',
               style: AppFonts.bold(color: p.text, fontSize: 17),
             ),
             const SizedBox(height: 6),
@@ -170,7 +180,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
                 shape: const StadiumBorder(),
               ),
               onPressed: _state.loadQuestions,
-              child: const Text('Try again'),
+              child: const Text('Try Again'),
             ),
           ],
         ),
@@ -187,21 +197,21 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SoftIconTile(
-              icon: Icons.forum_outlined,
+              icon: LucideIcons.messagesSquare,
               tone: p.rose,
               size: 84,
               circle: true,
             ),
             const SizedBox(height: 16),
             Text(
-              filtered ? 'Nothing here' : 'There is nothing here yet',
+              filtered ? 'Nothing Here' : 'There Is Nothing Here Yet',
               style: AppFonts.bold(color: p.text, fontSize: 19),
             ),
             const SizedBox(height: 10),
             Text(
               filtered
                   ? 'No ${state.filter == QuestionFilter.answered ? 'answered' : 'pending'} questions so far.'
-                  : 'Tap "Ask new" to ask your first question.',
+                  : 'Tap "Ask New" to ask your first question.',
               textAlign: TextAlign.center,
               style: AppFonts.regular(
                 color: p.textMuted,
@@ -224,8 +234,10 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         itemCount: questions.length,
-        itemBuilder: (context, index) =>
-            _buildQuestionCard(p, questions[index]),
+        itemBuilder: (context, index) => StaggeredEntrance(
+          index: index,
+          child: _buildQuestionCard(p, questions[index]),
+        ),
       ),
     );
   }
@@ -246,7 +258,7 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              hasAnswer ? 'Answered' : 'Waiting for an answer',
+              hasAnswer ? 'Answered' : 'Waiting for an Answer',
               style: AppFonts.bold(
                 color: hasAnswer ? p.card : p.amber.color,
                 fontSize: 11.5,

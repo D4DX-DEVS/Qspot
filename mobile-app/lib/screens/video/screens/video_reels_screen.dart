@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart' as vp;
 import 'package:webview_flutter/webview_flutter.dart';
@@ -13,13 +14,23 @@ import '../../../themes/app_colors.dart';
 import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../widgets/animation/pop_on_change.dart';
+import '../../../widgets/animation/pressable_scale.dart';
 import '../../bookmark/provider/bookmark_provider.dart';
 import '../model/video_model.dart';
 import '../provider/video_reels_screen_provider.dart';
+import '../provider/youtube_playback_toggle.dart';
 import '../provider/video_provider.dart';
 import '../widgets/video_details_sheet.dart';
 import '../widgets/learn_note_sheet.dart';
-import 'video_player_screen.dart';
+import '../widgets/video_loading_spinner.dart';
+import '../widgets/video_poster.dart';
+import '../widgets/video_scrim.dart';
+import '../widgets/player_dispose_notifier.dart';
+import '../widgets/video_title_block.dart';
+import '../widgets/youtube_centre_button.dart';
+import '../widgets/youtube_seek_bar.dart';
+import '../widgets/youtube_tap_zones.dart';
 import 'video_questions_screen.dart';
 
 /// Full-screen, Reels-style feed: one video per page, swipe up for the next.
@@ -80,7 +91,14 @@ class _ReelState {
   int lastHeartbeatAt = -1;
   bool askedQuestions = false;
 
+  /// Whether the seek bar was being dragged at the last player update.
+  bool dragging = false;
+
+  /// The centre play / pause button's logic, for YouTube reels.
+  YoutubePlaybackToggle? playback;
+
   void disposeAll() {
+    playback?.dispose();
     directTicker?.cancel();
     chewie?.dispose();
     direct?.dispose();
@@ -176,12 +194,23 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
             initialVideoId: videoId,
             flags: YoutubePlayerFlags(
               autoPlay: false,
+              // The reels draw their own tap-to-play and seek bar: the plugin's
+              // controls need two taps and sit under the chips and title.
+              hideControls: true,
+              // Hides YouTube's own title bar, share button, "More videos" and
+              // logo, so only the reels' controls are on the video.
+              hideYoutubeOverlay: true,
+              // The plugin fades its thumbnail over the video whenever it is
+              // not playing, so pausing swapped the frame for the poster.
+              hideThumbnail: true,
               mute: false,
               enableCaption: true,
               captionLanguage: 'ml',
               startAt: _startAtFor(video),
             ),
           );
+
+          state.playback = YoutubePlaybackToggle(state.youtube!);
 
           void listener() => _onYoutubeTick(index);
           _listeners[index] = listener;
@@ -257,12 +286,43 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
     }
   }
 
+  /// A reel's player widget is dropped when it scrolls away, and its web view
+  /// goes with it, but the controller lives on still pointing at that dead web
+  /// view and still saying it is ready. A later play or pause (swiping back to
+  /// the reel calls one at once) would then reach a web view that no longer
+  /// exists. Resetting marks the controller not ready, so those calls wait
+  /// until the new web view reports ready; the thumbnail covers the player
+  /// again meanwhile.
+  void _onPlayerGone(int index, YoutubePlayerController controller) {
+    // Not during the unmount itself: resetting notifies listeners.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // If the whole screen is closing, the controller goes with it.
+      if (!mounted) return;
+      controller.reset();
+      _reels.setStarted(index, false);
+    });
+  }
+
   void _onYoutubeTick(int index) {
     final state = _states[index];
     if (state == null) return;
 
     final controller = state.youtube;
     if (controller == null || !_reels.isReady(index)) return;
+
+    // Lets the thumbnail cover the player until the first frame plays, and
+    // again once the video ends (hiding YouTube's own end screen).
+    final playerState = controller.value.playerState;
+    if (playerState == PlayerState.playing) _reels.setStarted(index, true);
+    if (playerState == PlayerState.ended) _reels.setStarted(index, false);
+
+    // Keeps the controls open while the seek bar is dragged, and for the usual
+    // few seconds after the finger lifts, so the bar never vanishes on release.
+    final dragging = controller.value.isDragging;
+    if (dragging != state.dragging) {
+      state.dragging = dragging;
+      _reels.showControls(index, canHide: () => !controller.value.isDragging);
+    }
 
     final position = controller.value.position.inSeconds;
     final delta = position - state.lastPosition;
@@ -273,6 +333,16 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
       unawaited(_sendHeartbeat(index, position));
     }
   }
+
+  /// A tap anywhere on the screen shows the controls, or hides them if they
+  /// are already open. It never pauses.
+  void _onTapVideo(int index, YoutubePlayerController controller) {
+    _reels.toggleControls(index, canHide: () => !controller.value.isDragging);
+  }
+
+  /// A tap on the centre square plays or pauses. It leaves the seek bar alone:
+  /// the bar and the centre button are independent.
+  void _onTapCentre(_ReelState state) => state.playback?.toggle();
 
   void _activate(int index) {
     for (final entry in _states.entries) {
@@ -373,10 +443,10 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.verified, color: AppColors.success),
+                Icon(LucideIcons.badgeCheck, color: AppColors.success),
                 SizedBox(width: 8),
                 Text(
-                  'Video completed',
+                  'Video Completed',
                   style: AppFonts.bold(
                     fontSize: 18,
                     color: AppColors.textPrimary,
@@ -404,7 +474,7 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
                 ),
                 onPressed: () => Navigator.of(context).pop(true),
                 child: Text(
-                  'Answer ${status.questionCount} question'
+                  'Answer ${status.questionCount} Question'
                   '${status.questionCount == 1 ? '' : 's'}',
                 ),
               ),
@@ -449,19 +519,6 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
     );
   }
 
-  /// Opens the full player for [video], pausing this reel's own player first
-  /// so two players/audio tracks never run at once (M17).
-  void _openFullPlayer(int index, VideoModel video) {
-    final state = _stateFor(index);
-    state.youtube?.pause();
-    if (state.direct?.value.isPlaying == true) {
-      state.direct!.pause();
-    }
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => VideoPlayerScreen(video: video)));
-  }
-
   // --------------------------------------------------------------------- UI
 
   @override
@@ -491,133 +548,139 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
     final video = widget.videos[index];
     final state = _stateFor(index);
     final progress = reels.progressFor(index);
+    final landscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
 
     return Stack(
       fit: StackFit.expand,
       children: [
         _videoLayer(reels, index, video, state),
 
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: IgnorePointer(
-            child: Container(
-              height: 320,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [AppColors.transparent, AppColors.scrimStrong],
+        // The whole screen reveals or hides the controls when tapped; only the
+        // centre square (where the play / pause button is) plays or pauses.
+        if (state.youtube != null)
+          YoutubeTapZones(
+            onTapVideo: () => _onTapVideo(index, state.youtube!),
+            onTapCentre: () => _onTapCentre(state),
+          ),
+
+        if (landscape)
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: VideoScrim(height: 120, fromTop: true),
+          ),
+
+        // Skipped in landscape: nothing sits at the bottom there, and the fade
+        // would dim the player's own seek bar and buttons underneath it.
+        if (!landscape)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: IgnorePointer(
+              child: Container(
+                height: 320,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [AppColors.transparent, AppColors.scrimStrong],
+                  ),
                 ),
+              ),
+            ),
+          ),
+
+        SafeArea(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  _circleButton(
+                    LucideIcons.arrowLeft,
+                    () => Navigator.of(context).pop(),
+                  ),
+                  if (landscape)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: VideoTitleBlock(video: video),
+                      ),
+                    )
+                  else
+                    const Spacer(),
+                  if (video.isLiveVideo)
+                    Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.danger,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'LIVE',
+                        style: AppFonts.bold(
+                          color: AppColors.white,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  if (progress?.completed == true)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.success,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            LucideIcons.circleCheck,
+                            size: 14,
+                            color: AppColors.white,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'Completed',
+                            style: AppFonts.semiBold(
+                              color: AppColors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  // Landscape has no room beside the title at the bottom, so Save
+                  // and Details join the top bar as icon-only buttons.
+                  if (landscape) ...[
+                    const SizedBox(width: 4),
+                    _saveButton(video, landscape: true),
+                    _detailsButton(video, landscape: true),
+                  ],
+                ],
               ),
             ),
           ),
         ),
 
-        SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
-                _circleButton(
-                  Icons.arrow_back,
-                  () => Navigator.of(context).pop(),
-                ),
-                const Spacer(),
-                if (video.isLiveVideo)
-                  Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.danger,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'LIVE',
-                      style: AppFonts.bold(
-                        color: AppColors.white,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                if (progress?.completed == true)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.success,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.check_circle,
-                          size: 14,
-                          color: AppColors.white,
-                        ),
-                        SizedBox(width: 4),
-                        Text(
-                          'Completed',
-                          style: AppFonts.semiBold(
-                            color: AppColors.white,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-
-        Positioned(
-          right: 12,
-          bottom: 150,
-          child: SafeArea(
-            top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Consumer<BookmarkProvider>(
-                  builder: (context, bookmarkProvider, child) {
-                    final isBookmarked = bookmarkProvider.isBookmarkedSync(
-                      video.id,
-                    );
-                    return _railButton(
-                      isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                      isBookmarked ? 'Saved' : 'Save',
-                      () => _toggleBookmark(video),
-                    );
-                  },
-                ),
-                const SizedBox(height: 14),
-                _railButton(
-                  Icons.info_outline,
-                  'Details',
-                  () => VideoDetailsSheet.show(context, video),
-                ),
-                const SizedBox(height: 14),
-                _railButton(
-                  Icons.fullscreen,
-                  'Full',
-                  () => _openFullPlayer(index, video),
-                ),
-              ],
-            ),
-          ),
-        ),
-
+        // Chips and title on the left with Save and Details stacked in a column
+        // on their right, like an Instagram reel (portrait only), with the seek
+        // bar under them, all in one column so the bar can never overlap the
+        // text.
         Positioned(
           left: 20,
-          right: 84,
+          right: 20,
           bottom: 20,
           child: SafeArea(
             top: false,
@@ -625,50 +688,45 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  children: [
-                    _detailsChip('Learn', 0, video),
-                    _detailsChip('Downloads', 1, video),
-                    _practiceChip(reels, index),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  video.displayTitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppFonts.bold(
-                    color: AppColors.white,
-                    fontSize: 17,
-                    height: 1.3,
+                if (!landscape)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 6,
+                              children: [
+                                _detailsChip('Learn', 0, video),
+                                _detailsChip('Downloads', 1, video),
+                                _practiceChip(reels, index),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            VideoTitleBlock(video: video),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _saveButton(video, landscape: false),
+                          const SizedBox(height: 8),
+                          _detailsButton(video, landscape: false),
+                        ],
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  [
-                    if ((video.subjectName ?? '').isNotEmpty)
-                      video.subjectName!,
-                    if (video.formattedDate.isNotEmpty) video.formattedDate,
-                  ].join('  ·  '),
-                  style: AppFonts.regular(
-                    color: AppColors.white70,
-                    fontSize: 12.5,
-                  ),
-                ),
-                if (progress != null &&
-                    !progress.completed &&
-                    progress.percent > 0) ...[
-                  const SizedBox(height: 12),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(3),
-                    child: LinearProgressIndicator(
-                      value: progress.percent,
-                      minHeight: 3,
-                      backgroundColor: AppColors.white24,
-                      valueColor: const AlwaysStoppedAnimation(AppColors.white),
-                    ),
+                if (state.youtube != null) ...[
+                  const SizedBox(height: 8),
+                  YoutubeSeekBar(
+                    controller: state.youtube!,
+                    controlsShown: reels.areControlsShown(index),
                   ),
                 ],
               ],
@@ -708,21 +766,40 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
           ),
         );
       }
+      // The poster sits on top until the player is ready, covering the
+      // plugin's own spinner (its `bufferIndicator` option is not wired up).
       return Center(
         child: AspectRatio(
           aspectRatio: video.playerAspectRatio,
-          child: YoutubePlayer(
-            controller: controller,
-            showVideoProgressIndicator: false,
-            onReady: () {
-              if (!mounted) return;
-              _reels.markReady(index);
-              if (_states[_reels.index] == state) controller.play();
-            },
-            onEnded: (_) {
-              final total = controller.value.metaData.duration.inSeconds;
-              unawaited(_sendHeartbeat(index, total));
-            },
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              PlayerDisposeNotifier(
+                onDispose: () => _onPlayerGone(index, controller),
+                child: YoutubePlayer(
+                  controller: controller,
+                  showVideoProgressIndicator: false,
+                  onReady: () {
+                    if (!mounted) return;
+                    _reels.markReady(index);
+                    if (_states[_reels.index] == state) controller.play();
+                  },
+                  onEnded: (_) {
+                    final total = controller.value.metaData.duration.inSeconds;
+                    unawaited(_sendHeartbeat(index, total));
+                  },
+                ),
+              ),
+              VideoPoster(
+                thumbnailUrl: video.thumbnailUrl,
+                visible: !reels.isStarted(index),
+              ),
+              YoutubeCentreButton(
+                controller: controller,
+                started: reels.isStarted(index),
+                controlsShown: reels.areControlsShown(index),
+              ),
+            ],
           ),
         ),
       );
@@ -730,8 +807,17 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
 
     // Direct (CDN) video: video_player + chewie (M16).
     if (!reels.isReady(index) || state.chewie == null) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.white),
+      return Center(
+        child: AspectRatio(
+          aspectRatio: video.playerAspectRatio,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              VideoPoster(thumbnailUrl: video.thumbnailUrl),
+              const VideoLoadingSpinner(loading: true),
+            ],
+          ),
+        ),
       );
     }
     return Center(
@@ -752,38 +838,81 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
     return originalUrl;
   }
 
-  Widget _circleButton(IconData icon, VoidCallback onTap) {
+  /// [pressable] is off when a parent already squishes the whole button.
+  Widget _circleButton(
+    IconData icon,
+    VoidCallback onTap, {
+    bool pressable = true,
+  }) {
     return Padding(
       padding: const EdgeInsets.all(4),
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: AppColors.black.withValues(alpha: 0.35),
-            shape: BoxShape.circle,
+      child: PressableScale(
+        enabled: pressable,
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.black.withValues(alpha: 0.35),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: AppColors.white, size: 20),
           ),
-          child: Icon(icon, color: AppColors.white, size: 20),
         ),
       ),
     );
   }
 
+  /// Bookmark toggle: a labelled button beside the title in portrait, an
+  /// icon-only button (with a tooltip) in the landscape top bar.
+  Widget _saveButton(VideoModel video, {required bool landscape}) {
+    return Consumer<BookmarkProvider>(
+      builder: (context, bookmarkProvider, child) {
+        final isBookmarked = bookmarkProvider.isBookmarkedSync(video.id);
+        final icon = isBookmarked
+            ? LucideIcons.bookmarkCheck
+            : LucideIcons.bookmark;
+        final label = isBookmarked ? 'Saved' : 'Save';
+        void onTap() => _toggleBookmark(video);
+        return PopOnChange(
+          active: isBookmarked,
+          peak: 1.2,
+          child: landscape
+              ? Tooltip(message: label, child: _circleButton(icon, onTap))
+              : _railButton(icon, label, onTap),
+        );
+      },
+    );
+  }
+
+  /// Opens the episode details sheet; same placement rules as [_saveButton].
+  Widget _detailsButton(VideoModel video, {required bool landscape}) {
+    void onTap() => VideoDetailsSheet.show(context, video);
+    return landscape
+        ? Tooltip(
+            message: 'Details',
+            child: _circleButton(LucideIcons.info, onTap),
+          )
+        : _railButton(LucideIcons.info, 'Details', onTap);
+  }
+
   Widget _railButton(IconData icon, String label, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _circleButton(icon, onTap),
-          Text(
-            label,
-            style: AppFonts.semiBold(color: AppColors.white, fontSize: 10.5),
-          ),
-        ],
+    return PressableScale(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _circleButton(icon, onTap, pressable: false),
+            Text(
+              label,
+              style: AppFonts.semiBold(color: AppColors.white, fontSize: 10.5),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -799,28 +928,35 @@ class _VideoReelsScreenState extends State<VideoReelsScreen> {
   /// (M19) — no local heuristic decides this.
   Widget _practiceChip(VideoReelsScreenProvider reels, int index) {
     final unlocked = reels.progressFor(index)?.completed == true;
-    return _chip(
-      'Practice',
-      unlocked ? () => _openPractice(index) : null,
-      enabled: unlocked,
+    return PopOnChange(
+      active: unlocked,
+      peak: 1.15,
+      child: _chip(
+        'Practice',
+        unlocked ? () => _openPractice(index) : null,
+        enabled: unlocked,
+      ),
     );
   }
 
   Widget _chip(String label, VoidCallback? onTap, {bool enabled = true}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(
-          color: AppColors.white.withValues(alpha: enabled ? 0.18 : 0.08),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: AppFonts.semiBold(
-            color: enabled ? AppColors.white : AppColors.white38,
-            fontSize: 12.5,
+    return PressableScale(
+      enabled: onTap != null,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          decoration: BoxDecoration(
+            color: AppColors.white.withValues(alpha: enabled ? 0.18 : 0.08),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            label,
+            style: AppFonts.semiBold(
+              color: enabled ? AppColors.white : AppColors.white38,
+              fontSize: 12.5,
+            ),
           ),
         ),
       ),

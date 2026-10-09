@@ -1,9 +1,12 @@
+import '../../../utils/api_urls.dart';
+
 class UserModel {
   final String? id;
   final String phone;
   final String? name;
   final String? classNumber;
   final String? email;
+  final String? profileImage;
   final String? role;
   final String? dob;
   final Map<String, dynamic>? consent;
@@ -17,6 +20,7 @@ class UserModel {
     this.name,
     this.classNumber,
     this.email,
+    this.profileImage,
     this.role,
     this.dob,
     this.consent,
@@ -32,6 +36,7 @@ class UserModel {
       name: json['name']?.toString(),
       classNumber: json['class']?.toString(),
       email: json['email']?.toString(),
+      profileImage: json['profileImage']?.toString(),
       role: json['role']?.toString(),
       dob: json['dob']?.toString(),
       consent: json['consent'] is Map
@@ -52,6 +57,7 @@ class UserModel {
       'name': name,
       'class': classNumber,
       'email': email,
+      'profileImage': profileImage,
       'role': role,
       'dob': dob,
       'consent': consent,
@@ -67,6 +73,7 @@ class UserModel {
     String? name,
     String? classNumber,
     String? email,
+    String? profileImage,
     String? role,
     String? dob,
     Map<String, dynamic>? consent,
@@ -80,6 +87,7 @@ class UserModel {
       name: name ?? this.name,
       classNumber: classNumber ?? this.classNumber,
       email: email ?? this.email,
+      profileImage: profileImage ?? this.profileImage,
       role: role ?? this.role,
       dob: dob ?? this.dob,
       consent: consent ?? this.consent,
@@ -87,5 +95,16 @@ class UserModel {
       courseIds: courseIds ?? this.courseIds,
       token: token ?? this.token,
     );
+  }
+
+  /// Resolves local development upload paths against the configured API host.
+  String? get profileImageUrl {
+    final value = profileImage?.trim();
+    if (value == null || value.isEmpty) return null;
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      return value;
+    }
+    if (value.startsWith('/')) return '${ApiUrls.baseUrl}$value';
+    return null;
   }
 }

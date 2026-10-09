@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../../themes/app_fonts.dart';
 import '../../../themes/home_palette.dart';
 import '../../../themes/home_theme.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/nav_list_card.dart';
 import '../model/subject_model.dart';
 import '../provider/subject_provider.dart';
@@ -12,7 +14,7 @@ import '../provider/subject_provider.dart';
 /// [SubjectProvider.searchSubjects]; tapping a result calls [onSelected].
 class SubjectSearchDelegate extends SearchDelegate<void> {
   SubjectSearchDelegate({required this.onSelected})
-    : super(searchFieldLabel: 'Search subjects');
+    : super(searchFieldLabel: 'Search Subjects');
 
   final ValueChanged<SubjectModel> onSelected;
 
@@ -36,13 +38,16 @@ class SubjectSearchDelegate extends SearchDelegate<void> {
       IconButton(
         tooltip: 'Clear',
         onPressed: () => query = '',
-        icon: const Icon(Icons.close_rounded),
+        icon: const Icon(LucideIcons.x),
       ),
   ];
 
   @override
-  Widget buildLeading(BuildContext context) =>
-      BackButton(onPressed: () => close(context, null));
+  Widget buildLeading(BuildContext context) => IconButton(
+    tooltip: 'Back',
+    onPressed: () => close(context, null),
+    icon: const Icon(LucideIcons.arrowLeft),
+  );
 
   @override
   Widget buildResults(BuildContext context) => _results(context);
@@ -60,7 +65,7 @@ class SubjectSearchDelegate extends SearchDelegate<void> {
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Text(
-            'No subjects match "${query.trim()}"',
+            'No Subjects Match "${query.trim()}"',
             textAlign: TextAlign.center,
             style: AppFonts.regular(color: palette.textMuted, fontSize: 14),
           ),
@@ -71,12 +76,15 @@ class SubjectSearchDelegate extends SearchDelegate<void> {
       padding: const EdgeInsets.all(16),
       itemCount: matches.length,
       separatorBuilder: (_, _) => const SizedBox(height: 10),
-      itemBuilder: (context, index) => NavListCard(
-        icon: Icons.auto_stories_outlined,
-        tone: index.isEven ? palette.teal : palette.coral,
-        title: matches[index].displayName,
-        subtitle: 'Open chapter',
-        onTap: () => onSelected(matches[index]),
+      itemBuilder: (context, index) => StaggeredEntrance(
+        index: index,
+        child: NavListCard(
+          icon: LucideIcons.bookOpen,
+          tone: index.isEven ? palette.teal : palette.coral,
+          title: matches[index].displayName,
+          subtitle: 'Open Chapter',
+          onTap: () => onSelected(matches[index]),
+        ),
       ),
     );
   }

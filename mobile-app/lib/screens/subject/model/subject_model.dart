@@ -1,3 +1,6 @@
+import '../../../utils/json_parsing.dart';
+import '../../../utils/api_urls.dart';
+
 /// One line of the "what is inside" guide shown the first time a chapter opens.
 class SubjectGuidePoint {
   final String icon;
@@ -14,7 +17,7 @@ class SubjectGuidePoint {
 }
 
 class SubjectModel {
-  static const String defaultGuideTitle = 'What is inside this chapter';
+  static const String defaultGuideTitle = 'What Is Inside This Chapter';
 
   /// Used when the admin has not written a guide for this chapter yet, so the
   /// first-open panel is never empty.
@@ -81,7 +84,7 @@ class SubjectModel {
       id: (json['_id'] ?? json['id'])?.toString() ?? '0',
       subject: (json['name'] ?? json['subject'])?.toString() ?? '',
       subImage: (json['image'] ?? json['sub_image'])?.toString(),
-      order: (json['order'] as num?)?.toInt() ?? 0,
+      order: jsonInt(json['order']) ?? 0,
       guideTitle: rawTitle.isEmpty ? defaultGuideTitle : rawTitle,
       guidePoints: parsed.isEmpty ? defaultGuidePoints : parsed,
       courseId: courseId,
@@ -111,6 +114,9 @@ class SubjectModel {
     if (subImage != null && subImage!.isNotEmpty) {
       if (subImage!.startsWith('http://') || subImage!.startsWith('https://')) {
         return subImage!;
+      }
+      if (subImage!.startsWith('/')) {
+        return '${ApiUrls.baseUrl}$subImage';
       }
     }
     return null;

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../services/learning_progress_service.dart';
+import '../../../utils/user_friendly_error.dart';
 
 /// Screen-local state for the progress screen: the loaded learning progress
 /// and whether a load is in flight.
@@ -11,12 +12,15 @@ class ProgressScreenProvider extends ChangeNotifier {
   LearningProgressData? _data;
   bool _loading = true;
   bool _disposed = false;
+  String? _errorMessage;
 
   LearningProgressData? get data => _data;
   bool get loading => _loading;
+  String? get errorMessage => _errorMessage;
 
   Future<void> load() async {
     _loading = true;
+    _errorMessage = null;
     notifyListeners();
     try {
       final data = await _loadData();
@@ -27,6 +31,7 @@ class ProgressScreenProvider extends ChangeNotifier {
     } catch (error) {
       if (_disposed) return;
       _loading = false;
+      _errorMessage = userFriendlyError(error);
       notifyListeners();
     }
   }

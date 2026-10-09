@@ -64,7 +64,7 @@ class HomePalette {
     text: AppColors.authLightText,
     textMuted: AppColors.authLightTextMuted,
     brand: AppColors.authBrand,
-    brandSoft: AppColors.authLightSoftFill,
+    brandSoft: Color(0xFFF8E9EE),
     error: AppColors.danger,
     skyTop: AppColors.homeLightSkyTop,
     heroGradient: AppColors.homeLightHeroGradient,

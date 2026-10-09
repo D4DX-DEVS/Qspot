@@ -15,7 +15,9 @@ import {
   FaGraduationCap,
   FaLayerGroup,
   FaTasks,
-  FaChartLine
+  FaChartLine,
+  FaBars,
+  FaAward
 } from 'react-icons/fa';
 import logo from '../assets/Logo 01.png';
 import ConfirmDialog from './dialogs/ConfirmDialog';
@@ -50,12 +52,14 @@ const menuGroups = [
     label: 'Quizzes',
     items: [
       { id: 'quizzes', label: 'Quizzes', icon: FaClipboardList, path: '/admin/quizzes' },
-      { id: 'quizAttempts', label: 'Attempts', icon: FaClipboardList, path: '/admin/quiz/attempts' }
+      { id: 'quizAttempts', label: 'Attempts', icon: FaClipboardList, path: '/admin/quiz/attempts' },
+      { id: 'certificates', label: 'Certificates', icon: FaAward, path: '/admin/certificates' }
     ]
   },
   {
     label: 'App',
     items: [
+      { id: 'navigation', label: 'Navigation', icon: FaBars, path: '/admin/navigation' },
       { id: 'banner', label: 'Banner', icon: FaImage, path: '/admin/banner' },
       { id: 'notifications', label: 'Notifications', icon: FaBell, path: '/admin/notifications' }
     ]

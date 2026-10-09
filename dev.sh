@@ -21,17 +21,20 @@ job() { launchctl submit -l "$1" -- /bin/zsh -lc "$2"; }
 
 start_api() {
   launchctl remove qspot-api 2>/dev/null || true
-  job qspot-api "cd $API && exec $NODE22/node server.js >> /tmp/qspot-api.log 2>&1"
+  sleep 1
+  job qspot-api "cd \"$API\" && exec $NODE22/node server.js >> /tmp/qspot-api.log 2>&1"
 }
 
 start_admin() {
   launchctl remove qspot-admin 2>/dev/null || true
-  job qspot-admin "cd $ADMIN && exec $NODE22/node node_modules/vite/bin/vite.js >> /tmp/qspot-admin.log 2>&1"
+  sleep 1
+  job qspot-admin "cd \"$ADMIN\" && exec $NODE22/node node_modules/vite/bin/vite.js >> /tmp/qspot-admin.log 2>&1"
 }
 
 start_mobile() {
   launchctl remove qspot-mobile 2>/dev/null || true
-  job qspot-mobile "exec $NODE22/node $ROOT/tools/static-server.mjs $MOBILE/build/web 8090 >> /tmp/qspot-mobile.log 2>&1"
+  sleep 1
+  job qspot-mobile "exec $NODE22/node \"$ROOT/tools/static-server.mjs\" \"$MOBILE/build/web\" 8090 >> /tmp/qspot-mobile.log 2>&1"
 }
 
 status() {

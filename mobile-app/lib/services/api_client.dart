@@ -23,7 +23,44 @@ class ApiException implements Exception {
   /// read it here instead of re-parsing `response.body` themselves.
   final dynamic body;
 
-  ApiException(this.status, this.message, [this.body]);
+  ApiException(this.status, String message, [this.body])
+    : message = _normaliseMessage(status, message);
+
+  static String _normaliseMessage(int status, String message) {
+    final trimmed = message.trim();
+    // Server diagnostics are useful in logs, but they are confusing and may
+    // disclose infrastructure details when rendered in the app.
+    final technical =
+        trimmed.isEmpty ||
+        trimmed.toLowerCase().contains('internal server error') ||
+        trimmed.toLowerCase().contains('bad gateway') ||
+        trimmed.toLowerCase().contains('service unavailable') ||
+        trimmed.toLowerCase().contains('socketexception') ||
+        trimmed.toLowerCase().contains('clientexception') ||
+        trimmed.toLowerCase().contains('failed host lookup') ||
+        trimmed.toLowerCase().contains('errno') ||
+        trimmed.toLowerCase().contains('uri=') ||
+        trimmed.toLowerCase().contains('exception:');
+
+    if (status == 401 ||
+        (status == 403 && trimmed == ApiClient._expiredTokenMessage)) {
+      return 'Your session has expired. Please sign in again.';
+    }
+    // Other 403s are business rules ("Quiz is not live right now") whose
+    // message is the useful part.
+    if (status == 403 && technical) {
+      return "You don't have permission to do that.";
+    }
+    if (status == 404 && technical) {
+      return "We couldn't find what you requested.";
+    }
+    if (status >= 500 || technical) {
+      return 'Something went wrong on our side. Please try again in a moment.';
+    }
+    return trimmed.isEmpty
+        ? 'Something went wrong. Please try again.'
+        : trimmed;
+  }
 
   @override
   String toString() => 'ApiException($status): $message';
@@ -35,14 +72,21 @@ class ApiException implements Exception {
 ///   token is stored.
 /// - Applies a 15 second timeout to every request.
 /// - Parses error bodies as `{message}` and throws [ApiException].
-/// - On 401/403 for an authenticated call, clears the local session and
-///   routes to [LoginScreen] using [navigatorKey].
+/// - On 401, or a 403 carrying [_expiredTokenMessage], for an authenticated
+///   call, clears the local session and routes to [LoginScreen] using
+///   [navigatorKey].
 class ApiClient {
   ApiClient._();
+
+  /// What the server's auth middleware (Qspot-API/middlewares/auth.js) sends
+  /// with a 403 for a bad or expired token. Every other 403 is a business
+  /// rule (quiz not live, not ready, ...) and must not sign the user out.
+  static const String _expiredTokenMessage = 'Invalid or expired token';
 
   static const Duration timeout = Duration(seconds: 15);
   static const String _tokenKey = 'auth_token';
   static final http.Client _defaultClient = http.Client();
+  static Future<void>? _sessionExpiryInFlight;
 
   /// Replaced by deterministic clients in tests. Production always uses
   /// [_defaultClient].
@@ -79,7 +123,7 @@ class ApiClient {
   }
 
   /// Handles the raw [http.Response]: decodes JSON, throws [ApiException]
-  /// on non-2xx, and triggers session-expiry handling on 401/403.
+  /// on non-2xx, and triggers session-expiry handling on auth failures.
   static Future<dynamic> _handle(http.Response response) async {
     final status = response.statusCode;
     dynamic body;
@@ -95,9 +139,9 @@ class ApiClient {
 
     final message = (body is Map && body['message'] is String)
         ? body['message'] as String
-        : 'Something went wrong ($status)';
+        : 'Something went wrong. Please try again.';
 
-    if (status == 401 || status == 403) {
+    if (status == 401 || (status == 403 && message == _expiredTokenMessage)) {
       // Only force logout/navigation for calls that were actually
       // authenticated (i.e. a token was present). Public endpoints that
       // happen to return 403 for other reasons should not log the user out.
@@ -111,14 +155,24 @@ class ApiClient {
   }
 
   static Future<void> _handleSessionExpired() async {
-    await StorageService.remove(_tokenKey);
-    await StorageService.remove('user_data');
-    final nav = navigatorKey.currentState;
-    if (nav != null) {
-      nav.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
+    final existing = _sessionExpiryInFlight;
+    if (existing != null) return existing;
+    final work = () async {
+      await StorageService.remove(_tokenKey);
+      await StorageService.remove('user_data');
+      final nav = navigatorKey.currentState;
+      if (nav != null && nav.mounted) {
+        nav.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+      }
+    }();
+    _sessionExpiryInFlight = work;
+    try {
+      await work;
+    } finally {
+      _sessionExpiryInFlight = null;
     }
   }
 

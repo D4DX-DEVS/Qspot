@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import '../../../services/course_service.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../themes/auth_theme.dart';
+import '../../../widgets/animation/pressable_scale.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
+import 'course_rows_placeholder.dart';
 
-/// Multi-select course list. Shows a thin loader while [isLoading] and
-/// nothing at all when there are no courses.
+/// Multi-select course list. Shows placeholder rows under the section title
+/// while [isLoading] and nothing at all when there are no courses.
 class CoursePickerCard extends StatelessWidget {
   const CoursePickerCard({
     super.key,
@@ -22,20 +25,14 @@ class CoursePickerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 6),
-        child: LinearProgressIndicator(minHeight: 3),
-      );
-    }
-    if (courses.isEmpty) return const SizedBox.shrink();
+    if (courses.isEmpty && !isLoading) return const SizedBox.shrink();
 
     final colors = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Choose your courses',
+          'Choose Your Courses',
           style: AppFonts.semiBold(color: colors.onSurface, fontSize: 15),
         ),
         const SizedBox(height: 4),
@@ -47,33 +44,45 @@ class CoursePickerCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Material(
-          color: colors.surfaceContainerLow,
-          clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AuthTheme.fieldRadius),
-            side: BorderSide(color: colors.outline),
-          ),
-          child: Column(
-            children: [
-              for (var i = 0; i < courses.length; i++) ...[
-                CheckboxListTile(
-                  value: selectedIds.contains(courses[i].id),
-                  onChanged: (selected) =>
-                      onToggle(courses[i].id, selected ?? false),
-                  title: Text(courses[i].title),
-                  subtitle: courses[i].subtitle.isEmpty
-                      ? null
-                      : Text(courses[i].subtitle),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 10),
-                ),
-                if (i < courses.length - 1)
-                  const Divider(height: 1, indent: 16, endIndent: 16),
-              ],
-            ],
-          ),
-        ),
+        if (isLoading)
+          const CourseRowsPlaceholder()
+        else
+          // The list usually arrives after the form has settled, so it eases
+          // in by itself.
+          StaggeredEntrance(rise: 12, child: _list(colors)),
       ],
+    );
+  }
+
+  Widget _list(ColorScheme colors) {
+    return Material(
+      color: colors.surfaceContainerLow,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AuthTheme.fieldRadius),
+        side: BorderSide(color: colors.outline),
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < courses.length; i++) ...[
+            PressableScale(
+              pressedScale: 0.98,
+              child: CheckboxListTile(
+                value: selectedIds.contains(courses[i].id),
+                onChanged: (selected) =>
+                    onToggle(courses[i].id, selected ?? false),
+                title: Text(courses[i].title),
+                subtitle: courses[i].subtitle.isEmpty
+                    ? null
+                    : Text(courses[i].subtitle),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+              ),
+            ),
+            if (i < courses.length - 1)
+              const Divider(height: 1, indent: 16, endIndent: 16),
+          ],
+        ],
+      ),
     );
   }
 }

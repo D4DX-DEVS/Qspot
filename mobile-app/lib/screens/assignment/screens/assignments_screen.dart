@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
-import 'package:qspot/screens/assignment/model/assignment_model.dart';
-import 'package:qspot/screens/assignment/provider/assignments_screen_provider.dart';
-import 'package:qspot/screens/assignment/screens/assignment_detail_screen.dart';
-import 'package:qspot/themes/app_colors.dart';
-import 'package:qspot/themes/app_fonts.dart';
-import 'package:qspot/widgets/common/common_app_bar.dart';
+
+import '../../../themes/app_fonts.dart';
+import '../../../themes/app_theme.dart';
+import '../../../themes/home_palette.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
+import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/loading_skeleton.dart';
+import '../../../widgets/common/state_message_view.dart';
+import '../../common/widgets/home_theme_scope.dart';
+import '../model/assignment_model.dart';
+import '../provider/assignments_screen_provider.dart';
+import '../widgets/assignment_tile.dart';
+import 'assignment_detail_screen.dart';
+
+enum _AssignmentView { todo, history, all }
 
 class AssignmentsScreen extends StatefulWidget {
   const AssignmentsScreen({super.key});
@@ -16,6 +26,7 @@ class AssignmentsScreen extends StatefulWidget {
 
 class _AssignmentsScreenState extends State<AssignmentsScreen> {
   final AssignmentsScreenProvider _list = AssignmentsScreenProvider();
+  _AssignmentView _view = _AssignmentView.todo;
 
   @override
   void dispose() {
@@ -27,46 +38,66 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: _list,
-      child: Consumer<AssignmentsScreenProvider>(
-        builder: (_, list, __) => _buildPage(list),
+    // Burgundy home theme; the page reads colours from the context inside it.
+    return HomeThemeScope(
+      child: ChangeNotifierProvider.value(
+        value: _list,
+        child: Consumer<AssignmentsScreenProvider>(
+          builder: (context, list, _) => _buildPage(context, list),
+        ),
       ),
     );
   }
 
-  Widget _buildPage(AssignmentsScreenProvider list) {
+  Widget _buildPage(BuildContext context, AssignmentsScreenProvider list) {
+    final p = HomePalette.of(context);
     return Scaffold(
-      appBar: const CommonAppBar(title: 'Assignments'),
+      appBar: CommonAppBar(
+        title: 'Assignments',
+        actions: [
+          IconButton(
+            tooltip: 'Assignment history',
+            onPressed: () => setState(() => _view = _AssignmentView.history),
+            icon: const Icon(LucideIcons.history),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: FutureBuilder<List<AssignmentModel>>(
         future: list.assignments,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const LoadingSkeleton();
           }
           if (snapshot.hasError) {
-            return _MessageState(
-              icon: Icons.wifi_off_outlined,
-              title: 'Could not load assignments',
-              body: 'Check your connection and try again.',
-              action: _reload,
+            return StateMessageView(
+              icon: LucideIcons.wifiOff,
+              title: 'Could Not Load Assignments',
+              message: 'Check your connection and try again.',
+              onRetry: _reload,
             );
           }
           final assignments = snapshot.data ?? const <AssignmentModel>[];
           if (assignments.isEmpty) {
             return RefreshIndicator(
               onRefresh: _reload,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: const [
-                  SizedBox(height: 120),
-                  _MessageState(
-                    icon: Icons.assignment_outlined,
-                    title: 'You are all caught up',
-                    body:
-                        'New assignments from your teachers will show up here.',
-                  ),
-                ],
+              backgroundColor: p.card,
+              color: p.brand,
+              child: LayoutBuilder(
+                builder: (context, box) => ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    SizedBox(
+                      height: box.maxHeight,
+                      child: const StateMessageView(
+                        icon: LucideIcons.clipboardList,
+                        title: 'You Are All Caught Up',
+                        message:
+                            'New assignments from your teachers will show up here.',
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }
@@ -77,26 +108,78 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
               final bDue = b.dueAt ?? DateTime(2100);
               return aDue.compareTo(bDue);
             });
+          final visible = switch (_view) {
+            _AssignmentView.todo =>
+              sorted.where((item) => !item.isSubmitted).toList(),
+            _AssignmentView.history =>
+              sorted.where((item) => item.isSubmitted).toList(),
+            _AssignmentView.all => sorted,
+          };
           return RefreshIndicator(
             onRefresh: _reload,
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-              itemCount: sorted.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 10),
+            backgroundColor: p.card,
+            color: p.brand,
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.fromLTRB(
+                AppTheme.contentInset,
+                8,
+                AppTheme.contentInset,
+                28 + MediaQuery.paddingOf(context).bottom,
+              ),
+              itemCount: visible.length + (visible.isEmpty ? 2 : 1),
               itemBuilder: (context, index) {
-                final item = sorted[index];
-                return _AssignmentTile(
-                  assignment: item,
-                  onTap: () async {
-                    final changed = await Navigator.push<bool>(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            AssignmentDetailScreen(assignment: item),
+                if (index == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _AssignmentViewPicker(
+                      selected: _view,
+                      onChanged: (value) => setState(() => _view = value),
+                      counts: (
+                        todo: sorted.where((item) => !item.isSubmitted).length,
+                        history: sorted
+                            .where((item) => item.isSubmitted)
+                            .length,
+                        all: sorted.length,
                       ),
-                    );
-                    if (changed == true && mounted) _reload();
-                  },
+                    ),
+                  );
+                }
+                if (visible.isEmpty) {
+                  return SizedBox(
+                    height: MediaQuery.sizeOf(context).height * 0.45,
+                    child: StateMessageView(
+                      icon: _view == _AssignmentView.history
+                          ? LucideIcons.history
+                          : LucideIcons.clipboardList,
+                      title: _view == _AssignmentView.history
+                          ? 'No Assignment History Yet'
+                          : 'No Assignments To Do',
+                      message: _view == _AssignmentView.history
+                          ? 'Submitted assignments will appear here.'
+                          : 'You have no pending assignments right now.',
+                    ),
+                  );
+                }
+                final item = visible[index - 1];
+                return StaggeredEntrance(
+                  index: index,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: AssignmentTile(
+                      assignment: item,
+                      onTap: () async {
+                        final changed = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                AssignmentDetailScreen(assignment: item),
+                          ),
+                        );
+                        if (changed == true && mounted) _reload();
+                      },
+                    ),
+                  ),
                 );
               },
             ),
@@ -107,152 +190,53 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
   }
 }
 
-class _AssignmentTile extends StatelessWidget {
-  const _AssignmentTile({required this.assignment, required this.onTap});
-  final AssignmentModel assignment;
-  final VoidCallback onTap;
+class _AssignmentViewPicker extends StatelessWidget {
+  const _AssignmentViewPicker({
+    required this.selected,
+    required this.onChanged,
+    required this.counts,
+  });
+
+  final _AssignmentView selected;
+  final ValueChanged<_AssignmentView> onChanged;
+  final ({int todo, int history, int all}) counts;
 
   @override
   Widget build(BuildContext context) {
-    final overdue = assignment.isOverdue;
-    final submitted = assignment.isSubmitted;
-    final color = submitted
-        ? AppColors.success
-        : overdue
-        ? AppColors.danger
-        : AppColors.primary;
-    final label = submitted
-        ? assignment.status.toLowerCase() == 'graded'
-              ? 'Reviewed'
-              : 'Submitted'
-        : overdue
-        ? 'Past due'
-        : 'To do';
-    return Material(
-      color: AppColors.background,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.09),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  submitted
-                      ? Icons.check_circle_outline
-                      : Icons.assignment_outlined,
-                  color: color,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(assignment.title, style: AppFonts.bold()),
-                    if (assignment.subject.isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        assignment.subject,
-                        style: AppFonts.regular(
-                          color: AppColors.textMuted,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 7),
-                    Text(
-                      _dueLabel(assignment),
-                      style: AppFonts.regular(
-                        color: overdue ? AppColors.danger : AppColors.textMuted,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(label, style: AppFonts.bold(color: color, fontSize: 12)),
-                  const SizedBox(height: 4),
-                  const Icon(
-                    Icons.chevron_right,
-                    color: AppColors.textMuted,
-                    size: 20,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+    final p = HomePalette.of(context);
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _chip(context, p, _AssignmentView.todo, 'To do', counts.todo),
+          const SizedBox(width: 8),
+          _chip(context, p, _AssignmentView.history, 'History', counts.history),
+          const SizedBox(width: 8),
+          _chip(context, p, _AssignmentView.all, 'All', counts.all),
+        ],
       ),
     );
   }
 
-  String _dueLabel(AssignmentModel item) {
-    if (item.dueAt == null) return 'No due date';
-    final date = item.dueAt!.toLocal();
-    final day = '${date.day}/${date.month}/${date.year}';
-    return item.isSubmitted ? 'Due $day' : 'Due $day';
-  }
-}
-
-class _MessageState extends StatelessWidget {
-  const _MessageState({
-    required this.icon,
-    required this.title,
-    required this.body,
-    this.action,
-  });
-  final IconData icon;
-  final String title;
-  final String body;
-  final Future<void> Function()? action;
-
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 42, color: AppColors.textMuted),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: AppFonts.bold(fontSize: 18),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            body,
-            textAlign: TextAlign.center,
-            style: AppFonts.regular(color: AppColors.textMuted),
-          ),
-          if (action != null) ...[
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: action,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Try again'),
-            ),
-          ],
-        ],
+  Widget _chip(
+    BuildContext context,
+    HomePalette p,
+    _AssignmentView value,
+    String label,
+    int count,
+  ) {
+    return ChoiceChip(
+      selected: selected == value,
+      label: Text('$label ($count)'),
+      onSelected: (_) => onChanged(value),
+      selectedColor: p.brandSoft,
+      labelStyle: AppFonts.semiBold(
+        color: selected == value ? p.brand : p.textMuted,
+        fontSize: 12,
       ),
-    ),
-  );
+      side: BorderSide(color: p.cardBorder),
+      backgroundColor: p.card,
+      showCheckmark: false,
+    );
+  }
 }

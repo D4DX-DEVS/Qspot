@@ -31,6 +31,10 @@ app.use(cors({ origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((o)
 app.use(express.json());
 // Local assignment uploads are served from the same API in development. In
 // production the upload middleware stores the same files in object storage.
+app.use('/uploads/handouts', (req, res, next) => {
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+});
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Express 5 leaves req.body undefined when no JSON body is sent; every
@@ -83,6 +87,8 @@ const assignmentRoutes = require('./routes/assignments');
 const learningStatsRoutes = require('./routes/learningStats');
 const analyticsRoutes = require('./routes/analytics');
 const facultyRoutes = require('./routes/faculty');
+const certificateRoutes = require('./routes/certificates');
+const { publicRouter: navigationRoutes, adminRouter: adminNavigationRoutes } = require('./routes/navigation');
 
 // Routes. More specific paths are mounted before their less specific parent
 // (e.g. /api/user/video-quiz before /api/user) so Express always matches the
@@ -109,6 +115,9 @@ app.use('/api/user', userRoutes);
 app.use('/api/video-progress', videoProgressRoutes);
 app.use('/api/video-questions', videoQuestionRoutes);
 app.use('/api/courses', courseRoutes);
+app.use('/api/navigation', navigationRoutes);
+app.use('/api/admin/navigation', adminNavigationRoutes);
+app.use('/api/certificates', certificateRoutes);
 
 // JSON 404 for anything unmatched.
 app.use((req, res) => {

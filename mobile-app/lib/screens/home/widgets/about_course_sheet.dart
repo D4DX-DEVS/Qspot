@@ -1,9 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../services/course_service.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../widgets/animation/pressable_scale.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 
 /// "About this course" popup: close on the left, centred title, then the course
 /// story and what the student will learn.
@@ -40,26 +43,28 @@ class AboutCourseSheet extends StatelessWidget {
                 children: [
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: InkWell(
-                      onTap: () => Navigator.of(context).pop(),
-                      customBorder: const CircleBorder(),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: const BoxDecoration(
-                          color: AppColors.surfaceAlt,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.close,
-                          color: AppColors.textPrimary,
-                          size: 20,
+                    child: PressableScale(
+                      child: InkWell(
+                        onTap: () => Navigator.of(context).pop(),
+                        customBorder: const CircleBorder(),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: const BoxDecoration(
+                            color: AppColors.surfaceAlt,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            LucideIcons.x,
+                            color: AppColors.textPrimary,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ),
                   ),
                   Text(
-                    'About this course',
+                    'About This Course',
                     style: AppFonts.bold(
                       color: AppColors.textPrimary,
                       fontSize: 17,
@@ -118,39 +123,45 @@ class AboutCourseSheet extends StatelessWidget {
                   if (course.learnPoints.isNotEmpty) ...[
                     const SizedBox(height: 26),
                     Text(
-                      'What you will learn in this course:',
+                      'What You Will Learn in This Course:',
                       style: AppFonts.bold(
                         color: AppColors.textPrimary,
                         fontSize: 16,
                       ),
                     ),
                     const SizedBox(height: 14),
-                    ...course.learnPoints.map(
-                      (point) => Padding(
-                        padding: const EdgeInsets.only(bottom: 14),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              margin: const EdgeInsets.only(top: 8, right: 12),
-                              decoration: const BoxDecoration(
-                                color: AppColors.primary,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                point,
-                                style: AppFonts.regular(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 15,
-                                  height: 1.55,
+                    ...course.learnPoints.indexed.map(
+                      (entry) => StaggeredEntrance(
+                        index: entry.$1,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                margin: const EdgeInsets.only(
+                                  top: 8,
+                                  right: 12,
+                                ),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
                                 ),
                               ),
-                            ),
-                          ],
+                              Expanded(
+                                child: Text(
+                                  entry.$2,
+                                  style: AppFonts.regular(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 15,
+                                    height: 1.55,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),

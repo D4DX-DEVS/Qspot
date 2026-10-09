@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../themes/home_palette.dart';
+import '../../../widgets/animation/pressable_scale.dart';
 import '../../../widgets/common/gradient_card.dart';
 import '../../../widgets/common/hero_tag_pill.dart';
 import '../../../widgets/common/initials_avatar.dart';
@@ -16,6 +18,7 @@ class ProfileIdentityCard extends StatelessWidget {
     required this.onEdit,
     this.phone = '',
     this.tags = const [],
+    this.imageUrl,
   });
 
   final String name;
@@ -23,6 +26,7 @@ class ProfileIdentityCard extends StatelessWidget {
 
   /// Short facts shown as pills, e.g. class and language.
   final List<String> tags;
+  final String? imageUrl;
   final VoidCallback onEdit;
 
   @override
@@ -40,6 +44,9 @@ class ProfileIdentityCard extends StatelessWidget {
                   name: name,
                   size: 68,
                   gradient: HomePalette.of(context).heroGradient,
+                  imageProvider: imageUrl == null
+                      ? null
+                      : NetworkImage(imageUrl!),
                   ringWidth: 2.5,
                 ),
                 const SizedBox(width: 16),
@@ -50,13 +57,15 @@ class ProfileIdentityCard extends StatelessWidget {
           Positioned(
             top: -10,
             right: -12,
-            child: IconButton(
-              onPressed: onEdit,
-              tooltip: 'Edit profile',
-              icon: const Icon(
-                Icons.edit_outlined,
-                color: AppColors.white,
-                size: 22,
+            child: PressableScale(
+              child: IconButton(
+                onPressed: onEdit,
+                tooltip: 'Edit Profile',
+                icon: const Icon(
+                  LucideIcons.pencil,
+                  color: AppColors.white,
+                  size: 22,
+                ),
               ),
             ),
           ),
@@ -69,12 +78,7 @@ class ProfileIdentityCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: AppFonts.bold(color: AppColors.white, fontSize: 19),
-        ),
+        Text(name, style: AppFonts.bold(color: AppColors.white, fontSize: 19)),
         if (phone.isNotEmpty) ...[
           const SizedBox(height: 3),
           Text(

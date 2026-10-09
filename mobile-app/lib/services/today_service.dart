@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'api_client.dart';
+import '../utils/json_parsing.dart';
 
 class TodayLearningItem {
   const TodayLearningItem({
@@ -33,13 +34,11 @@ class TodayLearningItem {
   }
 
   static double? _number(dynamic value) {
-    if (value is num) return value.toDouble();
-    return double.tryParse(value?.toString() ?? '');
+    return jsonDouble(value);
   }
 
   static int? _integer(dynamic value) {
-    if (value is num) return value.toInt();
-    return int.tryParse(value?.toString() ?? '');
+    return jsonInt(value);
   }
 
   factory TodayLearningItem.fromJson(Map<String, dynamic> json) {
@@ -92,8 +91,7 @@ class TodayOverview {
   static int? _streakValue(Map<String, dynamic> streak, List<String> keys) {
     for (final key in keys) {
       final value = streak[key];
-      if (value is num) return value.toInt();
-      final parsed = int.tryParse(value?.toString() ?? '');
+      final parsed = jsonInt(value);
       if (parsed != null) return parsed;
     }
     return null;
@@ -119,7 +117,7 @@ class TodayOverview {
       continueItems: _items(json['continue']),
       upcoming: _items(json['upcoming']),
       currentStreak: rawStreak is num
-          ? rawStreak.toInt()
+          ? jsonInt(rawStreak)
           : _streakValue(streak, const ['current', 'currentStreak', 'days']),
       bestStreak: _streakValue(streak, const ['best', 'bestStreak']),
       summary: summary,
@@ -129,15 +127,29 @@ class TodayOverview {
 
 class TodayService {
   static Future<TodayOverview?> fetch() async {
+    return _fetch(rethrowErrors: false);
+  }
+
+  /// Used by the redesigned Today screen, which needs to distinguish an
+  /// empty plan from a failed request so it can offer a retry instead of
+  /// showing a misleading healthy-looking fallback card.
+  static Future<TodayOverview?> fetchWithErrors() async {
+    return _fetch(rethrowErrors: true);
+  }
+
+  static Future<TodayOverview?> _fetch({required bool rethrowErrors}) async {
     try {
       final body = await ApiClient.get(
         '/api/user/today',
         query: {'tzOffsetMinutes': DateTime.now().timeZoneOffset.inMinutes},
       );
-      if (body is! Map) return null;
+      if (body is! Map) {
+        throw const FormatException('Today response was incomplete');
+      }
       return TodayOverview.fromJson(Map<String, dynamic>.from(body));
     } catch (error) {
       debugPrint('Today overview unavailable: $error');
+      if (rethrowErrors) rethrow;
       return null;
     }
   }

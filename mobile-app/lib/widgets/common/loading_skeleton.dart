@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qspot/themes/app_theme.dart';
+
 // import '../themes/app_theme.dart';
 
 class LoadingSkeleton extends StatefulWidget {

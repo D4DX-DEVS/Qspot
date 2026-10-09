@@ -21,6 +21,15 @@ class CourseModel {
     this.image = '',
   });
 
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'subtitle': subtitle,
+    'description': description,
+    'learnPoints': learnPoints,
+    'image': image,
+  };
+
   factory CourseModel.fromJson(Map<String, dynamic> json) {
     final points = json['learnPoints'];
     return CourseModel(
@@ -45,6 +54,7 @@ class CourseService {
   /// endpoint is unreachable, so Home/Subjects simply hide that section.
   static Future<List<CourseModel>> fetchActive({
     bool forSelection = false,
+    bool throwOnError = false,
   }) async {
     try {
       final body = await ApiClient.get(
@@ -59,6 +69,7 @@ class CourseService {
           .toList();
     } catch (e) {
       debugPrint('📚 [COURSES] fetch failed: $e');
+      if (throwOnError) rethrow;
       return [];
     }
   }

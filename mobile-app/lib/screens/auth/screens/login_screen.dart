@@ -5,6 +5,8 @@ import '../provider/auth_provider.dart';
 import '../provider/login_form_provider.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../widgets/animation/fade_on_change.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/app_snack_bar.dart';
 import '../../../widgets/common/otp_input.dart';
 import '../widgets/arch_header.dart';
@@ -68,79 +70,98 @@ class _LoginScreenState extends State<LoginScreen> {
         bottomArtHeight: artHeight,
         // The top of the scene is sky, so the links may sit over it.
         bottomArtOverlap: artHeight * 0.4,
+        centerContent: true,
         children: [
-          ArchHeader(
-            // Back arrow only after the code has been requested, so the
-            // student can correct a mistyped number.
-            leading: form.otpSent
-                ? AuthBackButton(
-                    onPressed: () {
-                      _otpController.clear();
-                      form.setOtpSent(false);
-                    },
-                  )
-                : null,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const AuthBrandMark(size: 150),
-                form.otpSent
-                    ? AuthHeadline(
-                        title: 'Check your ',
-                        accent: 'WhatsApp',
-                        subtitle:
-                            'Enter the 6-digit code we sent to ${_phoneController.text}',
-                        textAlign: TextAlign.center,
-                        fontSize: 26,
-                      )
-                    : const AuthHeadline(
-                        title: 'Learn the ',
-                        accent: 'Qur’ān',
-                        trailing: ',\none episode at a time.',
-                        subtitle:
-                            'Sign in with your phone number to continue.\nWe will send a one-time code to your WhatsApp.',
-                        textAlign: TextAlign.center,
-                        fontSize: 26,
-                        subtitleFontSize: 13.5,
-                      ),
-              ],
+          StaggeredEntrance(
+            index: 0,
+            child: ArchHeader(
+              // Back arrow only after the code has been requested, so the
+              // student can correct a mistyped number.
+              leading: form.otpSent
+                  ? AuthBackButton(
+                      onPressed: () {
+                        _otpController.clear();
+                        form.setOtpSent(false);
+                      },
+                    )
+                  : null,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const AuthBrandMark(size: 150),
+                  FadeOnChange(
+                    trigger: form.otpSent,
+                    child: form.otpSent
+                        ? AuthHeadline(
+                            title: 'Check Your ',
+                            accent: 'WhatsApp',
+                            subtitle:
+                                'Enter the 6-digit code we sent to ${_phoneController.text}',
+                            textAlign: TextAlign.center,
+                            fontSize: 26,
+                          )
+                        : const AuthHeadline(
+                            title: 'Learn the ',
+                            accent: 'Qur’ān',
+                            trailing: ',\none episode at a time.',
+                            subtitle:
+                                'Sign in with your phone number to continue.\nWe will send a one-time code to your WhatsApp.',
+                            textAlign: TextAlign.center,
+                            fontSize: 26,
+                            subtitleFontSize: 13.5,
+                          ),
+                  ),
+                ],
+              ),
             ),
           ),
-          Form(
-            key: _formKey,
-            child: form.otpSent
-                ? _otpField(form)
-                : AuthPhoneField(controller: _phoneController),
+          StaggeredEntrance(
+            index: 1,
+            child: Form(
+              key: _formKey,
+              // Replays a soft fade when the phone field swaps for the OTP.
+              child: FadeOnChange(
+                trigger: form.otpSent,
+                child: form.otpSent
+                    ? _otpField(form)
+                    : AuthPhoneField(controller: _phoneController),
+              ),
+            ),
           ),
           const SizedBox(height: 20),
-          Consumer<AuthProvider>(
-            builder: (context, authProvider, child) => GradientPillButton(
-              label: form.otpSent ? 'Verify OTP' : 'Send OTP',
-              isLoading: authProvider.isLoading,
-              onPressed: authProvider.isLoading
-                  ? null
-                  : (form.otpSent ? _verifyOtp : _sendOtp),
+          StaggeredEntrance(
+            index: 2,
+            child: Consumer<AuthProvider>(
+              builder: (context, authProvider, child) => GradientPillButton(
+                label: form.otpSent ? 'Verify OTP' : 'Send OTP',
+                isLoading: authProvider.isLoading,
+                onPressed: authProvider.isLoading
+                    ? null
+                    : (form.otpSent ? _verifyOtp : _sendOtp),
+              ),
             ),
           ),
           const SizedBox(height: 16),
-          if (form.otpSent)
-            Builder(
-              builder: (context) => Text(
-                'Didn’t get the code? Tap Resend, or go back and check your number.',
-                textAlign: TextAlign.center,
-                style: AppFonts.regular(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 12.5,
-                  height: 1.4,
-                ),
-              ),
-            )
-          else
-            AuthLinkRow(
-              prompt: "Don't have an account?",
-              action: 'Register Now',
-              onTap: _navigateToRegistration,
-            ),
+          StaggeredEntrance(
+            index: 3,
+            child: form.otpSent
+                ? Builder(
+                    builder: (context) => Text(
+                      'Didn’t get the code? Tap Resend, or go back and check your number.',
+                      textAlign: TextAlign.center,
+                      style: AppFonts.regular(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 12.5,
+                        height: 1.4,
+                      ),
+                    ),
+                  )
+                : AuthLinkRow(
+                    prompt: "Don't Have an Account?",
+                    action: 'Register Now',
+                    onTap: _navigateToRegistration,
+                  ),
+          ),
         ],
       ),
     );
@@ -159,7 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 10),
         AuthLinkRow(
-          prompt: 'Didn’t receive OTP?',
+          prompt: 'Didn’t Receive OTP?',
           action: form.isResending ? 'Resending…' : 'Resend',
           onTap: form.isResending ? null : _resendOtp,
           showChevron: false,
@@ -191,8 +212,7 @@ class _LoginScreenState extends State<LoginScreen> {
       AppSnackBar.show(
         context,
         message:
-            result['message'] ??
-            'We couldn\'t send the OTP. Please try again.',
+            result['message'] ?? 'We couldn\'t send the OTP. Please try again.',
         color: AppColors.danger,
       );
     }

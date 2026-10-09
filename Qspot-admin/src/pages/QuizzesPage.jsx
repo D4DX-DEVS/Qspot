@@ -12,11 +12,13 @@ import {
   FiList,
   FiBarChart2,
   FiHelpCircle,
-  FiUsers
+  FiUsers,
+  FiAward
 } from 'react-icons/fi';
 import Sidebar from '../components/Sidebar';
 import ConfirmDialog from '../components/dialogs/ConfirmDialog';
 import ErrorState from '../components/ui/ErrorState';
+import ClassMultiSelect from '../components/ui/ClassMultiSelect';
 import Spinner from '../components/ui/Spinner';
 import Pagination from '../components/ui/Pagination';
 import PageHeader from '../components/ui/PageHeader';
@@ -34,11 +36,18 @@ const DEFAULT_FORM = {
   overallTimeLimit: '',
   perQuestionTimeLimit: '',
   timerMode: 'none',
-  allowedClasses: '',
+  allowedClasses: [],
   requireCompletedVideo: false,
   optionsCount: '',
   questionsRandomization: false,
-  isEnable: false
+  isEnable: false,
+  certificateEnabled: false,
+  certificateTitle: 'Certificate of Achievement',
+  certificateIssuerName: '',
+  certificateSignatoryName: '',
+  certificateDescription: 'For successfully completing the examination.',
+  certificateMinimumPercentage: '0',
+  certificateEligibleClasses: []
 };
 
 const toDateInputValue = isoToLocalDateTimeInput;
@@ -103,11 +112,18 @@ const QuizzesPage = () => {
       overallTimeLimit: quiz.overallTimeLimit != null ? String(quiz.overallTimeLimit) : '',
       perQuestionTimeLimit: quiz.perQuestionTimeLimit != null ? String(quiz.perQuestionTimeLimit) : '',
       timerMode: quiz.timerMode || 'none',
-      allowedClasses: Array.isArray(quiz.allowedClasses) ? quiz.allowedClasses.join(', ') : '',
+      allowedClasses: Array.isArray(quiz.allowedClasses) ? quiz.allowedClasses : [],
       requireCompletedVideo: Boolean(quiz.conditions?.requireCompletedVideo),
       optionsCount: quiz.optionsCount != null ? String(quiz.optionsCount) : '',
       questionsRandomization: Boolean(quiz.questionsRandomization),
-      isEnable: Boolean(quiz.isEnable)
+      isEnable: Boolean(quiz.isEnable),
+      certificateEnabled: Boolean(quiz.certificate?.enabled),
+      certificateTitle: quiz.certificate?.title || 'Certificate of Achievement',
+      certificateIssuerName: quiz.certificate?.issuerName || '',
+      certificateSignatoryName: quiz.certificate?.signatoryName || '',
+      certificateDescription: quiz.certificate?.description || 'For successfully completing the examination.',
+      certificateMinimumPercentage: String(quiz.certificate?.minimumPercentage ?? 0),
+      certificateEligibleClasses: Array.isArray(quiz.certificate?.eligibleClasses) ? quiz.certificate.eligibleClasses : []
     });
     setFormError('');
     setShowModal(true);
@@ -157,6 +173,15 @@ const QuizzesPage = () => {
     payload.timerMode = form.timerMode;
     payload.allowedClasses = form.allowedClasses;
     payload.conditions = { requireCompletedVideo: form.requireCompletedVideo };
+    payload.certificate = {
+      enabled: form.certificateEnabled,
+      title: form.certificateTitle.trim(),
+      issuerName: form.certificateIssuerName.trim(),
+      signatoryName: form.certificateSignatoryName.trim(),
+      description: form.certificateDescription.trim(),
+      minimumPercentage: Number(form.certificateMinimumPercentage || 0),
+      eligibleClasses: form.certificateEligibleClasses
+    };
     if (form.overallTimeLimit !== '') payload.overallTimeLimit = Number(form.overallTimeLimit);
     if (form.perQuestionTimeLimit !== '') payload.perQuestionTimeLimit = Number(form.perQuestionTimeLimit);
     if (form.optionsCount !== '') payload.optionsCount = Number(form.optionsCount);
@@ -282,6 +307,12 @@ const QuizzesPage = () => {
                       <FiBarChart2 size={13} /> Results
                     </button>
                     <button
+                      onClick={() => navigate(`/admin/certificates?quizId=${quiz._id}`)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#EFB078]/25 bg-[#EFB078]/5 px-3 py-1.5 text-xs font-semibold text-[#F4C58F] transition hover:border-[#EFB078]/60 hover:bg-[#EFB078]/15"
+                    >
+                      <FiAward size={13} /> Certificates
+                    </button>
+                    <button
                       onClick={() => openEditModal(quiz)}
                       aria-label="Edit quiz"
                       title="Edit quiz"
@@ -323,7 +354,8 @@ const QuizzesPage = () => {
 
       {showModal && (
         <div className="fixed inset-0 z-[140] flex items-center justify-center px-4 py-8">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={closeModal} aria-hidden="true" />
+          {/* No click-to-close: an outside tap would throw away the half-filled form. */}
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-md" aria-hidden="true" />
           <section
             className="relative z-[150] w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[32px] border border-white/10 bg-gradient-to-br from-[#0d0711]/90 via-[#160b19]/75 to-[#0e0611]/88 shadow-[0_26px_64px_-18px_rgba(112,24,69,0.55)] backdrop-blur-2xl p-5 sm:p-6"
             onClick={(e) => e.stopPropagation()}
@@ -376,39 +408,43 @@ const QuizzesPage = () => {
                     <option value="both">Overall + per question</option>
                   </select>
                 </label>
-                <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/65">
+                <div className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/65">
                   Start Date *
                   <input
                     type="datetime-local"
+                    aria-label="Start date"
                     value={form.startDate}
                     onChange={(e) => handleFieldChange('startDate', e.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-[#EFB078]/60 focus:outline-none"
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    className="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-[#EFB078]/60 focus:outline-none cursor-pointer [color-scheme:dark]"
                     required
                   />
-                </label>
-                <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/65">
+                </div>
+                <div className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/65">
                   End Date *
                   <input
                     type="datetime-local"
+                    aria-label="End date"
                     value={form.endDate}
                     onChange={(e) => handleFieldChange('endDate', e.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-[#EFB078]/60 focus:outline-none"
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    className="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-[#EFB078]/60 focus:outline-none cursor-pointer [color-scheme:dark]"
                     required
                   />
-                </label>
+                </div>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/65">
-                  Allowed classes
-                  <input
-                    type="text"
+                <div className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/65">
+                  <span id="quiz-allowed-classes">Allowed classes</span>
+                  <ClassMultiSelect
+                    labelId="quiz-allowed-classes"
                     value={form.allowedClasses}
-                    onChange={(e) => handleFieldChange('allowedClasses', e.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-[#EFB078]/60 focus:outline-none"
-                    placeholder="Class 8, Class 9 (optional)"
+                    onChange={(next) => handleFieldChange('allowedClasses', next)}
+                    placeholder="All classes"
+                    className="mt-2"
                   />
-                </label>
+                </div>
                 <label className="mt-7 flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/65">
                   <input
                     type="checkbox"
@@ -505,6 +541,61 @@ const QuizzesPage = () => {
                     />
                   </button>
                 </div>
+              </div>
+
+              <div className="rounded-2xl border border-[#EFB078]/20 bg-[#EFB078]/5 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-white">Certificate settings</h3>
+                    <p className="mt-1 text-xs text-white/55">Configure the certificate issued after this exam ends.</p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-pressed={form.certificateEnabled}
+                    onClick={() => handleFieldChange('certificateEnabled', !form.certificateEnabled)}
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full border border-white/15 transition ${form.certificateEnabled ? 'bg-[#EFB078]/80' : 'bg-gray-700'}`}
+                  >
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${form.certificateEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+                {form.certificateEnabled && (
+                  <div className="mt-4 space-y-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="block text-xs font-semibold uppercase tracking-[0.16em] text-white/65">
+                        Certificate title
+                        <input value={form.certificateTitle} onChange={(e) => handleFieldChange('certificateTitle', e.target.value)} className="mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm normal-case tracking-normal text-white focus:border-[#EFB078]/60 focus:outline-none" placeholder="Certificate of Achievement" />
+                      </label>
+                      <label className="block text-xs font-semibold uppercase tracking-[0.16em] text-white/65">
+                        Minimum percentage
+                        <input type="number" min="0" max="100" value={form.certificateMinimumPercentage} onChange={(e) => handleFieldChange('certificateMinimumPercentage', e.target.value)} className="mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm normal-case tracking-normal text-white focus:border-[#EFB078]/60 focus:outline-none" />
+                      </label>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="block text-xs font-semibold uppercase tracking-[0.16em] text-white/65">
+                        Issuing organization
+                        <input value={form.certificateIssuerName} onChange={(e) => handleFieldChange('certificateIssuerName', e.target.value)} className="mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm normal-case tracking-normal text-white focus:border-[#EFB078]/60 focus:outline-none" placeholder="QSPOT Learning" />
+                      </label>
+                      <label className="block text-xs font-semibold uppercase tracking-[0.16em] text-white/65">
+                        Signatory
+                        <input value={form.certificateSignatoryName} onChange={(e) => handleFieldChange('certificateSignatoryName', e.target.value)} className="mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm normal-case tracking-normal text-white focus:border-[#EFB078]/60 focus:outline-none" placeholder="Director / Principal" />
+                      </label>
+                    </div>
+                    <div className="block text-xs font-semibold uppercase tracking-[0.16em] text-white/65">
+                      <span id="quiz-certificate-classes">Eligible classes (optional)</span>
+                      <ClassMultiSelect
+                        labelId="quiz-certificate-classes"
+                        value={form.certificateEligibleClasses}
+                        onChange={(next) => handleFieldChange('certificateEligibleClasses', next)}
+                        placeholder="All classes that took the exam"
+                        className="mt-2"
+                      />
+                    </div>
+                    <label className="block text-xs font-semibold uppercase tracking-[0.16em] text-white/65">
+                      Certificate description
+                      <textarea rows={2} value={form.certificateDescription} onChange={(e) => handleFieldChange('certificateDescription', e.target.value)} className="mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm normal-case tracking-normal text-white focus:border-[#EFB078]/60 focus:outline-none" />
+                    </label>
+                  </div>
+                )}
               </div>
 
               {formError && (

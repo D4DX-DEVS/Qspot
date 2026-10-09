@@ -91,3 +91,33 @@ MONGODB_URI='mongodb://127.0.0.1:27017/qspot' node server.js
 ```
 
 The seed creates four faculty accounts (`role: faculty`) mapped to the four speaker profiles. Faculty sign in through the same OTP endpoint and receive the faculty mobile workspace token/shell.
+
+## Lesson learning materials
+
+In Admin > Videos > Questions, edit the plain-text Learn note and key points.
+Under Learning materials, upload PDFs, images (JPEG/PNG/WEBP/GIF), or TXT files,
+or add an HTTP/HTTPS file link. Uploads allow 10 files per request and 20 materials
+per lesson, with images limited to 5 MB and PDF/TXT files to 25 MB by default.
+Files are saved immediately; save pending note/link changes before uploading.
+Students see the note, key points, image previews, and file cards in Learn.
+Tapping a file opens it in the device/browser viewer; Downloads lists the same files.
+This does not add offline file storage.
+
+Uploads use DigitalOcean Spaces when configured. Development without Spaces
+stores materials under uploads/handouts; production still requires Spaces.
+
+With the local API running and local courses seeded, run:
+
+```bash
+node scripts/seed-learn-demo.js
+```
+
+This adds only `Demo - Learn materials preview` in Quran Recitation and uploads
+the included real PNG, PDF, and TXT fixtures. Re-running it avoids duplicate
+lessons/files. It refuses non-local databases and production mode.
+
+Checks: `node --test tests/handout-storage.test.js` tests cloud cleanup with a
+mocked storage client. `node scripts/check-learn-materials.js` exercises the local
+API and deletes its temporary lesson. Production Spaces/CDN must permit CORS
+image fetching from the deployed student app origin; the local preview check
+does not verify deployed CDN headers.

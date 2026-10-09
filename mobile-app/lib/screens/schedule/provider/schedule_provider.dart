@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../model/schedule_model.dart';
 import '../../../utils/api_urls.dart';
+import '../../../utils/user_friendly_error.dart';
 
 enum ScheduleLoadingState { idle, loading, loaded, error }
 
@@ -38,7 +39,9 @@ class ScheduleProvider with ChangeNotifier {
       await fetchSchedules();
       await _setLoadingState(ScheduleLoadingState.loaded);
     } catch (e) {
-      await _handleError('Failed to initialize schedules: $e');
+      await _handleError(
+        'We couldn’t load the schedule. ${userFriendlyError(e)}',
+      );
     }
   }
 
@@ -96,7 +99,9 @@ class ScheduleProvider with ChangeNotifier {
       await fetchSchedules();
       await _setLoadingState(ScheduleLoadingState.loaded);
     } catch (e) {
-      await _handleError('Failed to refresh schedules: $e');
+      await _handleError(
+        'We couldn’t refresh the schedule. ${userFriendlyError(e)}',
+      );
     }
   }
 

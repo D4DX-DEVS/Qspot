@@ -126,13 +126,17 @@ class _OtpInputState extends State<OtpInput> {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (var i = 0; i < widget.length; i++) ...[
-          if (i > 0) const SizedBox(width: 8),
-          Expanded(child: _box(i)),
+    return Semantics(
+      container: true,
+      label: '${widget.length}-digit verification code',
+      child: Row(
+        children: [
+          for (var i = 0; i < widget.length; i++) ...[
+            if (i > 0) const SizedBox(width: 8),
+            Expanded(child: _box(i)),
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -140,48 +144,52 @@ class _OtpInputState extends State<OtpInput> {
     final isFilled = _controllers[index].text.isNotEmpty;
     final colors = Theme.of(context).colorScheme;
 
-    return SizedBox(
-      height: 58,
-      child: TextField(
-        controller: _controllers[index],
-        focusNode: _focusNodes[index],
-        enabled: widget.enabled,
-        autofocus: false,
-        keyboardType: TextInputType.number,
-        textInputAction: index == widget.length - 1
-            ? TextInputAction.done
-            : TextInputAction.next,
-        textAlign: TextAlign.center,
-        // Deliberately larger than 1 so a pasted code can be distributed.
-        maxLength: widget.length,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        onChanged: (value) => _handleChange(index, value),
-        style: AppFonts.semiBold(fontSize: 22, color: colors.onSurface),
-        decoration: InputDecoration(
-          counterText: '',
-          filled: true,
-          fillColor: isFilled
-              ? colors.primaryContainer
-              : colors.surfaceContainerLow,
-          contentPadding: EdgeInsets.zero,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-            borderSide: BorderSide(
-              color: isFilled ? colors.primary : colors.outline,
-              width: isFilled ? 1.5 : 1,
+    return Semantics(
+      label: 'Digit ${index + 1} of ${widget.length}',
+      textField: true,
+      child: SizedBox(
+        height: 58,
+        child: TextField(
+          controller: _controllers[index],
+          focusNode: _focusNodes[index],
+          enabled: widget.enabled,
+          autofocus: false,
+          keyboardType: TextInputType.number,
+          textInputAction: index == widget.length - 1
+              ? TextInputAction.done
+              : TextInputAction.next,
+          textAlign: TextAlign.center,
+          // Deliberately larger than 1 so a pasted code can be distributed.
+          maxLength: widget.length,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          onChanged: (value) => _handleChange(index, value),
+          style: AppFonts.semiBold(fontSize: 22, color: colors.onSurface),
+          decoration: InputDecoration(
+            counterText: '',
+            filled: true,
+            fillColor: isFilled
+                ? colors.primaryContainer
+                : colors.surfaceContainerLow,
+            contentPadding: EdgeInsets.zero,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+              borderSide: BorderSide.none,
             ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-            borderSide: BorderSide(color: colors.primary, width: 2),
-          ),
-          disabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-            borderSide: BorderSide(color: colors.outline),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+              borderSide: BorderSide(
+                color: isFilled ? colors.primary : colors.outline,
+                width: isFilled ? 1.5 : 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+              borderSide: BorderSide(color: colors.primary, width: 2),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+              borderSide: BorderSide(color: colors.outline),
+            ),
           ),
         ),
       ),

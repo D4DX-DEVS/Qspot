@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../model/video_model.dart';
 import '../provider/video_list_screen_provider.dart';
 import '../provider/video_provider.dart';
 import '../widgets/video_card.dart';
+import '../widgets/video_grid.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/offline_notice.dart';
 import 'video_reels_screen.dart';
 
 class VideoListScreen extends StatefulWidget {
@@ -72,7 +76,7 @@ class _VideoListScreenState extends State<VideoListScreen> {
                 autofocus: true,
                 style: AppFonts.regular(color: AppColors.textPrimary),
                 decoration: InputDecoration(
-                  hintText: 'Search videos...',
+                  hintText: 'Search Videos...',
                   hintStyle: AppFonts.regular(color: AppColors.textMuted),
                   border: InputBorder.none,
                 ),
@@ -87,7 +91,7 @@ class _VideoListScreenState extends State<VideoListScreen> {
         actions: [
           IconButton(
             icon: Icon(
-              search.isSearching ? Icons.close : Icons.search,
+              search.isSearching ? LucideIcons.x : LucideIcons.search,
               color: AppColors.textPrimary,
             ),
             onPressed: () {
@@ -105,7 +109,7 @@ class _VideoListScreenState extends State<VideoListScreen> {
       ),
       body: Consumer<VideoProvider>(
         builder: (context, videoProvider, child) {
-          if (videoProvider.isLoading) {
+          if (videoProvider.isLoading && videoProvider.allVideos.isEmpty) {
             return const Center(
               child: CircularProgressIndicator(color: AppColors.primary),
             );
@@ -119,7 +123,7 @@ class _VideoListScreenState extends State<VideoListScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.error_outline,
+                      LucideIcons.circleAlert,
                       size: 64,
                       color: AppColors.textMuted,
                     ),
@@ -162,8 +166,8 @@ class _VideoListScreenState extends State<VideoListScreen> {
                   children: [
                     Icon(
                       videoProvider.isSearching
-                          ? Icons.search_off
-                          : Icons.video_library_outlined,
+                          ? LucideIcons.searchX
+                          : LucideIcons.clapperboard,
                       size: 64,
                       color: AppColors.textMuted,
                     ),
@@ -190,31 +194,36 @@ class _VideoListScreenState extends State<VideoListScreen> {
             );
           }
 
-          return RefreshIndicator(
+          final grid = RefreshIndicator(
             onRefresh: () => videoProvider.refresh(),
             backgroundColor: AppColors.surface,
             color: AppColors.primary,
-            child: GridView.builder(
+            child: VideoGrid(
               padding: const EdgeInsets.all(AppTheme.paddingMedium),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: AppTheme.paddingMedium,
-                mainAxisSpacing: AppTheme.paddingMedium,
-                childAspectRatio: 0.75, // Adjust for video card proportions
-              ),
+              spacing: AppTheme.paddingMedium,
               itemCount: videos.length,
               itemBuilder: (context, index) {
                 final video = videos[index];
-                return VideoCard(
-                  video: video,
-                  progress: Provider.of<VideoProvider>(
-                    context,
-                    listen: false,
-                  ).progressFor(video.id),
-                  onTap: () => _openReels(videos, index),
+                return StaggeredEntrance(
+                  index: index,
+                  child: VideoCard(
+                    video: video,
+                    progress: Provider.of<VideoProvider>(
+                      context,
+                      listen: false,
+                    ).progressFor(video.id),
+                    onTap: () => _openReels(videos, index),
+                  ),
                 );
               },
             ),
+          );
+          return Column(
+            children: [
+              if (videoProvider.offlineMode)
+                OfflineNotice(message: videoProvider.errorMessage),
+              Expanded(child: grid),
+            ],
           );
         },
       ),

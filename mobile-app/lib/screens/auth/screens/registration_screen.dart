@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../provider/auth_provider.dart';
 import '../provider/registration_form_provider.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/app_snack_bar.dart';
 import '../widgets/art/auth_art.dart';
 import '../widgets/art/bottom_waves_painter.dart';
@@ -71,6 +73,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       initialDate: _form.dob ?? DateTime(now.year - 12, now.month, now.day),
       firstDate: DateTime(now.year - 100),
       lastDate: now,
+      // Opens on the year list so a teen taps their birth year first.
+      initialDatePickerMode: DatePickerMode.year,
       // This context sits above the page's AuthThemeScope, so re-apply it.
       builder: (context, child) => AuthThemeScope(child: child!),
     );
@@ -101,24 +105,30 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         ),
         bottomArtHeight: 120,
         children: [
-          Stack(
-            children: [
-              const AuthBrandMark(size: 116),
-              Positioned(
-                top: 0,
-                left: 0,
-                child: AuthBackButton(
-                  onPressed: () => Navigator.of(context).pop(),
+          StaggeredEntrance(
+            index: 0,
+            child: Stack(
+              children: [
+                const AuthBrandMark(size: 116),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  child: AuthBackButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const AuthHeadline(
-            title: 'Create your ',
-            accent: 'account',
-            subtitle:
-                'Your number signs you in, so there is no password to remember.',
-            fontSize: 28,
+          const StaggeredEntrance(
+            index: 1,
+            child: AuthHeadline(
+              title: 'Create Your ',
+              accent: 'Account',
+              subtitle:
+                  'Your number signs you in, so there is no password to remember.',
+              fontSize: 28,
+            ),
           ),
           const SizedBox(height: 24),
           Form(
@@ -126,31 +136,40 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                AuthPhoneField(
-                  controller: _phoneController,
-                  hint: 'Phone number',
-                  showPhoneIcon: true,
+                StaggeredEntrance(
+                  index: 2,
+                  child: AuthPhoneField(
+                    controller: _phoneController,
+                    hint: 'Phone Number',
+                    showPhoneIcon: true,
+                  ),
                 ),
                 const SizedBox(height: 14),
-                AuthTextField(
-                  controller: _nameController,
-                  hint: 'Full name',
-                  icon: Icons.person_outline_rounded,
-                  textCapitalization: TextCapitalization.words,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your name';
-                    }
-                    if (value.trim().length < 3) {
-                      return 'Name must be at least 3 characters';
-                    }
-                    return null;
-                  },
+                StaggeredEntrance(
+                  index: 3,
+                  child: AuthTextField(
+                    controller: _nameController,
+                    hint: 'Full Name',
+                    icon: LucideIcons.userRound,
+                    textCapitalization: TextCapitalization.words,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter your name';
+                      }
+                      if (value.trim().length < 3) {
+                        return 'Name must be at least 3 characters';
+                      }
+                      return null;
+                    },
+                  ),
                 ),
                 const SizedBox(height: 14),
-                ClassDropdownField(
-                  value: form.classNumber,
-                  onChanged: form.setClassNumber,
+                StaggeredEntrance(
+                  index: 4,
+                  child: ClassDropdownField(
+                    value: form.classNumber,
+                    onChanged: form.setClassNumber,
+                  ),
                 ),
                 const SizedBox(height: 14),
                 CoursePickerCard(
@@ -161,40 +180,53 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 if (form.coursesLoading || form.courses.isNotEmpty)
                   const SizedBox(height: 14),
-                DatePickerField(
-                  hint: 'Date of birth (optional)',
-                  valueText: form.dob != null
-                      ? form.formatDob(form.dob!)
-                      : null,
-                  onTap: _pickDob,
+                StaggeredEntrance(
+                  index: 5,
+                  child: DatePickerField(
+                    hint: 'Date of Birth (Optional)',
+                    valueText: form.dob != null
+                        ? form.formatDob(form.dob!)
+                        : null,
+                    onTap: _pickDob,
+                  ),
                 ),
                 const SizedBox(height: 14),
-                ConsentCard(
-                  value: form.hasConsent,
-                  onChanged: form.setHasConsent,
-                  consentBy: form.consentBy,
-                  onConsentByChanged: form.setConsentBy,
-                  nameController: _consentNameController,
+                StaggeredEntrance(
+                  index: 6,
+                  child: ConsentCard(
+                    value: form.hasConsent,
+                    onChanged: form.setHasConsent,
+                    consentBy: form.consentBy,
+                    onConsentByChanged: form.setConsentBy,
+                    nameController: _consentNameController,
+                  ),
                 ),
                 const SizedBox(height: 24),
-                Consumer<AuthProvider>(
-                  builder: (context, authProvider, child) => GradientPillButton(
-                    label: 'Create account',
-                    isLoading: authProvider.isLoading,
-                    onPressed: form.isComplete && !authProvider.isLoading
-                        ? _register
-                        : null,
+                StaggeredEntrance(
+                  index: 7,
+                  child: Consumer<AuthProvider>(
+                    builder: (context, authProvider, child) =>
+                        GradientPillButton(
+                          label: 'Create Account',
+                          isLoading: authProvider.isLoading,
+                          onPressed: form.isComplete && !authProvider.isLoading
+                              ? _register
+                              : null,
+                        ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                Builder(
-                  builder: (context) => Text(
-                    'We only use your number to sign you in.',
-                    textAlign: TextAlign.center,
-                    style: AppFonts.regular(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 12.5,
-                      height: 1.4,
+                StaggeredEntrance(
+                  index: 7,
+                  child: Builder(
+                    builder: (context) => Text(
+                      'We only use your number to sign you in.',
+                      textAlign: TextAlign.center,
+                      style: AppFonts.regular(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 12.5,
+                        height: 1.4,
+                      ),
                     ),
                   ),
                 ),

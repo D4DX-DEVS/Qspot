@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../themes/accent_tone.dart';
 import '../../themes/app_fonts.dart';
 import 'soft_icon_tile.dart';
 import 'surface_card.dart';
 
-/// Tappable row card: tinted icon, title, one-line subtitle and a chevron.
+/// Tappable row card: tinted icon, title, optional subtitle and a chevron.
+/// Title and subtitle wrap so they are always fully visible.
 class NavListCard extends StatelessWidget {
   const NavListCard({
     super.key,
@@ -16,7 +18,6 @@ class NavListCard extends StatelessWidget {
     this.subtitle,
     this.subtitleColor,
     this.circleIcon = false,
-    this.subtitleLines = 1,
   });
 
   final IconData icon;
@@ -28,7 +29,6 @@ class NavListCard extends StatelessWidget {
   final Color? subtitleColor;
   final VoidCallback onTap;
   final bool circleIcon;
-  final int subtitleLines;
 
   @override
   Widget build(BuildContext context) {
@@ -48,8 +48,6 @@ class NavListCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                     style: AppFonts.semiBold(
                       color: scheme.onSurface,
                       fontSize: 15,
@@ -59,8 +57,6 @@ class NavListCard extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       subtitle!,
-                      maxLines: subtitleLines,
-                      overflow: TextOverflow.ellipsis,
                       style: AppFonts.regular(
                         color: subtitleColor ?? scheme.onSurfaceVariant,
                         fontSize: 12.5,
@@ -73,7 +69,7 @@ class NavListCard extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Icon(
-              Icons.chevron_right_rounded,
+              LucideIcons.chevronRight,
               color: scheme.onSurfaceVariant,
               size: 22,
             ),

@@ -4,6 +4,7 @@ const QuizConfig = require('../models/quizConfig');
 const QuizQuestion = require('../models/quizQuestions');
 const QuizSession = require('../models/quizSession');
 const Quiz = require('../models/quiz');
+const Certificate = require('../models/certificate');
 const { authenticateAdmin } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -33,6 +34,23 @@ const normalizeTimerMode = (value) =>
 const normalizeClasses = (value) => Array.isArray(value)
     ? value.map((item) => String(item).trim()).filter(Boolean).slice(0, 50)
     : String(value || '').split(',').map((item) => item.trim()).filter(Boolean).slice(0, 50);
+
+const normalizeCertificate = (value) => {
+    const source = value && typeof value === 'object' ? value : {};
+    const minimumPercentage = Number(source.minimumPercentage ?? 0);
+    if (!Number.isFinite(minimumPercentage) || minimumPercentage < 0 || minimumPercentage > 100) {
+        return { error: 'certificate.minimumPercentage must be between 0 and 100' };
+    }
+    return {
+        enabled: Boolean(source.enabled),
+        title: String(source.title || 'Certificate of Achievement').trim().slice(0, 160),
+        issuerName: String(source.issuerName || '').trim().slice(0, 160),
+        signatoryName: String(source.signatoryName || '').trim().slice(0, 160),
+        description: String(source.description || 'For successfully completing the examination.').trim().slice(0, 500),
+        minimumPercentage,
+        eligibleClasses: normalizeClasses(source.eligibleClasses)
+    };
+};
 
 // GET /api/quiz-definitions - List quizzes, paginated (admin only)
 router.get('/', authenticateAdmin, async (req, res) => {
@@ -110,7 +128,8 @@ router.post('/', authenticateAdmin, async (req, res) => {
             timerMode,
             allowedClasses,
             conditions,
-            optionsCount
+            optionsCount,
+            certificate
         } = req.body || {};
 
         if (!title || !title.trim()) {
@@ -138,6 +157,8 @@ router.post('/', authenticateAdmin, async (req, res) => {
         if (optionsCountError) {
             return res.status(400).json({ message: optionsCountError });
         }
+        const certificateConfig = normalizeCertificate(certificate);
+        if (certificateConfig.error) return res.status(400).json({ message: certificateConfig.error });
 
         const mode = normalizeTimerMode(timerMode);
         if ((mode === 'overall' || mode === 'both') && !(Number(overallTimeLimit) > 0)) {
@@ -160,7 +181,8 @@ router.post('/', authenticateAdmin, async (req, res) => {
             timerMode: mode,
             allowedClasses: normalizeClasses(allowedClasses),
             conditions: conditions && typeof conditions === 'object' ? conditions : {},
-            optionsCount: optionsCount ?? null
+            optionsCount: optionsCount ?? null,
+            certificate: certificateConfig
         });
 
         res.status(201).json({ message: 'Quiz created successfully', quiz });
@@ -199,7 +221,8 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
             timerMode,
             allowedClasses,
             conditions,
-            optionsCount
+            optionsCount,
+            certificate
         } = req.body || {};
 
         const finalStart = startDate !== undefined ? new Date(startDate) : existing.startDate;
@@ -224,6 +247,8 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
         if (optionsCountError) {
             return res.status(400).json({ message: optionsCountError });
         }
+        const certificateConfig = certificate === undefined ? null : normalizeCertificate(certificate);
+        if (certificateConfig?.error) return res.status(400).json({ message: certificateConfig.error });
 
         const mode = timerMode === undefined ? (existing.timerMode || 'none') : normalizeTimerMode(timerMode);
         const overall = overallTimeLimit === undefined ? existing.overallTimeLimit : overallTimeLimit;
@@ -252,6 +277,7 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
         if (allowedClasses !== undefined) updateData.$set.allowedClasses = normalizeClasses(allowedClasses);
         if (conditions !== undefined) updateData.$set.conditions = conditions && typeof conditions === 'object' ? conditions : {};
         if (optionsCount !== undefined) updateData.$set.optionsCount = optionsCount;
+        if (certificateConfig) updateData.$set.certificate = certificateConfig;
 
         const updated = await QuizConfig.findByIdAndUpdate(id, updateData, {
             new: true,
@@ -284,7 +310,8 @@ router.delete('/:id', authenticateAdmin, async (req, res) => {
         await Promise.all([
             QuizQuestion.deleteMany({ quizId: id }),
             QuizSession.deleteMany({ quizId: id }),
-            Quiz.deleteMany({ quizId: id })
+            Quiz.deleteMany({ quizId: id }),
+            Certificate.deleteMany({ quizId: id })
         ]);
 
         res.json({ message: 'Quiz deleted successfully', id });

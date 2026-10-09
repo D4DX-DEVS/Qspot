@@ -41,7 +41,23 @@ const isAccessible = async (quiz, user) => {
     return true;
 };
 
-const shapeQuiz = (quiz, questionCount, myAttempt) => ({
+// Certificate settings as they apply to this student. Uses the same class
+// match as issuance in routes/certificates.js (trimmed, case-insensitive), so
+// the app never promises a certificate the issue batch would skip.
+const certificateFor = (quiz, user) => {
+    const config = quiz.certificate;
+    if (!config?.enabled) return { enabled: false, minimumPercentage: 0 };
+    const classes = (config.eligibleClasses || [])
+        .map((value) => String(value).trim().toLowerCase())
+        .filter(Boolean);
+    const userClass = String(user?.class || '').trim().toLowerCase();
+    if (classes.length > 0 && !classes.includes(userClass)) {
+        return { enabled: false, minimumPercentage: 0 };
+    }
+    return { enabled: true, minimumPercentage: Number(config.minimumPercentage) || 0 };
+};
+
+const shapeQuiz = (quiz, questionCount, myAttempt, user) => ({
     _id: quiz._id,
     title: quiz.title,
     assessmentType: quiz.assessmentType || 'quiz',
@@ -56,7 +72,9 @@ const shapeQuiz = (quiz, questionCount, myAttempt) => ({
     conditions: quiz.conditions || {},
     optionsCount: quiz.optionsCount,
     status: statusOf(quiz),
-    questionCount,
+    certificate: certificateFor(quiz, user),
+    // What a student is actually served, not the size of the pool.
+    questionCount: Math.min(questionCount, quiz.numberOfQuestions),
     myAttempt: myAttempt
         ? {
               attemptId: myAttempt._id,
@@ -93,7 +111,7 @@ router.get('/', authenticateUser, async (req, res) => {
         const attemptMap = new Map(attempts.map((a) => [String(a.quizId), a]));
 
         const shaped = accessibleQuizzes.map((q) =>
-            shapeQuiz(q, countMap.get(String(q._id)) || 0, attemptMap.get(String(q._id)))
+            shapeQuiz(q, countMap.get(String(q._id)) || 0, attemptMap.get(String(q._id)), req.user)
         );
 
         const rank = { live: 0, upcoming: 1, ended: 2 };
@@ -128,7 +146,7 @@ router.get('/:id', authenticateUser, async (req, res) => {
             Quiz.findOne({ userId: req.user.id, quizId: id })
         ]);
 
-        res.json(shapeQuiz(quiz, questionCount, myAttempt));
+        res.json(shapeQuiz(quiz, questionCount, myAttempt, req.user));
     } catch (error) {
         console.error('Error fetching user quiz:', error);
         res.status(500).json({ message: 'Internal server error' });
@@ -162,8 +180,23 @@ router.get('/:id/questions', authenticateUser, async (req, res) => {
         // if one exists instead of re-selecting.
         let session = await QuizSession.findOne({ userId: req.user.id, quizId: id });
 
+        // A session that no longer holds numberOfQuestions existing questions
+        // (saved before the quiz had enough, or some were deleted since) is
+        // re-picked. Only this student opening the quiz gets here, and opening
+        // it already resets their in-app answers, so no progress is lost.
+        if (session) {
+            const live = await QuizQuestion.countDocuments({ _id: { $in: session.questionIds }, quizId: id });
+            if (live !== quiz.numberOfQuestions) {
+                await QuizSession.deleteOne({ _id: session._id });
+                session = null;
+            }
+        }
+
         if (!session) {
             const pool = await QuizQuestion.find({ quizId: id }).select('_id');
+            if (pool.length < quiz.numberOfQuestions) {
+                return res.status(403).json({ message: "This quiz isn't ready yet. Please check back later." });
+            }
             let selected = pool.map((q) => q._id);
 
             if (quiz.questionsRandomization) {

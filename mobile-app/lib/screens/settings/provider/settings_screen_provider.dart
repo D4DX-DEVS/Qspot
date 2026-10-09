@@ -25,7 +25,7 @@ class SettingsScreenProvider extends ChangeNotifier {
     if (_disposed) {
       return;
     }
-    _appVersion = '${info.version}+${info.buildNumber}';
+    _appVersion = info.version;
     notifyListeners();
   }
 

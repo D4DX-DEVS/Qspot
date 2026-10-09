@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../themes/app_fonts.dart';
+import '../../../widgets/animation/pressable_scale.dart';
 
 /// Centred "prompt + action" line, e.g. "Don't have an account? Register Now".
 /// A null [onTap] shows the action greyed out.
@@ -33,20 +35,22 @@ class AuthLinkRow extends StatelessWidget {
             ),
           ),
         ),
-        TextButton(
-          onPressed: onTap,
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            minimumSize: const Size(0, 40),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(action, style: AppFonts.semiBold(fontSize: 14)),
-              if (showChevron)
-                const Icon(Icons.chevron_right_rounded, size: 20),
-            ],
+        PressableScale(
+          enabled: onTap != null,
+          child: TextButton(
+            onPressed: onTap,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              minimumSize: const Size(0, 48),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(action, style: AppFonts.semiBold(fontSize: 14)),
+                if (showChevron) const Icon(LucideIcons.chevronRight, size: 20),
+              ],
+            ),
           ),
         ),
       ],

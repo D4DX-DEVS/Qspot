@@ -1,9 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../themes/accent_tone.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../themes/home_palette.dart';
+import '../../../widgets/animation/confetti_burst.dart';
+import '../../../widgets/animation/count_up_text.dart';
+import '../../../widgets/animation/pressable_scale.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/gradient_card.dart';
+import '../../../widgets/common/surface_card.dart';
+import '../../certificate/widgets/view_certificate_button.dart';
+import '../../common/widgets/home_theme_scope.dart';
 import '../model/quiz_model.dart';
 import 'quiz_review_screen.dart';
 
@@ -25,6 +36,10 @@ class QuizResultsScreen extends StatelessWidget {
   final String language;
   final VoidCallback? onDone;
 
+  /// When set, a "View Certificate" button shows once a certificate has
+  /// been issued for this quiz.
+  final String? quizId;
+
   const QuizResultsScreen({
     super.key,
     required this.title,
@@ -35,6 +50,7 @@ class QuizResultsScreen extends StatelessWidget {
     required this.results,
     this.language = 'en',
     this.onDone,
+    this.quizId,
   });
 
   factory QuizResultsScreen.fromAttempt(
@@ -54,6 +70,7 @@ class QuizResultsScreen extends StatelessWidget {
       // Malayalam attempt would always render its review in English.
       language: attempt.language == 'Malayalam' ? 'ml' : 'en',
       onDone: onDone,
+      quizId: attempt.quizId,
     );
   }
 
@@ -62,179 +79,207 @@ class QuizResultsScreen extends StatelessWidget {
 
   int get _wrongCount => totalQuestions - _correctCount;
 
+  // Same cut-off as the "Good!" message and star icon below.
+  bool get _scoredWell => percentage >= 70;
+
   @override
   Widget build(BuildContext context) {
+    // Burgundy home theme; the page reads colours from the context inside it.
+    return HomeThemeScope(child: Builder(builder: _buildPage));
+  }
+
+  Widget _buildPage(BuildContext context) {
+    final p = HomePalette.of(context);
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: CommonAppBar(
         title: 'Quiz Results',
         leading: onDone != null
-            ? IconButton(icon: const Icon(Icons.close), onPressed: onDone)
+            ? IconButton(icon: const Icon(LucideIcons.x), onPressed: onDone)
             : null,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppTheme.paddingLarge),
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(AppTheme.paddingLarge * 2),
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.25),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  Icon(
-                    _scoreIcon(percentage),
-                    size: 80,
-                    color: AppColors.onPrimary,
-                  ),
-                  const SizedBox(height: AppTheme.paddingMedium),
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.onPrimary.withValues(alpha: 0.9),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppTheme.paddingSmall),
-                  Text(
-                    '${percentage.toStringAsFixed(percentage % 1 == 0 ? 0 : 1)}%',
-                    style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                      color: AppColors.onPrimary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: AppTheme.paddingSmall),
-                  Text(
-                    _scoreText(percentage),
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: AppColors.onPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              AppTheme.contentInset,
+              AppTheme.paddingSmall,
+              AppTheme.contentInset,
+              28 + MediaQuery.paddingOf(context).bottom,
             ),
-            const SizedBox(height: AppTheme.paddingLarge * 2),
-            Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: _statCard(
-                    context,
-                    'Total',
-                    totalQuestions.toString(),
-                    Icons.help_outline,
+                StaggeredEntrance(child: _heroCard(context)),
+                const SizedBox(height: AppTheme.sectionGap),
+                _statRow(context, p),
+                const SizedBox(height: AppTheme.sectionGap),
+                if (results.isNotEmpty) _reviewButton(context, p),
+                if (quizId != null)
+                  ViewCertificateButton(
+                    quizId: quizId!,
+                    padding: EdgeInsets.only(
+                      top: results.isNotEmpty ? AppTheme.paddingMedium : 0,
+                    ),
                   ),
-                ),
-                const SizedBox(width: AppTheme.paddingMedium),
-                Expanded(
-                  child: _statCard(
-                    context,
-                    'Correct',
-                    _correctCount.toString(),
-                    Icons.check_circle,
-                    AppColors.success,
+                const SizedBox(height: AppTheme.paddingLarge),
+                if (completedAt != null)
+                  StaggeredEntrance(
+                    index: 5,
+                    child: Text(
+                      'Completed on ${_formatDateTime(completedAt!)}',
+                      style: AppFonts.regular(color: p.textMuted, fontSize: 13),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                ),
-                const SizedBox(width: AppTheme.paddingMedium),
-                Expanded(
-                  child: _statCard(
-                    context,
-                    'Wrong',
-                    _wrongCount.toString(),
-                    Icons.cancel,
-                    AppColors.danger,
-                  ),
-                ),
               ],
             ),
-            const SizedBox(height: AppTheme.paddingLarge * 2),
-            if (results.isNotEmpty)
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => QuizReviewScreen(
-                          results: results,
-                          language: language,
-                        ),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.visibility),
-                  label: Text(
-                    'Review Answers',
-                    style: AppFonts.bold(fontSize: 16),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.primary, width: 2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppTheme.radiusMedium,
-                      ),
-                    ),
-                  ),
+          ),
+          if (_scoredWell) const Positioned.fill(child: ConfettiBurst()),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroCard(BuildContext context) {
+    return GradientCard(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.paddingLarge,
+        vertical: AppTheme.paddingLarge * 1.5,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Icon(_scoreIcon(percentage), size: 72, color: AppColors.white),
+          const SizedBox(height: AppTheme.paddingMedium),
+          Text(
+            title,
+            style: AppFonts.medium(color: AppColors.white70, fontSize: 15),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppTheme.paddingSmall),
+          CountUpText(
+            '${percentage.toStringAsFixed(percentage % 1 == 0 ? 0 : 1)}%',
+            style: AppFonts.extraBold(color: AppColors.white, fontSize: 44),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _scoreText(percentage),
+            style: AppFonts.bold(color: AppColors.white, fontSize: 20),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statRow(BuildContext context, HomePalette p) {
+    // IntrinsicHeight so the three cards share one height whatever their
+    // labels wrap to; a bare `stretch` would ask for infinite height inside
+    // the scroll view.
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: StaggeredEntrance(
+              index: 1,
+              child: _statCard(
+                p,
+                'Total',
+                totalQuestions.toString(),
+                LucideIcons.circleQuestionMark,
+                p.rose,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppTheme.paddingMedium),
+          Expanded(
+            child: StaggeredEntrance(
+              index: 2,
+              child: _statCard(
+                p,
+                'Correct',
+                _correctCount.toString(),
+                LucideIcons.circleCheck,
+                p.mint,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppTheme.paddingMedium),
+          Expanded(
+            child: StaggeredEntrance(
+              index: 3,
+              child: _statCard(
+                p,
+                'To Revisit',
+                _wrongCount.toString(),
+                LucideIcons.rotateCcw,
+                p.amber,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _reviewButton(BuildContext context, HomePalette p) {
+    return StaggeredEntrance(
+      index: 4,
+      child: SizedBox(
+        width: double.infinity,
+        height: 56,
+        child: PressableScale(
+          child: OutlinedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      QuizReviewScreen(results: results, language: language),
                 ),
+              );
+            },
+            icon: const Icon(LucideIcons.eye),
+            label: Text('Review Answers', style: AppFonts.bold(fontSize: 16)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: p.brand,
+              side: BorderSide(color: p.brand, width: 1.5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
               ),
-            const SizedBox(height: AppTheme.paddingLarge),
-            if (completedAt != null)
-              Text(
-                'Completed on ${_formatDateTime(completedAt!)}',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
-              ),
-          ],
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _statCard(
-    BuildContext context,
+    HomePalette p,
     String label,
     String value,
-    IconData icon, [
-    Color? iconColor,
-  ]) {
-    return Container(
-      padding: const EdgeInsets.all(AppTheme.paddingMedium),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppColors.border, width: 1),
+    IconData icon,
+    AccentTone tone,
+  ) {
+    return SurfaceCard(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.paddingSmall,
+        vertical: AppTheme.paddingMedium,
       ),
       child: Column(
         children: [
-          Icon(icon, color: iconColor ?? AppColors.primary, size: 32),
+          Icon(icon, color: tone.color, size: 30),
           const SizedBox(height: AppTheme.paddingSmall),
-          Text(
+          CountUpText(
             value,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppFonts.extraBold(color: p.text, fontSize: 24),
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
+            style: AppFonts.regular(color: p.textMuted, fontSize: 12.5),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -242,17 +287,17 @@ class QuizResultsScreen extends StatelessWidget {
   }
 
   IconData _scoreIcon(num pct) {
-    if (pct >= 90) return Icons.emoji_events;
-    if (pct >= 70) return Icons.star;
-    if (pct >= 50) return Icons.thumb_up;
-    return Icons.school;
+    if (pct >= 90) return LucideIcons.trophy;
+    if (pct >= 70) return LucideIcons.star;
+    if (pct >= 50) return LucideIcons.thumbsUp;
+    return LucideIcons.graduationCap;
   }
 
   String _scoreText(num pct) {
-    if (pct >= 90) return 'Excellent!';
-    if (pct >= 70) return 'Good!';
-    if (pct >= 50) return 'Average';
-    return 'Keep Practicing!';
+    if (pct >= 90) return 'Crushed It!';
+    if (pct >= 70) return 'Nice Work!';
+    if (pct >= 50) return 'Almost There!';
+    return "Good Start, Let's Level Up!";
   }
 
   String _formatDateTime(DateTime dateTime) {

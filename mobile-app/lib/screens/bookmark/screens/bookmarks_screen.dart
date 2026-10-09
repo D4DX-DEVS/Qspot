@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 
@@ -10,6 +11,8 @@ import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../themes/home_palette.dart';
+import '../../../widgets/animation/count_up_text.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../../widgets/common/loading_skeleton.dart';
 import '../../../widgets/common/soft_icon_tile.dart';
@@ -75,7 +78,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
               if (bookmarkProvider.bookmarks.isEmpty) return const SizedBox();
 
               return PopupMenuButton<String>(
-                icon: Icon(Icons.more_vert, color: p.text),
+                icon: Icon(LucideIcons.ellipsisVertical, color: p.text),
                 color: p.card,
                 onSelected: (value) {
                   if (value == 'clear_all') {
@@ -87,7 +90,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                     value: 'clear_all',
                     child: Row(
                       children: [
-                        Icon(Icons.clear_all, color: p.text),
+                        Icon(LucideIcons.listX, color: p.text),
                         const SizedBox(width: 8),
                         Text(
                           'Clear All',
@@ -124,8 +127,11 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
             onRefresh: _onRefresh,
             child: Column(
               children: [
-                _buildSearchBar(p),
-                _buildBookmarksCount(p, filtered.length),
+                StaggeredEntrance(child: _buildSearchBar(p)),
+                StaggeredEntrance(
+                  index: 1,
+                  child: _buildBookmarksCount(p, filtered.length),
+                ),
                 Expanded(
                   child: filtered.isEmpty && query.isNotEmpty
                       ? _buildNoSearchResults(p)
@@ -153,12 +159,12 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
         cursorColor: p.brand,
         style: AppFonts.regular(color: p.text),
         decoration: InputDecoration(
-          hintText: 'Search bookmarks...',
+          hintText: 'Search Bookmarks...',
           hintStyle: AppFonts.regular(color: p.textMuted),
-          prefixIcon: Icon(Icons.search, color: p.textMuted),
+          prefixIcon: Icon(LucideIcons.search, color: p.textMuted),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
-                  icon: Icon(Icons.clear, color: p.textMuted),
+                  icon: Icon(LucideIcons.x, color: p.textMuted),
                   onPressed: () {
                     _searchController.clear();
                     _screen.setQuery('');
@@ -180,8 +186,8 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
       margin: const EdgeInsets.symmetric(horizontal: AppTheme.paddingMedium),
       child: Row(
         children: [
-          Text(
-            '$count bookmark${count != 1 ? 's' : ''}',
+          CountUpText(
+            '$count Bookmark${count != 1 ? 's' : ''}',
             style: AppFonts.regular(color: p.textMuted, fontSize: 14),
           ),
         ],
@@ -193,7 +199,10 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     return ListView.builder(
       padding: const EdgeInsets.all(AppTheme.paddingMedium),
       itemCount: videos.length,
-      itemBuilder: (context, index) => _buildBookmarkCard(p, videos[index]),
+      itemBuilder: (context, index) => StaggeredEntrance(
+        index: index,
+        child: _buildBookmarkCard(p, videos[index]),
+      ),
     );
   }
 
@@ -233,15 +242,11 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                   Text(
                     video.displayTitle,
                     style: AppFonts.semiBold(color: p.text, fontSize: 16),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: AppTheme.paddingSmall),
                   Text(
                     video.caption,
                     style: AppFonts.regular(color: p.textMuted, fontSize: 14),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
                   if (video.subjectName != null &&
                       video.subjectName!.isNotEmpty) ...[
@@ -257,8 +262,8 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
 
             IconButton(
               onPressed: () => _removeBookmark(video),
-              icon: Icon(Icons.bookmark, color: p.brand),
-              tooltip: 'Remove bookmark',
+              icon: Icon(LucideIcons.bookmark, color: p.brand),
+              tooltip: 'Remove Bookmark',
             ),
           ],
         ),
@@ -270,7 +275,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     return Container(
       color: p.brandSoft,
       child: Center(
-        child: Icon(Icons.play_circle_outline, color: p.brand, size: 32),
+        child: Icon(LucideIcons.circlePlay, color: p.brand, size: 32),
       ),
     );
   }
@@ -282,27 +287,35 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SoftIconTile(
-              icon: Icons.bookmark_border,
-              tone: p.rose,
-              size: 84,
-              circle: true,
+            StaggeredEntrance(
+              child: SoftIconTile(
+                icon: LucideIcons.bookmark,
+                tone: p.rose,
+                size: 84,
+                circle: true,
+              ),
             ),
             const SizedBox(height: AppTheme.paddingMedium),
-            Text(
-              'No Bookmarks Yet',
-              style: AppFonts.bold(color: p.text, fontSize: 19),
-              textAlign: TextAlign.center,
+            StaggeredEntrance(
+              index: 1,
+              child: Text(
+                'No Bookmarks Yet',
+                style: AppFonts.bold(color: p.text, fontSize: 19),
+                textAlign: TextAlign.center,
+              ),
             ),
             const SizedBox(height: AppTheme.paddingSmall),
-            Text(
-              'Start bookmarking videos to watch them later',
-              style: AppFonts.regular(
-                color: p.textMuted,
-                fontSize: 14,
-                height: 1.5,
+            StaggeredEntrance(
+              index: 2,
+              child: Text(
+                'Start bookmarking videos to watch them later',
+                style: AppFonts.regular(
+                  color: p.textMuted,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -317,27 +330,35 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SoftIconTile(
-              icon: Icons.search_off,
-              tone: p.rose,
-              size: 84,
-              circle: true,
+            StaggeredEntrance(
+              child: SoftIconTile(
+                icon: LucideIcons.searchX,
+                tone: p.rose,
+                size: 84,
+                circle: true,
+              ),
             ),
             const SizedBox(height: AppTheme.paddingMedium),
-            Text(
-              'No Results Found',
-              style: AppFonts.bold(color: p.text, fontSize: 19),
-              textAlign: TextAlign.center,
+            StaggeredEntrance(
+              index: 1,
+              child: Text(
+                'No Results Found',
+                style: AppFonts.bold(color: p.text, fontSize: 19),
+                textAlign: TextAlign.center,
+              ),
             ),
             const SizedBox(height: AppTheme.paddingSmall),
-            Text(
-              'Try searching with different keywords',
-              style: AppFonts.regular(
-                color: p.textMuted,
-                fontSize: 14,
-                height: 1.5,
+            StaggeredEntrance(
+              index: 2,
+              child: Text(
+                'Try searching with different keywords',
+                style: AppFonts.regular(
+                  color: p.textMuted,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -353,14 +374,14 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SoftIconTile(
-              icon: Icons.error_outline,
+              icon: LucideIcons.circleAlert,
               tone: p.rose,
               size: 84,
               circle: true,
             ),
             const SizedBox(height: AppTheme.paddingMedium),
             Text(
-              'Something went wrong',
+              'Something Went Wrong',
               style: AppFonts.bold(color: p.text, fontSize: 19),
               textAlign: TextAlign.center,
             ),

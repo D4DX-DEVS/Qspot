@@ -7,20 +7,20 @@ const VideoProgress = require('../models/videoProgress');
 const VideoQuizAttempt = require('../models/videoQuizAttempt');
 const { authenticateAdmin, optionalToken } = require('../middlewares/auth');
 const {
-    upload,
-    uploadLarge,
+    handoutUpload,
     uploadVideo,
     getCdnUrl,
     deleteFile
 } = require('../services/cdnStorageService');
 
 const router = express.Router();
+const MAX_MATERIALS = 20;
 
 const uploadSingleVideo = (req, res, next) => uploadVideo.single('video')(req, res, next);
 
 // Handout uploads: several files in one request, each optionally titled.
 const uploadHandouts = (req, res, next) => {
-    const middleware = (uploadLarge || upload).array('files', 10);
+    const middleware = handoutUpload.array('files', 10);
     return middleware(req, res, next);
 };
 
@@ -263,16 +263,29 @@ router.put('/:id', authenticateAdmin, (req, res, next) => {
 });
 
 // POST /api/videos/:id/files - Upload handout files and append to downloads (admin only)
-router.post('/:id/files', authenticateAdmin, uploadHandouts, async (req, res) => {
+router.post('/:id/files', authenticateAdmin, async (req, res, next) => {
     try {
-        const video = await Video.findById(req.params.id);
-        if (!video) {
-            return res.status(404).json({ message: 'Video not found' });
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: 'Choose a valid lesson before uploading files.' });
         }
+        req.handoutVideo = await Video.findById(req.params.id);
+        if (!req.handoutVideo) return res.status(404).json({ message: 'This lesson is no longer available.' });
+        if (req.handoutVideo.downloads.length >= MAX_MATERIALS) {
+            return res.status(400).json({ message: 'A lesson can have up to 20 learning materials. Remove a file before adding more.' });
+        }
+        next();
+    } catch (error) { next(error); }
+}, uploadHandouts, async (req, res) => {
+    try {
+        const video = req.handoutVideo;
 
         const files = Array.isArray(req.files) ? req.files : [];
         if (files.length === 0) {
             return res.status(400).json({ message: 'No files were uploaded' });
+        }
+        if (files.some((file) => file.mimetype.startsWith('image/') && file.size > 5 * 1024 * 1024)) {
+            await Promise.allSettled(files.map((file) => deleteFile(file.key || `local:handouts/${file.filename}`)));
+            return res.status(400).json({ message: 'Images must be 5 MB or smaller. Resize the image and try again.' });
         }
 
         let titles = req.body ? req.body.titles : undefined;
@@ -293,20 +306,30 @@ router.post('/:id/files', authenticateAdmin, uploadHandouts, async (req, res) =>
                 .trim();
             const provided = String(titles[index] ?? '').trim();
 
+            const key = file.key || `local:handouts/${file.filename}`;
             return {
-                title: provided || fromFileName || 'Handout',
-                url: getCdnUrl(file.key),
-                key: file.key
+                title: (provided || fromFileName || 'Handout').slice(0, 160),
+                url: getCdnUrl(key),
+                key
             };
         });
 
-        video.downloads = [...(video.downloads || []), ...uploaded];
-        const saved = await video.save();
+        // Atomic append prevents simultaneous batches from losing files or
+        // exceeding the per-lesson cap.
+        const saved = await Video.findOneAndUpdate({
+            _id: video._id,
+            $expr: { $lte: [{ $size: { $ifNull: ['$downloads', []] } }, MAX_MATERIALS - uploaded.length] }
+        }, { $push: { downloads: { $each: uploaded } } }, { new: true, runValidators: true });
+        if (!saved) {
+            await Promise.allSettled(uploaded.map((file) => deleteFile(file.key)));
+            return res.status(400).json({ message: 'A lesson can have up to 20 learning materials. Remove a file before adding more.' });
+        }
 
         res.status(201).json({ message: 'Files uploaded', video: saved });
     } catch (error) {
+        await Promise.allSettled((req.files || []).map((file) => deleteFile(file.key || `local:handouts/${file.filename}`)));
         console.error('Error uploading handout files:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ message: 'We couldn’t save these files. Please try uploading them again.' });
     }
 });
 
@@ -314,6 +337,7 @@ router.post('/:id/files', authenticateAdmin, uploadHandouts, async (req, res) =>
 router.put('/:id/content', authenticateAdmin, async (req, res) => {
     try {
         const { learnText, learnPoints, downloads } = req.body || {};
+        let removed = [];
 
         const video = await Video.findById(req.params.id);
         if (!video) {
@@ -321,12 +345,15 @@ router.put('/:id/content', authenticateAdmin, async (req, res) => {
         }
 
         if (learnText !== undefined) {
+            if (typeof learnText !== 'string' || learnText.length > 20000) {
+                return res.status(400).json({ message: 'Keep the Learn note within 20,000 characters.' });
+            }
             video.learnText = String(learnText).trim();
         }
 
         if (learnPoints !== undefined) {
-            if (!Array.isArray(learnPoints)) {
-                return res.status(400).json({ message: 'learnPoints must be an array' });
+            if (!Array.isArray(learnPoints) || learnPoints.length > 30 || learnPoints.some((point) => typeof point !== 'string' || point.length > 500)) {
+                return res.status(400).json({ message: 'Add up to 30 key points, each within 500 characters.' });
             }
             video.learnPoints = learnPoints
                 .map((point) => String(point || '').trim())
@@ -334,32 +361,37 @@ router.put('/:id/content', authenticateAdmin, async (req, res) => {
         }
 
         if (downloads !== undefined) {
-            if (!Array.isArray(downloads)) {
-                return res.status(400).json({ message: 'downloads must be an array' });
+            if (!Array.isArray(downloads) || downloads.length > MAX_MATERIALS) {
+                return res.status(400).json({ message: 'A lesson can have up to 20 learning materials.' });
             }
             const nextDownloads = downloads
                 .map((item) => ({
                     title: String(item?.title || '').trim(),
                     url: String(item?.url || '').trim(),
-                    key: item?.key || null
+                    // Only this lesson's existing uploads may retain a storage key.
+                    key: (video.downloads || []).find((stored) => stored.key && stored.url === String(item?.url || '').trim())?.key || null
                 }))
                 .filter((item) => item.title.length > 0 || item.url.length > 0);
 
-            // Any removed download that has a CDN key gets its file deleted.
-            const nextKeys = new Set(nextDownloads.map((d) => d.key).filter(Boolean));
-            const removed = (video.downloads || []).filter((d) => d.key && !nextKeys.has(d.key));
-            for (const item of removed) {
+            const validUrl = (url) => {
+                if (/^\/uploads\/handouts\/[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(url)) return true;
                 try {
-                    await deleteFile(item.key);
-                } catch (error) {
-                    console.warn('Could not delete removed handout from CDN:', error.message);
-                }
+                    const parsed = new URL(url);
+                    return ['http:', 'https:'].includes(parsed.protocol) && Boolean(parsed.hostname);
+                } catch { return false; }
+            };
+            if (nextDownloads.some((item) => !item.title || item.title.length > 160 || item.url.length > 2048 || !validUrl(item.url))) {
+                return res.status(400).json({ message: 'Give each learning material a title and a valid HTTP or HTTPS file link.' });
             }
+            // Delete files only after the revised list is safely persisted.
+            const nextKeys = new Set(nextDownloads.map((d) => d.key).filter(Boolean));
+            removed = (video.downloads || []).filter((d) => d.key && !nextKeys.has(d.key));
 
             video.downloads = nextDownloads;
         }
 
         const saved = await video.save();
+        await Promise.allSettled(removed.map((item) => deleteFile(item.key)));
         res.json({ message: 'Video content updated successfully', video: saved });
     } catch (error) {
         console.error('Error updating video content:', error);

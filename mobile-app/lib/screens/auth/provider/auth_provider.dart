@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../model/user_model.dart';
 import '../service/auth_service.dart';
+import '../../../utils/user_friendly_error.dart';
 
 enum AuthState { initial, authenticated, unauthenticated, loading }
 
@@ -55,7 +56,7 @@ class AuthProvider with ChangeNotifier {
       return result;
     } catch (e) {
       debugPrint('❌ [AUTH PROVIDER] Request OTP error: $e');
-      _errorMessage = 'Failed to send OTP';
+      _errorMessage = 'We couldn’t send the code. ${userFriendlyError(e)}';
       return {'success': false, 'message': _errorMessage};
     } finally {
       _setLoading(false);
@@ -81,7 +82,7 @@ class AuthProvider with ChangeNotifier {
       return result;
     } catch (e) {
       debugPrint('❌ [AUTH PROVIDER] Verify OTP error: $e');
-      _errorMessage = 'Failed to verify OTP';
+      _errorMessage = 'We couldn’t verify that code. ${userFriendlyError(e)}';
       return {'success': false, 'message': _errorMessage};
     } finally {
       _setLoading(false);
@@ -126,7 +127,8 @@ class AuthProvider with ChangeNotifier {
       return result;
     } catch (e) {
       debugPrint('❌ [AUTH PROVIDER] Register error: $e');
-      _errorMessage = 'Failed to register';
+      _errorMessage =
+          'We couldn’t create your account. ${userFriendlyError(e)}';
       return {'success': false, 'message': _errorMessage};
     } finally {
       _setLoading(false);

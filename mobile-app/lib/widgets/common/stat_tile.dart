@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../themes/app_fonts.dart';
+import '../animation/count_up_text.dart';
 import 'surface_card.dart';
 
 /// Small card with a coloured icon over a bold value and a short label.
@@ -33,20 +34,18 @@ class StatTile extends StatelessWidget {
             children: [
               Icon(icon, color: color, size: 24),
               const SizedBox(height: 8),
-              Text(
+              CountUpText(
                 value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
                 style: AppFonts.bold(color: scheme.onSurface, fontSize: 18),
               ),
               const SizedBox(height: 2),
               Text(
                 label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
                 style: AppFonts.regular(
                   color: scheme.onSurfaceVariant,
-                  fontSize: 11.5,
+                  fontSize: 12,
                 ),
               ),
             ],

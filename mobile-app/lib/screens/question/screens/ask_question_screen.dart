@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../../services/api_client.dart';
 import '../../../themes/app_colors.dart';
+import '../../../widgets/animation/pressable_scale.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
@@ -96,7 +99,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               SoftIconTile(
-                                icon: Icons.people_outline,
+                                icon: LucideIcons.users,
                                 tone: p.rose,
                                 size: 84,
                                 circle: true,
@@ -132,67 +135,79 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            InfoNoteCard(
-                              icon: Icons.info_outline,
-                              tone: p.rose,
-                              message:
-                                  'Ask questions to our faculties and get answers',
+                            StaggeredEntrance(
+                              child: InfoNoteCard(
+                                icon: LucideIcons.info,
+                                tone: p.rose,
+                                message:
+                                    'Ask questions to our faculties and get answers',
+                              ),
                             ),
 
                             const SizedBox(height: AppTheme.paddingLarge),
 
                             // Faculty Selection
-                            Text(
-                              'Select Faculty',
-                              style: AppFonts.semiBold(
-                                color: p.text,
-                                fontSize: 16,
+                            StaggeredEntrance(
+                              index: 1,
+                              child: Text(
+                                'Select Faculty',
+                                style: AppFonts.semiBold(
+                                  color: p.text,
+                                  fontSize: 16,
+                                ),
                               ),
                             ),
                             const SizedBox(height: AppTheme.paddingSmall),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppTheme.paddingMedium,
-                              ),
-                              decoration: BoxDecoration(
-                                color: p.card,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: p.cardBorder),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<SpeakerModel>(
-                                  isExpanded: true,
-                                  value: state.selectedFaculty,
-                                  hint: Text(
-                                    'Choose a faculty',
-                                    style: AppFonts.regular(color: p.textMuted),
-                                  ),
-                                  dropdownColor: p.card,
+                            StaggeredEntrance(
+                              index: 1,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppTheme.paddingMedium,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: p.card,
                                   borderRadius: BorderRadius.circular(16),
-                                  style: AppFonts.regular(
-                                    color: p.text,
-                                    fontSize: 16,
-                                  ),
-                                  icon: Icon(
-                                    Icons.keyboard_arrow_down_rounded,
-                                    color: p.textMuted,
-                                  ),
-                                  items: speakerProvider.speakers.map((
-                                    speaker,
-                                  ) {
-                                    return DropdownMenuItem<SpeakerModel>(
-                                      value: speaker,
-                                      child: Text(
-                                        speaker.name,
-                                        style: AppFonts.regular(
-                                          color: p.text,
-                                          fontSize: 16,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
+                                  border: Border.all(color: p.cardBorder),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<SpeakerModel>(
+                                    isExpanded: true,
+                                    // Long names grow the field instead of
+                                    // being cut off.
+                                    itemHeight: null,
+                                    value: state.selectedFaculty,
+                                    hint: Text(
+                                      'Choose a Faculty',
+                                      style: AppFonts.regular(
+                                        color: p.textMuted,
                                       ),
-                                    );
-                                  }).toList(),
-                                  onChanged: state.selectFaculty,
+                                    ),
+                                    dropdownColor: p.card,
+                                    borderRadius: BorderRadius.circular(16),
+                                    style: AppFonts.regular(
+                                      color: p.text,
+                                      fontSize: 16,
+                                    ),
+                                    icon: Icon(
+                                      LucideIcons.chevronDown,
+                                      color: p.textMuted,
+                                    ),
+                                    items: speakerProvider.speakers.map((
+                                      speaker,
+                                    ) {
+                                      return DropdownMenuItem<SpeakerModel>(
+                                        value: speaker,
+                                        child: Text(
+                                          speaker.name,
+                                          style: AppFonts.regular(
+                                            color: p.text,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: state.selectFaculty,
+                                  ),
                                 ),
                               ),
                             ),
@@ -200,93 +215,114 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                             const SizedBox(height: AppTheme.paddingLarge),
 
                             // Subject Field
-                            Text(
-                              'Subject',
-                              style: AppFonts.semiBold(
-                                color: p.text,
-                                fontSize: 16,
+                            StaggeredEntrance(
+                              index: 2,
+                              child: Text(
+                                'Subject',
+                                style: AppFonts.semiBold(
+                                  color: p.text,
+                                  fontSize: 16,
+                                ),
                               ),
                             ),
                             const SizedBox(height: AppTheme.paddingSmall),
-                            TextFormField(
-                              controller: _subjectController,
-                              cursorColor: p.brand,
-                              style: AppFonts.regular(
-                                color: p.text,
-                                fontSize: 16,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: 'Enter subject',
-                                hintStyle: AppFonts.regular(color: p.textMuted),
-                                filled: true,
-                                fillColor: p.card,
-                                border: fieldBorder(p.cardBorder),
-                                enabledBorder: fieldBorder(p.cardBorder),
-                                focusedBorder: fieldBorder(p.brand, 1.6),
-                                errorBorder: fieldBorder(p.error),
-                                focusedErrorBorder: fieldBorder(p.error, 1.6),
-                                contentPadding: const EdgeInsets.all(
-                                  AppTheme.paddingMedium,
+                            StaggeredEntrance(
+                              index: 2,
+                              child: TextFormField(
+                                controller: _subjectController,
+                                maxLength: 200,
+                                cursorColor: p.brand,
+                                style: AppFonts.regular(
+                                  color: p.text,
+                                  fontSize: 16,
                                 ),
+                                decoration: InputDecoration(
+                                  hintText: 'Enter Subject',
+                                  hintStyle: AppFonts.regular(
+                                    color: p.textMuted,
+                                  ),
+                                  filled: true,
+                                  fillColor: p.card,
+                                  border: fieldBorder(p.cardBorder),
+                                  enabledBorder: fieldBorder(p.cardBorder),
+                                  focusedBorder: fieldBorder(p.brand, 1.6),
+                                  errorBorder: fieldBorder(p.error),
+                                  focusedErrorBorder: fieldBorder(p.error, 1.6),
+                                  contentPadding: const EdgeInsets.all(
+                                    AppTheme.paddingMedium,
+                                  ),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Please enter a subject';
+                                  }
+                                  return null;
+                                },
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter a subject';
-                                }
-                                return null;
-                              },
                             ),
 
                             const SizedBox(height: AppTheme.paddingLarge),
 
                             // Description Field
-                            Text(
-                              'Your Question',
-                              style: AppFonts.semiBold(
-                                color: p.text,
-                                fontSize: 16,
+                            StaggeredEntrance(
+                              index: 3,
+                              child: Text(
+                                'Your Question',
+                                style: AppFonts.semiBold(
+                                  color: p.text,
+                                  fontSize: 16,
+                                ),
                               ),
                             ),
                             const SizedBox(height: AppTheme.paddingSmall),
-                            TextFormField(
-                              controller: _descriptionController,
-                              maxLines: 8,
-                              cursorColor: p.brand,
-                              style: AppFonts.regular(
-                                color: p.text,
-                                fontSize: 16,
-                              ),
-                              decoration: InputDecoration(
-                                hintText:
-                                    'Enter your question here in detail...',
-                                hintStyle: AppFonts.regular(color: p.textMuted),
-                                filled: true,
-                                fillColor: p.card,
-                                border: fieldBorder(p.cardBorder),
-                                enabledBorder: fieldBorder(p.cardBorder),
-                                focusedBorder: fieldBorder(p.brand, 1.6),
-                                errorBorder: fieldBorder(p.error),
-                                focusedErrorBorder: fieldBorder(p.error, 1.6),
-                                contentPadding: const EdgeInsets.all(
-                                  AppTheme.paddingMedium,
+                            StaggeredEntrance(
+                              index: 3,
+                              child: TextFormField(
+                                controller: _descriptionController,
+                                maxLines: 8,
+                                maxLength: 10000,
+                                cursorColor: p.brand,
+                                style: AppFonts.regular(
+                                  color: p.text,
+                                  fontSize: 16,
                                 ),
+                                decoration: InputDecoration(
+                                  hintText:
+                                      'Enter Your Question Here in Detail...',
+                                  hintStyle: AppFonts.regular(
+                                    color: p.textMuted,
+                                  ),
+                                  filled: true,
+                                  fillColor: p.card,
+                                  border: fieldBorder(p.cardBorder),
+                                  enabledBorder: fieldBorder(p.cardBorder),
+                                  focusedBorder: fieldBorder(p.brand, 1.6),
+                                  errorBorder: fieldBorder(p.error),
+                                  focusedErrorBorder: fieldBorder(p.error, 1.6),
+                                  contentPadding: const EdgeInsets.all(
+                                    AppTheme.paddingMedium,
+                                  ),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Please enter your question';
+                                  }
+                                  return null;
+                                },
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter your question';
-                                }
-                                return null;
-                              },
                             ),
 
                             const SizedBox(height: AppTheme.paddingLarge),
 
-                            SizedBox(
-                              width: double.infinity,
-                              child: GradientPillButton(
-                                label: 'Submit Question',
-                                onPressed: _submitQuestion,
-                                isLoading: state.isSubmitting,
+                            StaggeredEntrance(
+                              index: 4,
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: GradientPillButton(
+                                  label: 'Submit Question',
+                                  onPressed: _submitQuestion,
+                                  isLoading: state.isSubmitting,
+                                ),
                               ),
                             ),
                           ],
@@ -313,29 +349,32 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
         children: [
           Align(
             alignment: Alignment.centerLeft,
-            child: InkWell(
-              onTap: () => Navigator.of(context).pop(),
-              customBorder: const CircleBorder(),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: p.brandSoft,
-                  shape: BoxShape.circle,
+            child: PressableScale(
+              pressedScale: 0.9,
+              child: InkWell(
+                onTap: () => Navigator.of(context).pop(),
+                customBorder: const CircleBorder(),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: p.brandSoft,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(LucideIcons.x, color: p.text, size: 20),
                 ),
-                child: Icon(Icons.close, color: p.text, size: 20),
               ),
             ),
           ),
           Text(
-            'Ask a question',
+            'Ask a Question',
             style: AppFonts.bold(color: p.text, fontSize: 17),
           ),
           Align(
             alignment: Alignment.centerRight,
             child: IconButton(
-              icon: Icon(Icons.history, color: p.textMuted),
-              tooltip: 'My questions',
+              icon: Icon(LucideIcons.history, color: p.textMuted),
+              tooltip: 'My Questions',
               onPressed: () {
                 Navigator.push(
                   context,
