@@ -408,26 +408,30 @@ const QuizzesPage = () => {
                     <option value="both">Overall + per question</option>
                   </select>
                 </label>
-                <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/65">
+                <div className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/65">
                   Start Date *
                   <input
                     type="datetime-local"
+                    aria-label="Start date"
                     value={form.startDate}
                     onChange={(e) => handleFieldChange('startDate', e.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-[#EFB078]/60 focus:outline-none"
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    className="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-[#EFB078]/60 focus:outline-none cursor-pointer [color-scheme:dark]"
                     required
                   />
-                </label>
-                <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/65">
+                </div>
+                <div className="block text-xs font-semibold uppercase tracking-[0.2em] text-white/65">
                   End Date *
                   <input
                     type="datetime-local"
+                    aria-label="End date"
                     value={form.endDate}
                     onChange={(e) => handleFieldChange('endDate', e.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-[#EFB078]/60 focus:outline-none"
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    className="mt-2 w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-[#EFB078]/60 focus:outline-none cursor-pointer [color-scheme:dark]"
                     required
                   />
-                </label>
+                </div>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
