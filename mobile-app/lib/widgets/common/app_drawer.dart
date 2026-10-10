@@ -127,7 +127,7 @@ class AppDrawer extends StatelessWidget {
                     2,
                     AppDrawerTile(
                       icon: LucideIcons.bookmark,
-                      label: 'Bookmarks',
+                      label: 'Saved',
                       onTap: () => _open(context, const BookmarksScreen()),
                     ),
                   ),
