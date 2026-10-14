@@ -47,7 +47,7 @@ status() {
 urls() {
   cat <<'EOS'
   Admin panel   http://localhost:5173    see Qspot-API/.env for the admin login
-  Mobile app    http://localhost:8090    see Qspot-API/.env for TEST_LOGIN / TEST_OTP
+  Mobile app    http://localhost:8090    sign in with a demo phone (TEST_LOGIN in Qspot-API/.env) + date of birth 2010-01-01
   API           http://localhost:5001
   MongoDB       mongodb://127.0.0.1:27017/qspot   local database
 EOS

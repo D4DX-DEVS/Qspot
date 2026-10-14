@@ -25,6 +25,8 @@ import '../../auth/provider/auth_provider.dart';
 import '../../bookmark/screens/bookmarks_screen.dart';
 import '../../question/screens/my_questions_screen.dart';
 import '../../settings/screens/settings_screen.dart';
+import '../../subject/provider/subject_provider.dart';
+import '../../video/provider/video_provider.dart';
 import '../../../services/course_service.dart';
 
 /// The signed-in learner's identity and personal destinations.
@@ -667,6 +669,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await auth.updateUser(UserModel.fromJson(userJson));
       }
       if (!context.mounted) return;
+      // Reload the lists, so Learn and Today show the new courses at once.
+      context.read<SubjectProvider>().refresh();
+      context.read<VideoProvider>().refresh();
       AppSnackBar.show(
         context,
         message: 'Your courses have been updated',

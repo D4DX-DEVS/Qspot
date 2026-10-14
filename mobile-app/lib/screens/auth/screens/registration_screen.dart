@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
+import '../model/registered_account.dart';
 import '../provider/auth_provider.dart';
 import '../provider/registration_form_provider.dart';
 import '../../../themes/app_colors.dart';
@@ -14,6 +15,7 @@ import '../widgets/art/corner_wave_painter.dart';
 import '../widgets/art/mosque_skyline_painter.dart';
 import '../widgets/auth_back_button.dart';
 import '../widgets/auth_brand_mark.dart';
+import '../widgets/auth_dob_picker.dart';
 import '../widgets/auth_headline.dart';
 import '../widgets/auth_page_layout.dart';
 import '../widgets/auth_phone_field.dart';
@@ -24,6 +26,7 @@ import '../widgets/consent_card.dart';
 import '../widgets/course_picker_card.dart';
 import '../widgets/date_picker_field.dart';
 import '../widgets/gradient_pill_button.dart';
+import '../widgets/phone_verification_alert.dart';
 
 /// Create-account form: back button, logo, one bold heading, themed fields
 /// and a gradient pill that stays faded until the form is complete. Light or
@@ -67,17 +70,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   Future<void> _pickDob() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _form.dob ?? DateTime(now.year - 12, now.month, now.day),
-      firstDate: DateTime(now.year - 100),
-      lastDate: now,
-      // Opens on the year list so a teen taps their birth year first.
-      initialDatePickerMode: DatePickerMode.year,
-      // This context sits above the page's AuthThemeScope, so re-apply it.
-      builder: (context, child) => AuthThemeScope(child: child!),
-    );
+    final picked = await showAuthDobPicker(context, initial: _form.dob);
     if (picked != null && mounted) {
       _form.setDob(picked);
     }
@@ -126,7 +119,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               title: 'Create Your ',
               accent: 'Account',
               subtitle:
-                  'Your number signs you in, so there is no password to remember.',
+                  'Your number and date of birth sign you in, so there is no password to remember.',
               fontSize: 28,
             ),
           ),
@@ -183,7 +176,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 StaggeredEntrance(
                   index: 5,
                   child: DatePickerField(
-                    hint: 'Date of Birth (Optional)',
+                    hint: 'Date of Birth',
                     valueText: form.dob != null
                         ? form.formatDob(form.dob!)
                         : null,
@@ -220,7 +213,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   index: 7,
                   child: Builder(
                     builder: (context) => Text(
-                      'We only use your number to sign you in.',
+                      'We only use your number and date of birth to sign you in.',
                       textAlign: TextAlign.center,
                       style: AppFonts.regular(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -252,11 +245,16 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       phone = phone.substring(2); // Remove country code if present
     }
 
+    // The last chance to fix a mistyped number: it is verified by OTP later.
+    final confirmed = await PhoneVerificationAlert.show(context, phone: phone);
+    if (!confirmed || !mounted) return;
+
+    final dob = _form.dob!;
     final result = await authProvider.register(
       phone: phone,
       name: _nameController.text.trim(),
       classNumber: _form.classNumber!,
-      dob: _form.dob != null ? _form.formatDob(_form.dob!) : null,
+      dob: _form.formatDob(dob),
       consent: _form.hasConsent
           ? {
               'by': _form.consentBy,
@@ -272,13 +270,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     if (result['success']) {
       AppSnackBar.show(
         context,
-        message: 'Your account is ready! Sending your OTP now…',
+        message: 'Your account is ready! Signing you in…',
         color: AppColors.success,
       );
 
-      // Registration does not return a token - hand the phone number back
-      // to the login screen so it can request an OTP straight away.
-      Navigator.pop(context, phone);
+      // Registration does not return a token - hand the phone number and date
+      // of birth back to the login screen so it can sign the new account in.
+      final RegisteredAccount account = (phone: phone, dob: dob);
+      Navigator.pop(context, account);
     } else {
       AppSnackBar.show(
         context,

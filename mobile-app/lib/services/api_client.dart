@@ -62,6 +62,14 @@ class ApiException implements Exception {
         : trimmed;
   }
 
+  /// The server turned the call away because the sign-in is no longer valid
+  /// (the same test [ApiClient] uses to sign the user out).
+  bool get isAuthFailure =>
+      status == 401 ||
+      (status == 403 &&
+          body is Map &&
+          (body as Map)['message'] == ApiClient._expiredTokenMessage);
+
   @override
   String toString() => 'ApiException($status): $message';
 }
@@ -176,10 +184,16 @@ class ApiClient {
     }
   }
 
-  static Future<dynamic> get(String path, {Map<String, dynamic>? query}) async {
+  /// [timeout] overrides the default for this one call, e.g. to give up
+  /// sooner when a saved copy of the answer is on the device.
+  static Future<dynamic> get(
+    String path, {
+    Map<String, dynamic>? query,
+    Duration? timeout,
+  }) async {
     final response = await _client
         .get(_uri(path, query), headers: await _headers(json: false))
-        .timeout(timeout);
+        .timeout(timeout ?? ApiClient.timeout);
     return _handle(response);
   }
 

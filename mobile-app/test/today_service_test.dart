@@ -1,5 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:qspot/services/api_client.dart';
+import 'package:qspot/services/common/storage_service.dart';
 import 'package:qspot/services/today_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   test('parses the optional today contract defensively', () {
@@ -50,5 +55,39 @@ void main() {
     expect(overview.upcoming, isEmpty);
     expect(overview.currentStreak, isNull);
     expect(overview.summary, isEmpty);
+  });
+
+  group('upcoming list length', () {
+    Future<Uri> requested(Future<void> Function() call) async {
+      SharedPreferences.setMockInitialValues({});
+      await StorageService.init();
+      Uri? seen;
+      ApiClient.clientOverride = MockClient((request) async {
+        seen = request.url;
+        return http.Response(
+          '{"upcoming": []}',
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+      addTearDown(() => ApiClient.clientOverride = null);
+      await call();
+      return seen!;
+    }
+
+    test('Today asks for the usual short list', () async {
+      final url = await requested(TodayService.fetchWithErrors);
+
+      expect(url.path, '/api/user/today');
+      expect(url.queryParameters.containsKey('upcomingLimit'), isFalse);
+    });
+
+    test('a longer list can be asked for', () async {
+      final url = await requested(
+        () => TodayService.fetchWithErrors(upcomingLimit: 200),
+      );
+
+      expect(url.queryParameters['upcomingLimit'], '200');
+    });
   });
 }

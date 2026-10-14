@@ -38,9 +38,16 @@ const authenticateUser = async (req, res, next) => {
             return res.status(403).json({ message: 'Student access required' });
         }
 
-        // Check if user exists in database
-        const user = await User.findById(decoded.userId);
-        if (!user || user.role !== 'student') {
+        // Check if user exists in database. Runs on every student request, so
+        // fetch only the fields used below as a plain object: the full document
+        // carries up to 500 learning events and is rebuilt as a Mongoose
+        // document each time, which adds up when a whole class signs in at once.
+        const user = await User.findById(decoded.userId)
+            .select('name phone email class role facultyProfile')
+            .lean();
+        // A plain object skips schema defaults, so a stored user with no role
+        // field is still a student, as it was when this loaded a full document.
+        if (!user || (user.role || 'student') !== 'student') {
             return res.status(401).json({ message: 'User not found' });
         }
 

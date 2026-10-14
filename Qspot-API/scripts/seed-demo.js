@@ -38,6 +38,10 @@ const PLACEHOLDER = (label, w = 640, h = 400) =>
 
 const days = (n) => new Date(Date.now() + n * 24 * 60 * 60 * 1000);
 
+// Sign-in is phone + date of birth, so every seeded account needs one.
+const DEMO_STUDENT_DOB = new Date('2010-01-01T00:00:00Z');
+const DEMO_FACULTY_DOB = new Date('1990-01-01T00:00:00Z');
+
 async function needSeeding(Model) {
   const count = await Model.estimatedDocumentCount();
   if (count > 0 && !FORCE) {
@@ -309,13 +313,13 @@ async function main() {
       // Keep the seeded test account aligned with TEST_LOGIN in .env.
       { name: 'Test Student', phone: process.env.TEST_LOGIN || '9876543210', email: 'test@example.com', class: '8', courseIds: allAndStudiesCourseIds },
       { name: 'Test Student 2', phone: '8888888888', email: 'test2@example.com', class: '9', courseIds: studiesCourseIds }
-    ]);
+    ].map((student) => ({ ...student, dob: DEMO_STUDENT_DOB })));
     console.log(`seeded users: ${users.length}`);
   } else {
     users = await User.find().limit(8);
   }
 
-  // Faculty accounts use the same OTP login as students, but receive a
+  // Faculty accounts use the same phone + date-of-birth login as students, but receive a
   // faculty-scoped token and can manage questions assigned to their profile.
   if (speakers.length && (FORCE || !(await User.exists({ role: 'faculty' })))) {
     await User.deleteMany({ role: 'faculty' });
@@ -325,6 +329,7 @@ async function main() {
       email: `faculty${index + 1}@qspot.demo`,
       class: 'Faculty',
       role: 'faculty',
+      dob: DEMO_FACULTY_DOB,
       facultyProfile: speaker._id,
       courseIds: []
     })));

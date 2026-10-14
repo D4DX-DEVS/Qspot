@@ -5,6 +5,7 @@ const User = require('../models/user');
 const Subject = require('../models/subject');
 const Video = require('../models/videos');
 const { authenticateAdmin, optionalToken } = require('../middlewares/auth');
+const { isScopedLearner } = require('../services/learnerScope');
 const { upload, getCdnUrl, deleteFile } = require('../services/cdnStorageService');
 
 const router = express.Router();
@@ -40,9 +41,11 @@ const uploadCoverIfMultipart = (req, res, next) => {
 router.get('/', optionalToken, async (req, res) => {
     try {
         const filter = req.isAdmin ? {} : { isActive: true };
-        if (!req.isAdmin && req.user?.userId && req.query.forSelection !== 'true') {
+        // A signed-in learner sees only the courses they picked, except in the
+        // course picker itself, which lists every active course.
+        if (!req.isAdmin && isScopedLearner(req.user) && req.query.forSelection !== 'true') {
             const user = await User.findById(req.user.userId).select('courseIds');
-            if (user?.courseIds?.length) filter._id = { $in: user.courseIds };
+            filter._id = { $in: user?.courseIds || [] };
         }
         const courses = await Course.find(filter).sort({ isActive: -1, order: 1, createdAt: 1 });
         res.json(courses);

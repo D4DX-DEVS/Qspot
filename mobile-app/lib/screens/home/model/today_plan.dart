@@ -35,7 +35,7 @@ class TodayPlan {
   final bool isCaughtUp;
 
   /// Assignment states that mean the learner already handed the work in.
-  static const _doneStatuses = {
+  static const doneStatuses = {
     'submitted',
     'late',
     'graded',
@@ -86,13 +86,13 @@ class TodayPlan {
 
     // Quizzes the learner already started come first: finish what you began.
     for (final item in overview.continueItems) {
-      if (item.kind == 'quiz' && !_doneStatuses.contains(item.status)) {
+      if (item.kind == 'quiz' && !doneStatuses.contains(item.status)) {
         addContinuation(item);
       }
     }
 
     for (final item in overview.upcoming) {
-      if (_doneStatuses.contains(item.status)) continue;
+      if (doneStatuses.contains(item.status)) continue;
       final key = '${item.kind}:${item.id}';
       if (item.id.isNotEmpty && blocked.contains(key)) continue;
       if (item.status == 'overdue') {
@@ -106,7 +106,7 @@ class TodayPlan {
     }
 
     bool isActionable(TodayLearningItem item) =>
-        item.title.trim().isNotEmpty && !_doneStatuses.contains(item.status);
+        item.title.trim().isNotEmpty && !doneStatuses.contains(item.status);
     TodayLearningItem? firstActionable(List<TodayLearningItem> items) {
       for (final item in items) {
         if (isActionable(item)) return item;

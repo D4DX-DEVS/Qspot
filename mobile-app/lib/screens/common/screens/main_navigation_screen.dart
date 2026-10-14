@@ -1,13 +1,23 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../../services/navigation_config_service.dart';
+import '../../../services/session_renewal_service.dart';
+import '../../banner/provider/banner_provider.dart';
+import '../../bookmark/provider/bookmark_provider.dart';
 import '../../home/screens/redesigned_home_screen.dart';
+import '../../notification/provider/notification_provider.dart';
 import '../../profile/screens/profile_screen.dart';
 import '../../progress/screens/progress_screen.dart';
+import '../../quiz/provider/quiz_provider.dart';
+import '../../speaker/provider/speaker_provider.dart';
+import '../../subject/provider/subject_provider.dart';
 import '../../subject/screens/subject_list_screen.dart';
 import '../../practice/screens/practice_hub_screen.dart';
+import '../../video/provider/video_provider.dart';
 import '../../../widgets/animation/fade_on_change.dart';
 import '../../../widgets/common/floating_nav_bar.dart';
 import '../../../widgets/common/floating_nav_bar_item.dart';
@@ -66,6 +76,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   ];
 
   late List<_NavigationTab> _tabs;
+  late final AppLifecycleListener _lifecycle;
 
   @override
   void initState() {
@@ -78,6 +89,36 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       tabKeys: _tabs.map((tab) => tab.keyName).toList(),
     );
     _loadNavigationConfig(initialIndex);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startSharedData());
+    _lifecycle = AppLifecycleListener(onResume: _onAppResumed);
+  }
+
+  /// Back in front: renew a sign-in about to run out, and send quiz answers
+  /// still on the phone (e.g. a quiz that closed while the app was away).
+  void _onAppResumed() {
+    if (!mounted) return;
+    unawaited(SessionRenewalService.renewIfNeeded());
+    unawaited(context.read<QuizProvider>().flushPendingSubmissions());
+  }
+
+  /// Starts the lists several tabs read, so no single tab has to be the one
+  /// that loads them. Each provider reports its own errors.
+  void _startSharedData() {
+    if (!mounted) return;
+    unawaited(SessionRenewalService.renewIfNeeded());
+    unawaited(
+      Future.wait([
+        context.read<VideoProvider>().initialize(),
+        context.read<SpeakerProvider>().initialize(),
+        context.read<SubjectProvider>().initialize(),
+        context.read<BookmarkProvider>().initialize(),
+        context.read<NotificationProvider>().initialize(),
+        context.read<BannerProvider>().initialize(),
+        // Quiz answers still on the phone (sent offline, or a quiz that
+        // closed while the app was shut) go out as soon as the app opens.
+        context.read<QuizProvider>().flushPendingSubmissions(),
+      ]),
+    );
   }
 
   Future<void> _loadNavigationConfig(int requestedIndex) async {
@@ -116,6 +157,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   void dispose() {
+    _lifecycle.dispose();
     _nav.dispose();
     super.dispose();
   }

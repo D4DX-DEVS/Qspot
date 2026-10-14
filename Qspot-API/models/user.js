@@ -44,6 +44,13 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: null
     },
+    // Whether the phone number has been confirmed with a one-time code. Defaults
+    // to true so accounts created before this field existed (every one of them
+    // signed in with a code) read as verified; /register sets it to false.
+    phoneVerified: {
+        type: Boolean,
+        default: true
+    },
     consent: {
         by: { type: String, enum: ['parent', 'school'], default: undefined },
         name: { type: String, default: '' },

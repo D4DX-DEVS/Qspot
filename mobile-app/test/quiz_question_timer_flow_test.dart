@@ -162,11 +162,25 @@ void main() {
       await seconds(tester, 5);
       await tester.pumpAndSettle();
       expect(submitted, hasLength(1));
-      expect(submitted.single['answers'], [
-        {'questionId': 'id-0', 'attemptedAnswer': 1},
-        {'questionId': 'id-1', 'attemptedAnswer': null},
-        {'questionId': 'id-2', 'attemptedAnswer': null},
-      ]);
+      final answers = (submitted.single['answers'] as List)
+          .cast<Map<String, dynamic>>();
+      expect(
+        [
+          for (final a in answers)
+            {
+              'questionId': a['questionId'],
+              'attemptedAnswer': a['attemptedAnswer'],
+            },
+        ],
+        [
+          {'questionId': 'id-0', 'attemptedAnswer': 1},
+          {'questionId': 'id-1', 'attemptedAnswer': null},
+          {'questionId': 'id-2', 'attemptedAnswer': null},
+        ],
+      );
+      // The first was answered half a second in; the other two ran out, so
+      // each took its full 5 s.
+      expect(answers.map((a) => a['duration']), [0.5, 5.0, 5.0]);
       expect(find.text('Quiz Results'), findsOneWidget);
     },
   );

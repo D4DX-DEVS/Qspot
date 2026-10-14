@@ -24,6 +24,8 @@ import '../widgets/settings_group_card.dart';
 import '../widgets/settings_header.dart';
 import '../widgets/settings_row.dart';
 import '../widgets/settings_section_title.dart';
+import '../../quiz/widgets/quiz_logout_warning_dialog.dart';
+import '../../quiz/provider/quiz_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -437,7 +439,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showLogoutDialog(BuildContext context, AuthProvider authProvider) {
+  Future<void> _showLogoutDialog(
+    BuildContext context,
+    AuthProvider authProvider,
+  ) async {
+    // Quiz answers on this phone that never reached the server get their
+    // own warning: logging out deletes them.
+    final unsent = await context.read<QuizProvider>().unsentQuizCount();
+    if (!context.mounted) return;
+    if (unsent > 0) {
+      if (await QuizLogoutWarningDialog.show(context, unsent) &&
+          context.mounted) {
+        await performLogout(context);
+      }
+      return;
+    }
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(

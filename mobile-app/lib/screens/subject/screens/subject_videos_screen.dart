@@ -12,8 +12,15 @@ import '../../../themes/home_palette.dart';
 import '../../../themes/app_theme.dart';
 import '../../../widgets/animation/count_up_text.dart';
 import '../../../widgets/animation/staggered_entrance.dart';
+import '../../../widgets/common/app_snack_bar.dart';
 import '../../../widgets/common/common_app_bar.dart';
-import '../../video/screens/video_reels_screen.dart';
+import '../../common/widgets/home_theme_scope.dart';
+import '../../course/model/course_syllabus.dart';
+import '../../course/model/syllabus_lesson.dart';
+import '../../lesson/screens/lesson_screen.dart';
+import '../../lesson/widgets/lesson_card_overlay.dart';
+import '../../video/model/video_model.dart';
+import '../provider/subject_provider.dart';
 
 class SubjectVideosScreen extends StatefulWidget {
   final SubjectModel subject;
@@ -95,6 +102,15 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
 
   Widget _buildBody(SubjectVideosScreenProvider subjectVideos) {
     final videos = subjectVideos.videos;
+    // Numbers and locks come from the whole course, so a lesson here is
+    // closed for the same reason it is closed on the Course page.
+    final watch = context.watch<VideoProvider>();
+    final syllabus = CourseSyllabus.forChapter(
+      subjectId: widget.subject.id,
+      subjects: context.watch<SubjectProvider>().subjects,
+      lessonsFor: watch.videosForSubject,
+      progress: watch.progressByVideo,
+    );
     if (subjectVideos.isLoading) {
       return Center(child: CircularProgressIndicator(color: _p.brand));
     }
@@ -218,15 +234,17 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
               itemCount: videos.length,
               itemBuilder: (context, index) {
                 final video = videos[index];
+                final lesson = syllabus.lessonFor(video.id);
                 return StaggeredEntrance(
                   index: index,
-                  child: VideoCard(
-                    video: video,
-                    progress: Provider.of<VideoProvider>(
-                      context,
-                      listen: false,
-                    ).progressFor(video.id),
-                    onTap: () => _openReels(index),
+                  child: LessonCardOverlay(
+                    number: lesson?.number,
+                    locked: lesson?.isLocked ?? false,
+                    child: VideoCard(
+                      video: video,
+                      progress: watch.progressFor(video.id),
+                      onTap: () => _openLesson(video, lesson),
+                    ),
                   ),
                 );
               },
@@ -237,7 +255,21 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
     );
   }
 
-  void _openReels(int index) {
-    VideoReelsScreen.open(context, _subjectVideos.videos, initialIndex: index);
+  void _openLesson(VideoModel video, SyllabusLesson? lesson) {
+    final blocked = lesson?.blockedMessage;
+    if (blocked != null) {
+      AppSnackBar.show(
+        context,
+        message: blocked,
+        color: AppColors.warningOrange,
+      );
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => HomeThemeScope(child: LessonScreen(video: video)),
+      ),
+    );
   }
 }

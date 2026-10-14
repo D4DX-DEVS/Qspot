@@ -57,6 +57,8 @@ dependencies:
 
   # Utilities
   intl: ^0.19.0
+  # Replaceable clock, so quiz timers can be tested with fake time.
+  clock: ^1.1.2
   url_launcher: ^6.2.4
   package_info_plus: ^8.0.0
   file_picker: ^8.1.2

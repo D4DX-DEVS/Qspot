@@ -6,6 +6,7 @@ const VideoQuestion = require('../models/videoQuestions');
 const VideoProgress = require('../models/videoProgress');
 const VideoQuizAttempt = require('../models/videoQuizAttempt');
 const { authenticateAdmin, optionalToken } = require('../middlewares/auth');
+const { learnerSubjects, isScopedLearner } = require('../services/learnerScope');
 const {
     handoutUpload,
     uploadVideo,
@@ -99,6 +100,12 @@ router.get('/', optionalToken, async (req, res) => {
         // Docs created before the flag existed have no isPublished field, and
         // they are meant to stay visible (the schema default is true).
         if (!req.isAdmin) filter.isPublished = { $ne: false };
+        // A signed-in learner sees lessons from their own courses only, the same
+        // chapters the Subjects list shows. An explicit ?subject= is left as asked.
+        if (!req.isAdmin && isScopedLearner(req.user) && !filter.subject) {
+            const subjects = await learnerSubjects(req.user.userId);
+            filter.subject = { $in: subjects.map((subject) => subject._id) };
+        }
 
         const videos = await Video.find(filter)
             .populate('subject', '_id name')

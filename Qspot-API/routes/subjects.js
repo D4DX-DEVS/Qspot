@@ -4,6 +4,7 @@ const Subject = require('../models/subject');
 const User = require('../models/user');
 const Video = require('../models/videos');
 const { authenticateAdmin, optionalToken } = require('../middlewares/auth');
+const { isScopedLearner } = require('../services/learnerScope');
 const { upload, getCdnUrl, deleteFile } = require('../services/cdnStorageService');
 
 const router = express.Router();
@@ -26,9 +27,11 @@ router.get('/', optionalToken, async (req, res) => {
         // Missing flag means "published" (the schema default), so only an
         // explicit false hides a subject.
         if (!req.isAdmin) filter.isPublished = { $ne: false };
-        if (!req.isAdmin && req.user?.userId) {
+        // A signed-in learner sees only the courses they picked; none picked,
+        // none shown.
+        if (!req.isAdmin && isScopedLearner(req.user)) {
             const user = await User.findById(req.user.userId).select('courseIds');
-            if (user?.courseIds?.length) filter.courseId = { $in: user.courseIds };
+            filter.courseId = { $in: user?.courseIds || [] };
         }
 
         const subjects = await Subject.find(filter).sort({ order: 1, createdAt: -1 });

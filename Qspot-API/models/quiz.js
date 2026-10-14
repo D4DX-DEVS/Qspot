@@ -40,11 +40,24 @@ const quizAttemptSchema = new mongoose.Schema({
             type: Boolean,
             default: false
         },
+        // Seconds the student took to answer (from the app). For an unanswered
+        // question: seconds on screen, the full limit when its time ran out.
         duration: {
             type: Number,
             default: 0,
         },
+        // What happened to the question; see services/quizTiming.js. Absent
+        // for attempts from app versions that sent no timing.
+        status: {
+            type: String,
+            enum: ['answered', 'skipped', 'timed_out', 'not_reached']
+        },
+        // An answer that took longer than allowed: thrown out (not graded),
+        // kept here for the admin.
+        lateAnswer: { type: Number, default: null }
     }],
+    // When the server first handed out the questions (the quiz session).
+    startedAt: { type: Date, default: null },
     totalDuration: {
         type: Number,
         default: 0,

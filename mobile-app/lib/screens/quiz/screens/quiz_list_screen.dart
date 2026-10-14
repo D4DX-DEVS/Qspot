@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../../services/api_client.dart';
+import '../../../services/quiz_reminder_service.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/home_palette.dart';
@@ -16,9 +19,15 @@ import '../../../widgets/common/section_header.dart';
 import '../../../widgets/common/state_message_view.dart';
 import '../../common/widgets/home_theme_scope.dart';
 import '../model/quiz_model.dart';
+import '../model/quiz_progress_record.dart';
+import '../model/quiz_refusal.dart';
 import '../provider/quiz_provider.dart';
 import '../widgets/quiz_language_dialog.dart';
 import '../widgets/quiz_list_card.dart';
+import '../widgets/quiz_offline_continue_list.dart';
+import '../widgets/quiz_pending_banner.dart';
+import '../widgets/quiz_refused_banner.dart';
+import '../widgets/quiz_reminder_permission_dialog.dart';
 import 'quiz_question_screen.dart';
 import 'quiz_results_screen.dart';
 
@@ -74,6 +83,17 @@ class _QuizListScreenState extends State<QuizListScreen> {
       return;
     }
     if (!quiz.isLive) return;
+    final quizProvider = context.read<QuizProvider>();
+    if (quizProvider.isWaitingToSend(quiz.id)) {
+      // Submitted already: final, not reopened. Try sending it again.
+      AppSnackBar.show(
+        context,
+        message: QuizProvider.submittedWaitingMessage,
+        color: AppColors.warningOrange,
+      );
+      unawaited(quizProvider.fetchQuizList());
+      return;
+    }
     await _startQuiz(quiz);
   }
 
@@ -99,10 +119,24 @@ class _QuizListScreenState extends State<QuizListScreen> {
   Future<void> _startQuiz(QuizListItem quiz) async {
     final language = await QuizLanguageDialog.show(context);
     if (language == null || !mounted) return;
+    // First quiz only: offer the "quiz closes soon" reminder.
+    await QuizReminderService.askPermissionOnce(() async {
+      if (!mounted) return false;
+      return QuizReminderPermissionDialog.show(context);
+    });
+    if (!mounted) return;
+    await _openQuiz(quiz.id, language);
+  }
 
+  /// Carries on with a quiz started on this phone, in the language it was
+  /// started in. Works offline from the saved copy.
+  Future<void> _continueQuiz(QuizProgressRecord quiz) =>
+      _openQuiz(quiz.quizId, quiz.language);
+
+  Future<void> _openQuiz(String quizId, String language) async {
     final quizProvider = context.read<QuizProvider>();
     try {
-      await quizProvider.startQuiz(quiz.id, language: language);
+      await quizProvider.startQuiz(quizId, language: language);
       if (!mounted) return;
       await Navigator.push(
         context,
@@ -142,6 +176,14 @@ class _QuizListScreenState extends State<QuizListScreen> {
             body: Consumer<QuizProvider>(
               builder: (context, quizProvider, child) {
                 if (quizProvider.isListLoading) return const LoadingSkeleton();
+                if (quizProvider.hasListError &&
+                    quizProvider.inProgressQuizzes.isNotEmpty) {
+                  return QuizOfflineContinueList(
+                    quizzes: quizProvider.inProgressQuizzes,
+                    onContinue: _continueQuiz,
+                    onRetry: quizProvider.fetchQuizList,
+                  );
+                }
                 if (quizProvider.hasListError) {
                   return StateMessageView(
                     icon: LucideIcons.circleAlert,
@@ -154,7 +196,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                   onRefresh: quizProvider.fetchQuizList,
                   backgroundColor: p.card,
                   color: p.brand,
-                  child: _buildList(context, quizProvider.quizList),
+                  child: _buildList(context, quizProvider),
                 );
               },
             ),
@@ -164,7 +206,10 @@ class _QuizListScreenState extends State<QuizListScreen> {
     );
   }
 
-  Widget _buildList(BuildContext context, List<QuizListItem> quizzes) {
+  Widget _buildList(BuildContext context, QuizProvider quizProvider) {
+    final quizzes = quizProvider.quizList;
+    final pending = quizProvider.pendingSubmissions;
+    final refused = quizProvider.refusedSubmissions;
     final live = quizzes.where((q) => q.isLive).toList();
     final upcoming = quizzes.where((q) => q.isUpcoming).toList();
     final ended = quizzes.where((q) => q.isEnded).toList();
@@ -181,6 +226,24 @@ class _QuizListScreenState extends State<QuizListScreen> {
         28 + MediaQuery.paddingOf(context).bottom,
       ),
       children: [
+        for (final record in refused)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: QuizRefusedBanner(
+              message: QuizRefusal.message(record),
+              onDismiss: () => quizProvider.dismissRefused(record.quizId),
+              onReopen: _retakeAction(quizProvider, record),
+            ),
+          ),
+        if (pending.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: QuizPendingBanner(
+              message: _pendingMessage(pending),
+              sending: quizProvider.isFlushing,
+              onSend: quizProvider.fetchQuizList,
+            ),
+          ),
         if (live.isEmpty)
           StaggeredEntrance(
             child: InfoNoteCard(
@@ -196,6 +259,34 @@ class _QuizListScreenState extends State<QuizListScreen> {
         if (ended.isNotEmpty) ..._section('Ended', ended),
       ],
     );
+  }
+
+  String _pendingMessage(List<QuizProgressRecord> pending) {
+    final what = pending.length == 1
+        ? (pending.single.title.isEmpty
+              ? 'your quiz'
+              : '"${pending.single.title}"')
+        : '${pending.length} quizzes';
+    return 'Your answers for $what are saved on this phone but have not been '
+        'sent yet. They will be sent when you are back online.';
+  }
+
+  /// "Open Quiz Again" for answers refused because the questions changed,
+  /// while the quiz is still open to take: the old copy goes and the quiz
+  /// starts afresh with the new questions.
+  VoidCallback? _retakeAction(
+    QuizProvider quizProvider,
+    QuizProgressRecord record,
+  ) {
+    if (!record.canRetake) return null;
+    final quiz = quizProvider.quizList
+        .where((q) => q.id == record.quizId && q.isLive && !q.hasAttempted)
+        .firstOrNull;
+    if (quiz == null) return null;
+    return () async {
+      await quizProvider.dismissRefused(record.quizId);
+      if (mounted) await _startQuiz(quiz);
+    };
   }
 
   List<Widget> _section(String title, List<QuizListItem> quizzes) => [

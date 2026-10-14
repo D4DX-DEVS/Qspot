@@ -2,8 +2,9 @@ import 'package:flutter/foundation.dart';
 
 import '../../../services/course_service.dart';
 
-/// Screen-local state for the registration form: typed phone/name (for the
-/// completeness check), class, date of birth, consent and course selection.
+/// Screen-local state for the registration form: typed phone/name, class and
+/// date of birth (all needed for the completeness check), consent and course
+/// selection.
 class RegistrationFormProvider extends ChangeNotifier {
   String _phone = '';
   String _name = '';
@@ -27,7 +28,8 @@ class RegistrationFormProvider extends ChangeNotifier {
   bool get isComplete =>
       _phone.trim().length == 10 &&
       _name.trim().length >= 3 &&
-      _classNumber != null;
+      _classNumber != null &&
+      _dob != null;
 
   Future<void> loadCourses() async {
     final courses = await CourseService.fetchActive();

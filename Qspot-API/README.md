@@ -27,9 +27,10 @@ Migrate a pre-contract-v2 database (titles legacy quiz, reattaches orphaned quiz
 
 ### Auth / user
 - `POST /api/admin/login`
-- `POST /api/user/register`
+- `POST /api/user/register` — needs `dob` (`YYYY-MM-DD`); the account starts with `phoneVerified: false`
+- `POST /api/user/login` — phone + `dob`; failed attempts are limited per number and per IP
 - `POST /api/user/login/request-otp`
-- `POST /api/user/login/verify`
+- `POST /api/user/login/verify` — a correct code also sets `phoneVerified: true`
 - `GET/PUT /api/user/me`
 - `GET/PUT /api/user/prefs`
 - `GET/PUT/DELETE /api/user/bookmarks[/:videoId]`
@@ -90,7 +91,7 @@ MONGODB_URI='mongodb://127.0.0.1:27017/qspot' node scripts/seed-demo.js --force
 MONGODB_URI='mongodb://127.0.0.1:27017/qspot' node server.js
 ```
 
-The seed creates four faculty accounts (`role: faculty`) mapped to the four speaker profiles. Faculty sign in through the same OTP endpoint and receive the faculty mobile workspace token/shell.
+The seed creates four faculty accounts (`role: faculty`) mapped to the four speaker profiles. Faculty sign in through the same phone + date-of-birth endpoint and receive the faculty mobile workspace token/shell. The seed gives every demo student the date of birth `2010-01-01` and every faculty account `1990-01-01`.
 
 ## Lesson learning materials
 

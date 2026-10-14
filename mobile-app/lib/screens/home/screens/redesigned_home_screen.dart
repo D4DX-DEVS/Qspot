@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
+import '../../../routes/app_routes.dart';
 import '../../../services/today_service.dart';
 import '../../../services/navigation_config_service.dart';
 import '../../../themes/app_colors.dart';
@@ -23,9 +24,10 @@ import '../../assignment/screens/assignments_screen.dart';
 import '../../auth/provider/auth_provider.dart';
 import '../../banner/provider/banner_provider.dart';
 import '../../banner/widgets/banner_carousel.dart';
-import '../../bookmark/provider/bookmark_provider.dart';
 import '../../common/provider/main_navigation_provider.dart';
 import '../../common/widgets/home_theme_scope.dart';
+import '../../course_selection/model/needs_course_choice.dart';
+import '../../course_selection/widgets/choose_courses_prompt.dart';
 import '../../notification/provider/notification_provider.dart';
 import '../../notification/screens/notifications_screen.dart';
 import '../../profile/screens/profile_screen.dart';
@@ -42,6 +44,7 @@ import '../../video/model/video_model.dart';
 import '../../video/provider/video_provider.dart';
 import '../../video/screens/video_reels_screen.dart';
 import '../model/continue_lesson_info.dart';
+import '../model/lesson_counts.dart';
 import '../model/today_plan.dart';
 import '../model/today_section.dart';
 import '../provider/redesigned_home_screen_provider.dart';
@@ -52,8 +55,7 @@ import '../widgets/today_hero_card.dart';
 import '../widgets/today_sky_backdrop.dart';
 import '../widgets/today_task_section.dart';
 
-/// Task-first learner home. The legacy HomeScreen remains available for
-/// backwards-compatible deep links while the shell uses this redesign.
+/// Task-first learner home.
 class RedesignedHomeScreen extends StatefulWidget {
   const RedesignedHomeScreen({super.key});
 
@@ -82,17 +84,10 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   void _onTabChanged() =>
       _home.setTabVisible(_nav.keyAt(_nav.currentIndex) == 'today');
 
+  // The lists Today reads (lessons, subjects, banners...) are started by the
+  // shell, so Today only loads its own plan and layout.
   Future<void> _initialize() async {
-    await Future.wait([
-      _loadNavigationConfig(),
-      context.read<VideoProvider>().initialize(),
-      context.read<SpeakerProvider>().initialize(),
-      context.read<SubjectProvider>().initialize(),
-      context.read<BookmarkProvider>().initialize(),
-      context.read<NotificationProvider>().initialize(),
-      context.read<BannerProvider>().initialize(),
-      _loadToday(),
-    ]);
+    await Future.wait([_loadNavigationConfig(), _loadToday()]);
   }
 
   Future<void> _loadNavigationConfig() async {
@@ -162,6 +157,11 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
                     ),
                   if (_home.errorMessage != null)
                     _todayErrorBanner(_home.errorMessage!),
+                  if (_needsCourseChoice())
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: ChooseCoursesPrompt(onSaved: _refresh),
+                    ),
                   if (_showHomeSection('banners')) _banners(),
                   if (_showHomeSection('stats'))
                     StaggeredEntrance(index: 1, child: _statsStrip()),
@@ -179,6 +179,12 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
       ),
     );
   }
+
+  bool _needsCourseChoice() => needsCourseChoice(
+    courseIds:
+        context.watch<AuthProvider>().user?.courseIds ?? const <String>[],
+    listsEmpty: context.watch<SubjectProvider>().isEmpty,
+  );
 
   Widget _todayErrorBanner(String message) {
     final palette = HomePalette.of(context);
@@ -344,10 +350,10 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   Widget _statsStrip() {
     final palette = HomePalette.of(context);
     final provider = context.watch<VideoProvider>();
-    final completed = provider.progressByVideo.values
-        .where((p) => p.completed)
-        .length;
-    final total = provider.allVideos.where((v) => !v.isUpcoming).length;
+    final lessons = LessonCounts.from(
+      provider.allVideos,
+      provider.progressByVideo,
+    );
     final stats = [
       StatTile(
         icon: LucideIcons.flame,
@@ -358,7 +364,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
       StatTile(
         icon: LucideIcons.circleCheck,
         color: palette.teal.color,
-        value: '$completed/$total',
+        value: lessons.label,
         label: 'Lessons Done',
       ),
       TodayFocusStatTile(focus: _plan.focus, count: _plan.focusCount),
@@ -476,8 +482,11 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
           item,
           context.read<VideoProvider>().getVideoById(item.id),
         ),
-        // Opens the area of the first item, e.g. Assignments or Schedule.
-        onSeeAll: () => _openTodayItem(items.first, null),
+        // Coming Up opens the Calendar; the others open the area of their
+        // first item, e.g. Assignments or Schedule.
+        onSeeAll: section == TodaySection.comingUp
+            ? _openCalendar
+            : () => _openTodayItem(items.first, null),
       ),
     );
   }
@@ -655,6 +664,11 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   void _openAssignments() => Navigator.push(
     context,
     MaterialPageRoute(builder: (_) => const AssignmentsScreen()),
+  ).then((_) => _loadToday());
+
+  void _openCalendar() => Navigator.pushNamed(
+    context,
+    AppRoutes.calendar,
   ).then((_) => _loadToday());
 
   void _openAsk() => AskQuestionScreen.show(context);

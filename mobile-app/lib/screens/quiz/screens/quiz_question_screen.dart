@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../../services/api_client.dart';
+import '../../../services/quiz_submission_service.dart';
 import '../../../themes/accent_tone.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/home_palette.dart';
@@ -16,11 +17,14 @@ import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/offline_notice.dart';
 import '../../../widgets/common/state_message_view.dart';
 import '../../../widgets/common/tone_chip.dart';
 import '../../common/widgets/home_theme_scope.dart';
 import '../provider/quiz_provider.dart';
 import '../provider/quiz_question_screen_provider.dart';
+import '../widgets/quiz_submit_failed_dialog.dart';
+import '../widgets/quiz_too_late_dialog.dart';
 import 'quiz_results_screen.dart';
 
 /// Shows the active quiz session, one question at a time. The display
@@ -35,7 +39,8 @@ class QuizQuestionScreen extends StatefulWidget {
   State<QuizQuestionScreen> createState() => _QuizQuestionScreenState();
 }
 
-class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
+class _QuizQuestionScreenState extends State<QuizQuestionScreen>
+    with WidgetsBindingObserver {
   // Each number dot is [_dotSize] wide with [_dotGap] margin on both sides.
   static const double _dotSize = 32;
   static const double _dotGap = 4;
@@ -45,6 +50,30 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
   late QuizProvider _quizProvider;
   Timer? _timer;
   int? _dotsScrolledFor;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  /// In the background the question on screen stops counting as "time on
+  /// screen", but every countdown keeps running; coming back re-reads them at
+  /// once, so a deadline that passed meanwhile is acted on straight away.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      _quizProvider.pauseVisit();
+    } else if (state == AppLifecycleState.resumed) {
+      _quizProvider.resumeVisit();
+      if (_q.timerStarted) {
+        // A question reached in the background starts its clock only now.
+        _q.setQuestionDeadline(_quizProvider.questionDeadline);
+        _onTick(_quizProvider);
+      }
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -59,9 +88,12 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     _q.dispose();
     _dotsController.dispose();
+    // Leaving mid-quiz: the question on screen stops counting time.
+    _quizProvider.pauseVisit();
     // The session is over once this screen goes (submitted, timed out or
     // left). Deferred: listeners can't be notified while the tree is being
     // torn down.
@@ -71,32 +103,39 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
 
   void _startTimerIfConfigured(QuizProvider quizProvider) {
     if (_q.timerStarted || !quizProvider.isQuizActive) return;
-    final overall = quizProvider.hasOverallTimer
-        ? quizProvider.overallTimeLimit
-        : null;
-    final perQuestion = quizProvider.hasPerQuestionTimer
-        ? quizProvider.perQuestionTimeLimit
-        : null;
-    if (overall == null && perQuestion == null) return;
-    _q.startTimers(overall: overall, perQuestion: perQuestion);
+    final overall = quizProvider.overallDeadline;
+    final question = quizProvider.questionDeadline;
+    final closing = quizProvider.closingDeadline;
+    if (overall == null && question == null && closing == null) return;
+    _q.startTimers(
+      overallDeadline: overall,
+      questionDeadline: question,
+      closingDeadline: closing,
+    );
     _timer = Timer.periodic(
       const Duration(seconds: 1),
       (_) => _onTick(quizProvider),
     );
+    // Reopened after a deadline passed (app closed, reinstalled): act on it
+    // now instead of showing the expired question for another second.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _onTick(quizProvider);
+    });
   }
 
   void _onTick(QuizProvider quizProvider) {
     // Paused while a submit is in flight, so it can't fire a second one.
     if (!mounted || _q.submitting) return;
     switch (_q.tick()) {
-      case QuizTimerExpiry.overall:
+      // The quiz's time is up, or it closed at its end time: submit now.
+      case QuizTimerExpiry.overall || QuizTimerExpiry.closing:
         _submit(quizProvider);
       case QuizTimerExpiry.question:
-        // Time's up for this question: move on keeping whatever answer is
-        // selected (none stays unanswered), or submit after the last one.
-        if (quizProvider.hasNextQuestion) {
-          quizProvider.nextQuestion();
-          _q.resetQuestionTimer();
+        // Time's up for this question: it is skipped as timed out, keeping
+        // an answer picked in time, and the next one starts its own clock;
+        // after the last one the quiz is submitted.
+        if (quizProvider.timeOutCurrentQuestion()) {
+          _q.setQuestionDeadline(quizProvider.questionDeadline);
         } else {
           _submit(quizProvider);
         }
@@ -193,6 +232,12 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
 
     return Column(
       children: [
+        if (quizProvider.openedFromDevice)
+          const OfflineNotice(
+            message:
+                "You're offline. Your answers are being saved on this phone "
+                'and will be sent when you submit with a connection.',
+          ),
         Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppTheme.contentInset,
@@ -205,7 +250,9 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
             minHeight: 4,
           ),
         ),
-        if (q.overallRemaining != null || q.questionRemaining != null)
+        if (q.overallRemaining != null ||
+            q.questionRemaining != null ||
+            q.closingWarning != null)
           _timerChips(p, q),
         Expanded(
           child: FadeOnChange(
@@ -270,6 +317,8 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
           runSpacing: 4,
           children: [
             if (overall != null) _timerChip(p, 'Time', overall),
+            if (q.closingWarning != null)
+              _timerChip(p, 'Closes in', q.closingWarning!),
             if (question != null) _timerChip(p, 'This question', question),
           ],
         ),
@@ -450,7 +499,7 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                   : () {
                       if (quizProvider.hasNextQuestion) {
                         quizProvider.nextQuestion();
-                        _q.resetQuestionTimer();
+                        _q.setQuestionDeadline(quizProvider.questionDeadline);
                       } else {
                         _showSubmitDialog(context, quizProvider);
                       }
@@ -601,21 +650,39 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
       // fire another submit during the transition.
     } on ApiException catch (e) {
       if (!mounted) return;
-      AppSnackBar.show(context, message: e.message, color: AppColors.danger);
-      if (e.status == 403) {
-        // Quiz is no longer live — route back to the quiz list.
-        navigator.pop();
-      } else {
-        _q.setSubmitting(false);
+      if (!QuizSubmissionService.isDefiniteRejection(e)) {
+        await _offerRetry(quizProvider);
+        return;
       }
+      if (QuizSubmissionService.isTooLate(e)) {
+        final quizId = quizProvider.quizId;
+        await QuizTooLateDialog.show(context, endsAt: quizProvider.endsAt);
+        if (quizId != null) await quizProvider.dismissRefused(quizId);
+        if (mounted) navigator.pop();
+        return;
+      }
+      // Refused for good (switched off, changed, removed): back to the quiz
+      // list, where a notice says why.
+      AppSnackBar.show(context, message: e.message, color: AppColors.danger);
+      navigator.pop();
     } catch (e) {
       if (!mounted) return;
+      await _offerRetry(quizProvider);
+    }
+  }
+
+  /// No connection or a busy server: the answers are saved on the phone, so
+  /// the student chooses between trying again now and leaving them to be sent
+  /// automatically later. Stays in the "submitting" state meanwhile, so the
+  /// timer cannot start a second submit behind the dialog.
+  Future<void> _offerRetry(QuizProvider quizProvider) async {
+    final retry = await QuizSubmitFailedDialog.show(context);
+    if (!mounted) return;
+    if (retry) {
       _q.setSubmitting(false);
-      AppSnackBar.show(
-        context,
-        message: 'We couldn\'t submit your quiz. Please try again.',
-        color: AppColors.danger,
-      );
+      await _submit(quizProvider);
+    } else {
+      Navigator.of(context).pop();
     }
   }
 }

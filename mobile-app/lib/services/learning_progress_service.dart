@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 
 import 'api_client.dart';
+import '../screens/assignment/service/assignment_service.dart';
+import '../screens/grades/service/grades_service.dart';
 import '../utils/json_parsing.dart';
 
 class MasteryItem {
@@ -44,6 +46,7 @@ class ProgressActivity {
     required this.totalQuestions,
     required this.percentage,
     this.createdAt,
+    this.detail,
   });
 
   final String kind;
@@ -53,7 +56,12 @@ class ProgressActivity {
   final num percentage;
   final DateTime? createdAt;
 
+  /// The line under the title, when the default "3/5 correct" does not fit
+  /// (an assignment is marked in points).
+  final String? detail;
+
   bool get isVideoQuiz => kind == 'video-quiz';
+  bool get isAssignment => kind == 'assignment';
 
   factory ProgressActivity.fromJson(
     Map<String, dynamic> json, {
@@ -124,8 +132,9 @@ class LearningProgressData {
 
   factory LearningProgressData.fromJson(
     Map<String, dynamic> progress,
-    Map<String, dynamic>? statsJson,
-  ) {
+    Map<String, dynamic>? statsJson, {
+    List<ProgressActivity> assignmentActivities = const [],
+  }) {
     final videos = progress['videos'] is Map
         ? Map<String, dynamic>.from(progress['videos'] as Map)
         : <String, dynamic>{};
@@ -163,6 +172,7 @@ class LearningProgressData {
         [
           ...parseActivities(progress['quizAttempts'], 'quiz'),
           ...parseActivities(progress['videoQuizzes'], 'video-quiz'),
+          ...assignmentActivities,
         ]..sort((a, b) {
           final aDate = a.createdAt;
           final bDate = b.createdAt;
@@ -191,6 +201,7 @@ class LearningProgressService {
     final results = await Future.wait([
       ApiClient.get('/api/user/progress'),
       _fetchStats(),
+      _fetchAssignmentMarks(),
     ]);
     final progress = results[0];
     if (progress is! Map) {
@@ -200,7 +211,33 @@ class LearningProgressService {
     return LearningProgressData.fromJson(
       Map<String, dynamic>.from(progress),
       stats is Map ? Map<String, dynamic>.from(stats) : null,
+      assignmentActivities: results[2] as List<ProgressActivity>,
     );
+  }
+
+  /// Assignments a teacher has marked, shown with the quizzes in Recent
+  /// Activity. Left out when they cannot be loaded.
+  static Future<List<ProgressActivity>> _fetchAssignmentMarks() async {
+    try {
+      final marks = GradesService.fromAssignments(
+        await AssignmentService.fetchAll(),
+      );
+      return [
+        for (final mark in marks)
+          ProgressActivity(
+            kind: 'assignment',
+            title: mark.title,
+            score: mark.score.round(),
+            totalQuestions: mark.outOf.round(),
+            percentage: mark.percent,
+            createdAt: mark.date,
+            detail: '${mark.scoreLabel} points - ${mark.percentLabel}',
+          ),
+      ];
+    } catch (error) {
+      debugPrint('Assignment marks unavailable: $error');
+      return const [];
+    }
   }
 
   static Future<dynamic> _fetchStats() async {

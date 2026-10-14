@@ -9,7 +9,10 @@
     "seed": "node scripts/seed-demo.js",
     "seed:force": "node scripts/seed-demo.js --force",
     "seed:live": "node scripts/seed-from-live.js",
-    "migrate:legacy-quiz": "node scripts/migrate-legacy-quiz.js"
+    "migrate:legacy-quiz": "node scripts/migrate-legacy-quiz.js",
+    "load:quiz": "node scripts/load-test-quiz.js",
+    "test": "node --test tests/",
+    "test:integration": "TEST_MONGODB_URI=${TEST_MONGODB_URI:-mongodb://127.0.0.1:27017/qspot_test} node --test tests/quiz-routes.integration.test.js"
   },
   "keywords": [],
   "author": "",

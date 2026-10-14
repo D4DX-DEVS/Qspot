@@ -19,7 +19,6 @@ import 'app_drawer_header.dart';
 import 'app_drawer_section_label.dart';
 import 'app_drawer_tile.dart';
 import 'frosted_panel.dart';
-import 'logout_confirm_dialog.dart';
 
 /// Slides the [AppDrawer] in from the left over the current screen.
 ///
@@ -75,7 +74,7 @@ class AppDrawer extends StatelessWidget {
   Future<void> _logout(BuildContext drawerContext) async {
     Navigator.pop(drawerContext);
     if (!screenContext.mounted) return;
-    final confirmed = await showLogoutConfirmDialog(screenContext);
+    final confirmed = await confirmLogout(screenContext);
     if (confirmed && screenContext.mounted) {
       await performLogout(screenContext);
     }
