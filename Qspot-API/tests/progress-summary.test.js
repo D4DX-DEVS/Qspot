@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { buildProgressSummary } = require('../services/progressSummary');
-const { subjectScopeFilter, isScopedLearner } = require('../services/learnerScope');
+const { SCOPE_TO_CHOSEN_COURSES, subjectScopeFilter, isScopedLearner } = require('../services/learnerScope');
 
 const NOW = new Date('2026-10-13T10:00:00Z');
 
@@ -92,8 +92,8 @@ test('a learner with no chosen course matches no chapter', () => {
     assert.deepEqual(subjectScopeFilter(undefined), none);
 });
 
-test('only signed-in students are narrowed to their courses', () => {
-    assert.equal(isScopedLearner({ userId: 'u1', role: 'student' }), true);
+test('only signed-in students are narrowed to their courses, while scoping is on', () => {
+    assert.equal(isScopedLearner({ userId: 'u1', role: 'student' }), SCOPE_TO_CHOSEN_COURSES);
     assert.equal(isScopedLearner({ userId: 'u1', role: 'admin' }), false);
     assert.equal(isScopedLearner({ userId: 'u1', role: 'faculty' }), false);
     assert.equal(isScopedLearner({ role: 'student' }), false);
