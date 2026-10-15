@@ -255,7 +255,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
               ),
             ],
             const SizedBox(height: AppTheme.sectionGap),
-            if (assignment.feedback.isNotEmpty) ...[
+            if (assignment.feedback.isNotEmpty || assignment.grade != null) ...[
               StaggeredEntrance(
                 index: 4,
                 child: SurfaceCard(
@@ -266,11 +266,13 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                         'Teacher Feedback',
                         style: AppFonts.bold(color: p.text, fontSize: 15),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        assignment.feedback,
-                        style: AppFonts.regular(color: p.text, height: 1.5),
-                      ),
+                      if (assignment.feedback.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          assignment.feedback,
+                          style: AppFonts.regular(color: p.text, height: 1.5),
+                        ),
+                      ],
                       if (assignment.grade != null) ...[
                         const SizedBox(height: 10),
                         ToneChip(
@@ -293,7 +295,9 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                     InfoNoteCard(
                       icon: LucideIcons.circleCheck,
                       tone: p.mint,
-                      message: 'Your work has been sent to your teacher.',
+                      message: assignment.isReviewed
+                          ? 'Your teacher has reviewed your work.'
+                          : 'Your work has been sent to your teacher.',
                     ),
                     if (assignment.submissionFiles.isNotEmpty) ...[
                       const SizedBox(height: AppTheme.sectionGap),
@@ -540,7 +544,9 @@ class _DetailMeta extends StatelessWidget {
         : assignment.isOverdue
         ? p.coral
         : p.rose;
-    final status = assignment.isSubmitted
+    final status = assignment.isReviewed
+        ? 'Reviewed'
+        : assignment.isSubmitted
         ? 'Submitted'
         : assignment.isOverdue
         ? 'Past Due'

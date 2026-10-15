@@ -75,10 +75,12 @@ void main() {
     expect(marked.maxPoints, 20);
     expect(marked.gradePoints, 15);
     expect(marked.isGraded, isTrue);
+    expect(marked.isReviewed, isTrue);
     expect(marked.gradedAt, DateTime.parse('2026-10-12T09:00:00Z'));
     // No total given means 100, and no mark means not graded yet.
     expect(waiting.maxPoints, 100);
     expect(waiting.isGraded, isFalse);
+    expect(waiting.isReviewed, isFalse);
     expect(waiting.gradedAt, isNull);
   });
 
