@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -14,8 +12,9 @@ import '../model/youtube_value_extension.dart';
 /// the ring stays easy to see over any frame.
 ///
 /// It shows and hides together with the seek bar (see
-/// [YoutubeValueState.showsCentreButton]), fading in and out. It never changes
-/// size. Purely visual: touches pass through to the tap zones above it.
+/// [YoutubeValueState.showsCentreButton]), fading in and out. It is the same
+/// size in portrait and landscape and never changes size. Purely visual:
+/// touches pass through to the tap zones above it.
 class YoutubeCentreButton extends StatelessWidget {
   const YoutubeCentreButton({
     super.key,
@@ -33,18 +32,8 @@ class YoutubeCentreButton extends StatelessWidget {
   /// `VideoReelsScreenProvider.areControlsShown`).
   final bool controlsShown;
 
-  /// Smallest the circle gets (in a phone-width player).
-  static const double minDiameter = 72;
-
-  /// YouTube draws its own play / pause button under this one, sized to the
-  /// player (about 13% of its width). The circle follows the player width, a
-  /// little wider than that, so it always covers YouTube's button completely
-  /// and never shows as a second one.
-  static const double widthRatio = 0.17;
-
-  /// Width and height of the circle in a player [playerWidth] wide.
-  static double diameterFor(double playerWidth) =>
-      math.max(minDiameter, playerWidth * widthRatio);
+  /// Width and height of the circle, whatever the player's size.
+  static const double diameter = 64;
 
   /// How long a buffer must last before the ring replaces the icon, so a
   /// brief buffer after a tap does not swap the icon for a ring and back.
@@ -59,41 +48,32 @@ class YoutubeCentreButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: LayoutBuilder(
-        builder: (context, box) => Center(
-          child: ValueListenableBuilder<YoutubePlayerValue>(
-            valueListenable: controller,
-            builder: (context, value, _) {
-              if (value.hasError) return const SizedBox.shrink();
-              final diameter = diameterFor(
-                box.hasBoundedWidth ? box.maxWidth : 0,
-              );
-              return AnimatedOpacity(
-                opacity:
-                    value.showsCentreButton(
-                      controlsShown: controlsShown,
-                      started: started,
-                    )
-                    ? 1
-                    : 0,
-                duration: _fade,
-                child: SizedBox.square(
-                  dimension: diameter,
-                  child: _circle(context, value, diameter),
-                ),
-              );
-            },
-          ),
+      child: Center(
+        child: ValueListenableBuilder<YoutubePlayerValue>(
+          valueListenable: controller,
+          builder: (context, value, _) {
+            if (value.hasError) return const SizedBox.shrink();
+            return AnimatedOpacity(
+              opacity:
+                  value.showsCentreButton(
+                    controlsShown: controlsShown,
+                    started: started,
+                  )
+                  ? 1
+                  : 0,
+              duration: _fade,
+              child: SizedBox.square(
+                dimension: diameter,
+                child: _circle(context, value),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _circle(
-    BuildContext context,
-    YoutubePlayerValue value,
-    double diameter,
-  ) {
+  Widget _circle(BuildContext context, YoutubePlayerValue value) {
     final icon = Icon(
       _iconFor(value.playerState),
       color: Colors.white,

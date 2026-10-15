@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
+import '../../../routes/app_routes.dart';
 import '../../../services/learning_progress_service.dart';
 import '../../../themes/accent_tone.dart';
 import '../../../themes/home_palette.dart';
 import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../../widgets/common/info_note_card.dart';
+import '../../../widgets/common/nav_list_card.dart';
 import '../../../widgets/common/section_header.dart';
 import '../../../widgets/common/stat_tile.dart';
 import '../../../widgets/common/surface_card.dart';
@@ -119,7 +121,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
             title: 'Lesson Mastery',
             detail: data.videosTotal == 0
                 ? 'Start Your First Lesson'
-                : '${data.videosCompleted} of ${data.videosTotal} started lessons complete',
+                : '${data.videosCompleted} of ${data.videosTotal} lessons complete',
             highlight: data.videosInProgress > 0
                 ? '${data.videosInProgress} In Progress'
                 : null,
@@ -147,6 +149,22 @@ class _ProgressScreenState extends State<ProgressScreen> {
         ),
         const SizedBox(height: 8),
         ..._recentActivity(data, palette),
+        const SizedBox(height: 12),
+        NavListCard(
+          icon: LucideIcons.clipboardCheck,
+          tone: palette.amber,
+          title: 'My Grades',
+          subtitle: 'Quiz, practice and assignment marks',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.grades),
+        ),
+        const SizedBox(height: 10),
+        NavListCard(
+          icon: LucideIcons.award,
+          tone: palette.rose,
+          title: 'My Certificates',
+          subtitle: 'Certificates you have earned',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.certificates),
+        ),
       ],
     );
   }
@@ -219,15 +237,26 @@ class _ProgressScreenState extends State<ProgressScreen> {
         <_ActivityRowData>[
           ...data.activities.map(
             (item) => _ActivityRowData(
-              kind: item.isVideoQuiz ? 'Video Quiz' : 'Quiz',
+              kind: item.isAssignment
+                  ? 'Assignment'
+                  : item.isVideoQuiz
+                  ? 'Video Quiz'
+                  : 'Quiz',
               title: item.title,
               detail:
+                  item.detail ??
                   '${item.score}/${item.totalQuestions} correct - ${item.percentage.round()}%',
               date: item.createdAt,
-              icon: item.isVideoQuiz
+              icon: item.isAssignment
+                  ? LucideIcons.clipboardList
+                  : item.isVideoQuiz
                   ? LucideIcons.monitorPlay
                   : LucideIcons.pencilLine,
-              tone: item.isVideoQuiz ? palette.coral : palette.rose,
+              tone: item.isAssignment
+                  ? palette.amber
+                  : item.isVideoQuiz
+                  ? palette.coral
+                  : palette.rose,
             ),
           ),
           ..._lessonActivity(palette),

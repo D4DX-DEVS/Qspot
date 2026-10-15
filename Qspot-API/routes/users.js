@@ -18,6 +18,10 @@ const Assignment = require('../models/assignment');
 const AssignmentSubmission = require('../models/assignmentSubmission');
 const { requestWhatsappOtp, verifyWhatsappOtp } = require('../services/otpWhatsapp');
 const { authenticateUser } = require('../middlewares/auth');
+const { learnerSubjects } = require('../services/learnerScope');
+const { parseUpcomingLimit } = require('../services/upcomingLimit');
+const { buildProgressSummary } = require('../services/progressSummary');
+const { parseDob, sameDob } = require('../services/dob');
 const {
   profileUpload,
   CDN_ENABLED,
@@ -130,9 +134,16 @@ const publicUser = (user) => ({
   profileImage: user.profileImage || '',
   role: user.role || 'student',
   dob: user.dob || null,
+  phoneVerified: user.phoneVerified !== false,
   consent: user.consent && user.consent.by ? user.consent : null,
   language: user.language || 'en'
 });
+
+const signUserToken = (user) => jwt.sign(
+  { userId: user._id, phone: user.phone, role: user.role || 'student' },
+  process.env.JWT_SECRET,
+  { expiresIn: '30d' }
+);
 
 const uploadProfilePhoto = (req, res, next) => profileUpload.single('image')(req, res, next);
 
@@ -210,13 +221,13 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ message: 'User with this phone number already exists' });
     }
 
-    let dobValue = null;
-    if (dob) {
-      const parsed = new Date(dob);
-      if (Number.isNaN(parsed.getTime())) {
-        return res.status(400).json({ message: 'dob must be a valid date (YYYY-MM-DD)' });
-      }
-      dobValue = parsed;
+    // The date of birth is the student's sign-in secret, so it is required.
+    if (!String(dob || '').trim()) {
+      return res.status(400).json({ message: 'Date of birth is required' });
+    }
+    const dobValue = parseDob(dob);
+    if (!dobValue) {
+      return res.status(400).json({ message: 'dob must be a valid date (YYYY-MM-DD)' });
     }
 
     let consentValue = undefined;
@@ -238,6 +249,8 @@ router.post('/register', async (req, res) => {
       courseIds: selectedCourseIds,
       email: email || '',
       dob: dobValue,
+      // The number is confirmed with a one-time code later, not at sign-up.
+      phoneVerified: false,
       consent: consentValue
     });
 
@@ -251,6 +264,54 @@ router.post('/register', async (req, res) => {
     }
     console.error('User registration error:', err?.message || err);
     return res.status(500).json({ message: 'Registration failed' });
+  }
+});
+
+// POST /api/user/refresh-token
+// Swaps a still-valid sign-in for a fresh 30-day one. The app calls this only
+// when its sign-in has less than a day left, so a student is never signed out
+// in the middle of a quiz. An expired or invalid sign-in is refused by
+// authenticateUser like any other request.
+router.post('/refresh-token', authenticateUser, (req, res) => {
+  const token = signUserToken({ _id: req.user.id, phone: req.user.phone, role: req.user.role });
+  res.json({ token });
+});
+
+// POST /api/user/login
+// Sign in with phone number + date of birth. Failed attempts are limited per
+// phone number and per IP in server.js. A wrong date and an unknown number get
+// the same answer, so the endpoint does not reveal which numbers have accounts.
+router.post('/login', async (req, res) => {
+  try {
+    const { phone, dob } = req.body || {};
+    if (!phone || !String(dob || '').trim()) {
+      return res.status(400).json({ message: 'Phone and date of birth are required' });
+    }
+
+    const normalizedPhone = normalizePhone(phone);
+    if (normalizedPhone.length !== 10) {
+      return res.status(400).json({ message: 'Enter a valid 10-digit phone number' });
+    }
+    const dobValue = parseDob(dob);
+    if (!dobValue) {
+      return res.status(400).json({ message: 'dob must be a valid date (YYYY-MM-DD)' });
+    }
+
+    const user = await User.findOne({ phone: normalizedPhone });
+    if (user && !user.dob) {
+      return res.status(409).json({
+        code: 'DOB_MISSING',
+        message: 'No date of birth is saved for this number yet, so it cannot sign in this way. Please contact support to add it.'
+      });
+    }
+    if (!user || !sameDob(user.dob, dobValue)) {
+      return res.status(404).json({ message: 'No account matches this phone number and date of birth.' });
+    }
+
+    return res.json({ message: 'Login successful', token: signUserToken(user), user: publicUser(user) });
+  } catch (err) {
+    console.error('login error:', err?.message || err);
+    return res.status(500).json({ message: 'Login failed' });
   }
 });
 
@@ -334,13 +395,13 @@ router.post('/login/verify', async (req, res) => {
       return res.status(404).json({ message: 'User not found. Please register first.' });
     }
 
-    const token = jwt.sign(
-      { userId: user._id, phone: user.phone, role: user.role || 'student' },
-      process.env.JWT_SECRET,
-      { expiresIn: '30d' }
-    );
+    // A correct code is the proof the number is theirs.
+    if (user.phoneVerified === false) {
+      user.phoneVerified = true;
+      await user.save();
+    }
 
-    return res.json({ message: 'Login successful', token, user: publicUser(user) });
+    return res.json({ message: 'Login successful', token: signUserToken(user), user: publicUser(user) });
   } catch (err) {
     console.error('verify-otp error:', err?.message || err);
     return res.status(500).json({ message: 'Verification failed' });
@@ -362,9 +423,19 @@ router.get('/me', authenticateUser, async (req, res) => {
 // PUT /api/user/me
 router.put('/me', authenticateUser, uploadProfilePhoto, async (req, res) => {
   try {
-    const { name, class: userClass, email, language, consent, courseIds } = req.body || {};
+    const { name, class: userClass, email, language, consent, courseIds, dob } = req.body || {};
     const removeProfileImage = String(req.body?.removeProfileImage || '').toLowerCase() === 'true';
     const update = {};
+    // The date of birth is the sign-in secret: it can be filled in once for an
+    // account that has none, never changed afterwards.
+    let dobValue = null;
+    if (dob !== undefined) {
+      dobValue = parseDob(dob);
+      if (!dobValue) {
+        await removeUploadedProfileFile(req.file);
+        return res.status(400).json({ message: 'dob must be a valid date (YYYY-MM-DD)' });
+      }
+    }
     if (name !== undefined) {
       if (!String(name).trim()) return res.status(400).json({ message: 'Name cannot be empty' });
       update.name = String(name).trim();
@@ -404,6 +475,13 @@ router.put('/me', authenticateUser, uploadProfilePhoto, async (req, res) => {
 
     const currentUser = await User.findById(req.user.id);
     if (!currentUser) return res.status(404).json({ message: 'User not found' });
+    if (dobValue) {
+      if (currentUser.dob && !sameDob(currentUser.dob, dobValue)) {
+        await removeUploadedProfileFile(req.file);
+        return res.status(409).json({ message: 'Your date of birth is already saved and cannot be changed here.' });
+      }
+      if (!currentUser.dob) update.dob = dobValue;
+    }
     if (req.file) {
       update.profileImage = CDN_ENABLED
         ? getCdnUrl(req.file.key)
@@ -443,8 +521,10 @@ router.get('/today', authenticateUser, async (req, res) => {
     const requestedOffset = Number(req.query.tzOffsetMinutes);
     const timezoneOffsetMinutes = Number.isInteger(requestedOffset) && Math.abs(requestedOffset) <= 840
       ? requestedOffset : 0;
+    // Lessons from the learner's own courses only, like the Subjects list.
+    const scopedSubjects = await learnerSubjects(userId);
     const [videos, progressRows, videoAttempts, quizConfigs, quizAttempts, quizSessions, schedules, assignments, assignmentSubmissions, learner] = await Promise.all([
-      Video.find({ isPublished: { $ne: false } })
+      Video.find({ subject: { $in: scopedSubjects.map((subject) => subject._id) }, isPublished: { $ne: false } })
         .select('_id title subject releaseDate durationSeconds order createdAt')
         .populate('subject', '_id name')
         .sort({ releaseDate: 1, subject: 1, order: 1, createdAt: 1 })
@@ -624,7 +704,7 @@ router.get('/today', authenticateUser, async (req, res) => {
       return itemDateValue(a) - itemDateValue(b);
     });
     const next = nextCandidates[0] || null;
-    const upcoming = upcomingItems.slice(0, 12);
+    const upcoming = upcomingItems.slice(0, parseUpcomingLimit(req.query.upcomingLimit));
     const videoTotal = videos.filter((video) => !(asDate(video.releaseDate) > now)).length;
     const quizRemaining = Math.max(0, quizConfigs.length - quizCompleted);
     const assignmentSubmitted = assignments.filter((assignment) => {
@@ -777,56 +857,33 @@ router.get('/progress', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const [progressRows, quizAttempts, videoQuizAttempts] = await Promise.all([
-      VideoProgress.find({ userId }).populate({ path: 'videoId', select: 'subject', populate: { path: 'subject', select: 'name courseId' } }),
+    // Totals count every lesson in the learner's courses, not only the ones
+    // they have started (see services/progressSummary.js).
+    const subjects = await learnerSubjects(userId);
+    const [lessons, progressRows, quizAttempts, videoQuizAttempts] = await Promise.all([
+      Video.find({ subject: { $in: subjects.map((subject) => subject._id) }, isPublished: { $ne: false } })
+        .select('_id subject releaseDate')
+        .lean(),
+      VideoProgress.find({ userId }).select('videoId completed watchedSeconds positionSeconds').lean(),
       Quiz.find({ userId }).populate('quizId', 'title').sort({ createdAt: -1 }),
       VideoQuizAttempt.find({ userId }).populate('videoId', 'title').sort({ createdAt: -1 })
     ]);
 
-    const videos = { total: progressRows.length, completed: 0, inProgress: 0 };
-    const subjectsMap = new Map();
-    const coursesMap = new Map();
-
-    for (const row of progressRows) {
-      if (row.completed) videos.completed += 1;
-      else if ((row.watchedSeconds || 0) > 0 || (row.positionSeconds || 0) > 0) videos.inProgress += 1;
-
-      const subject = row.videoId && row.videoId.subject;
-      if (subject && subject._id) {
-        const key = String(subject._id);
-        if (!subjectsMap.has(key)) {
-          subjectsMap.set(key, { subjectId: subject._id, name: subject.name, total: 0, completed: 0 });
-        }
-        const entry = subjectsMap.get(key);
-        entry.total += 1;
-        if (row.completed) entry.completed += 1;
-
-        if (subject.courseId) {
-          const courseKey = String(subject.courseId);
-          if (!coursesMap.has(courseKey)) {
-            coursesMap.set(courseKey, { courseId: subject.courseId, title: '', total: 0, completed: 0 });
-          }
-          const courseEntry = coursesMap.get(courseKey);
-          courseEntry.total += 1;
-          if (row.completed) courseEntry.completed += 1;
-        }
-      }
-    }
-
-    // Fill in course titles.
-    const courseIds = [...coursesMap.keys()];
-    if (courseIds.length > 0) {
-      const courses = await Course.find({ _id: { $in: courseIds } }).select('title');
-      for (const course of courses) {
-        const entry = coursesMap.get(String(course._id));
-        if (entry) entry.title = course.title;
-      }
-    }
+    const courseIds = [...new Set(subjects.filter((subject) => subject.courseId).map((subject) => String(subject.courseId)))];
+    const courses = courseIds.length > 0
+      ? await Course.find({ _id: { $in: courseIds } }).select('title').lean()
+      : [];
+    const { videos, subjects: subjectRows, courses: courseRows } = buildProgressSummary({
+      subjects,
+      videos: lessons,
+      progressRows,
+      courseTitles: new Map(courses.map((course) => [String(course._id), course.title]))
+    });
 
     res.json({
       videos,
-      subjects: [...subjectsMap.values()],
-      courses: [...coursesMap.values()],
+      subjects: subjectRows,
+      courses: courseRows,
       quizAttempts: quizAttempts.map((a) => ({
         attemptId: a._id,
         quizId: a.quizId?._id || a.quizId,

@@ -133,15 +133,24 @@ class TodayService {
   /// Used by the redesigned Today screen, which needs to distinguish an
   /// empty plan from a failed request so it can offer a retry instead of
   /// showing a misleading healthy-looking fallback card.
-  static Future<TodayOverview?> fetchWithErrors() async {
-    return _fetch(rethrowErrors: true);
+  ///
+  /// [upcomingLimit] asks the server for a longer `upcoming` list than the
+  /// short one Today shows; the Calendar uses it to see every dated item.
+  static Future<TodayOverview?> fetchWithErrors({int? upcomingLimit}) async {
+    return _fetch(rethrowErrors: true, upcomingLimit: upcomingLimit);
   }
 
-  static Future<TodayOverview?> _fetch({required bool rethrowErrors}) async {
+  static Future<TodayOverview?> _fetch({
+    required bool rethrowErrors,
+    int? upcomingLimit,
+  }) async {
     try {
       final body = await ApiClient.get(
         '/api/user/today',
-        query: {'tzOffsetMinutes': DateTime.now().timeZoneOffset.inMinutes},
+        query: {
+          'tzOffsetMinutes': DateTime.now().timeZoneOffset.inMinutes,
+          if (upcomingLimit != null) 'upcomingLimit': upcomingLimit,
+        },
       );
       if (body is! Map) {
         throw const FormatException('Today response was incomplete');

@@ -63,6 +63,32 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  /// Sign in with phone number and date of birth ('YYYY-MM-DD').
+  Future<Map<String, dynamic>> login(String phone, String dob) async {
+    try {
+      _setLoading(true);
+      _errorMessage = null;
+
+      final result = await _authService.login(phone, dob);
+
+      if (result['success']) {
+        _user = result['user'];
+        _authState = AuthState.authenticated;
+        debugPrint('✅ [AUTH PROVIDER] User signed in');
+      } else {
+        _errorMessage = result['message'];
+      }
+
+      return result;
+    } catch (e) {
+      debugPrint('❌ [AUTH PROVIDER] Login error: $e');
+      _errorMessage = 'We couldn’t sign you in. ${userFriendlyError(e)}';
+      return {'success': false, 'message': _errorMessage};
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   /// Verify OTP
   Future<Map<String, dynamic>> verifyOtp(String phone, String otp) async {
     try {
@@ -93,14 +119,14 @@ class AuthProvider with ChangeNotifier {
   ///
   /// Registration never authenticates the app: the API returns no token
   /// for this call, so [_authState] is intentionally left untouched here.
-  /// The caller (registration screen) is expected to move on to the OTP
-  /// step for the same phone number on success.
+  /// The caller (registration screen) is expected to sign the new account in
+  /// with the same phone number and date of birth on success.
   Future<Map<String, dynamic>> register({
     required String phone,
     required String name,
     required String classNumber,
+    required String dob,
     String? email,
-    String? dob,
     Map<String, dynamic>? consent,
     List<String> courseIds = const [],
   }) async {

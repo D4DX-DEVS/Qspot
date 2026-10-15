@@ -32,6 +32,13 @@ class MainNavigationProvider extends ChangeNotifier {
 
   String? get currentKey => keyAt(_currentIndex);
 
+  /// Today tab, or the first tab when Today is not configured.
+  int get homeIndex => indexForKey('today');
+
+  bool get isOnHome => _currentIndex == homeIndex;
+
+  void goHome() => setIndex(homeIndex);
+
   void setTabConfiguration({required int tabCount, List<String>? tabKeys}) {
     _tabCount = tabCount;
     _tabKeys = List.unmodifiable(tabKeys ?? const <String>[]);

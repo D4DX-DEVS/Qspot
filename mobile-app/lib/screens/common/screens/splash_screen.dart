@@ -6,6 +6,7 @@ import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../themes/auth_palette.dart';
 import '../../auth/provider/auth_provider.dart';
+import '../../auth/screens/dob_required_screen.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../faculty/screens/faculty_home_screen.dart';
 import 'main_navigation_screen.dart';
@@ -106,6 +107,9 @@ class _SplashScreenState extends State<SplashScreen>
             authProvider.isAuthenticated
             ? (authProvider.user?.role == 'faculty'
                   ? const FacultyHomeScreen()
+                  // Sign-in needs a date of birth: ask a student who has none.
+                  : authProvider.user?.hasDob == false
+                  ? const DobRequiredScreen()
                   : const MainNavigationScreen())
             : const LoginScreen(),
         transitionDuration: const Duration(milliseconds: 500),

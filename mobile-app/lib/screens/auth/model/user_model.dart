@@ -9,6 +9,10 @@ class UserModel {
   final String? profileImage;
   final String? role;
   final String? dob;
+
+  /// Whether the phone number has been confirmed with a one-time code. True
+  /// when the server does not say (accounts from before the flag existed).
+  final bool phoneVerified;
   final Map<String, dynamic>? consent;
   final String? language;
   final List<String> courseIds;
@@ -23,6 +27,7 @@ class UserModel {
     this.profileImage,
     this.role,
     this.dob,
+    this.phoneVerified = true,
     this.consent,
     this.language,
     this.courseIds = const [],
@@ -39,6 +44,7 @@ class UserModel {
       profileImage: json['profileImage']?.toString(),
       role: json['role']?.toString(),
       dob: json['dob']?.toString(),
+      phoneVerified: json['phoneVerified'] != false,
       consent: json['consent'] is Map
           ? Map<String, dynamic>.from(json['consent'] as Map)
           : null,
@@ -60,6 +66,7 @@ class UserModel {
       'profileImage': profileImage,
       'role': role,
       'dob': dob,
+      'phoneVerified': phoneVerified,
       'consent': consent,
       'language': language,
       'courseIds': courseIds,
@@ -76,6 +83,7 @@ class UserModel {
     String? profileImage,
     String? role,
     String? dob,
+    bool? phoneVerified,
     Map<String, dynamic>? consent,
     String? language,
     List<String>? courseIds,
@@ -90,12 +98,16 @@ class UserModel {
       profileImage: profileImage ?? this.profileImage,
       role: role ?? this.role,
       dob: dob ?? this.dob,
+      phoneVerified: phoneVerified ?? this.phoneVerified,
       consent: consent ?? this.consent,
       language: language ?? this.language,
       courseIds: courseIds ?? this.courseIds,
       token: token ?? this.token,
     );
   }
+
+  /// Whether the account has a date of birth, which sign-in needs.
+  bool get hasDob => (dob ?? '').trim().isNotEmpty;
 
   /// Resolves local development upload paths against the configured API host.
   String? get profileImageUrl {

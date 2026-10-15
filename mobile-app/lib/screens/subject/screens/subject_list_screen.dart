@@ -14,7 +14,13 @@ import '../../../widgets/common/circle_icon_action.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../../widgets/common/gradient_card.dart';
 import '../../../widgets/common/section_header.dart';
+import '../../auth/provider/auth_provider.dart';
 import '../../common/widgets/home_theme_scope.dart';
+import '../../../services/course_service.dart';
+import '../../course/model/course_lesson_summary.dart';
+import '../../course/screens/course_screen.dart';
+import '../../course_selection/model/needs_course_choice.dart';
+import '../../course_selection/widgets/choose_courses_prompt.dart';
 import 'subject_videos_screen.dart';
 import '../../video/provider/video_provider.dart';
 import '../../../widgets/common/offline_notice.dart';
@@ -101,6 +107,25 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
             );
           }
 
+          if (needsCourseChoice(
+            courseIds:
+                context.watch<AuthProvider>().user?.courseIds ??
+                const <String>[],
+            listsEmpty: subjectProvider.subjects.isEmpty,
+          )) {
+            return Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppTheme.paddingLarge),
+                child: ChooseCoursesPrompt(
+                  onSaved: () {
+                    subjectProvider.refresh();
+                    videoProvider.refresh();
+                  },
+                ),
+              ),
+            );
+          }
+
           if (subjectProvider.subjects.isEmpty) {
             return Center(
               child: Padding(
@@ -164,9 +189,20 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
                           index: groupIndex,
                           child: SectionHeader(
                             title: '${group.course.title} Course',
-                            subtitle:
-                                '${group.subjects.length} Chapter'
-                                '${group.subjects.length == 1 ? '' : 's'}',
+                            subtitle: CourseLessonSummary.from(
+                              group.subjects.map(
+                                (subject) => videoProvider.chapterProgressFor(
+                                  subject.id,
+                                ),
+                              ),
+                            ).subtitle,
+                            // The loose-subjects bucket is not a course.
+                            actionLabel: group.course.id.isEmpty
+                                ? null
+                                : 'Open',
+                            onAction: group.course.id.isEmpty
+                                ? null
+                                : () => _openCourse(group.course),
                           ),
                         ),
                       ),
@@ -229,6 +265,16 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
     showSearch<void>(
       context: context,
       delegate: SubjectSearchDelegate(onSelected: _navigateToSubjectVideos),
+    );
+  }
+
+  void _openCourse(CourseModel course) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            HomeThemeScope(child: CourseScreen(course: course)),
+      ),
     );
   }
 

@@ -57,7 +57,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Lesson Mastery'), findsOneWidget);
-    expect(find.text('3 of 4 started lessons complete'), findsOneWidget);
+    expect(find.text('3 of 4 lessons complete'), findsOneWidget);
     expect(find.text('Foundation course'), findsOneWidget);
     expect(find.text('Chapters'), findsOneWidget);
     expect(find.text('Recent Activity'), findsOneWidget);

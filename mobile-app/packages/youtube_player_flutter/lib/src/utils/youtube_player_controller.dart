@@ -249,7 +249,38 @@ class YoutubePlayerController extends ValueNotifier<YoutubePlayerValue> {
   void seekTo(Duration position, {bool allowSeekAhead = true}) {
     _callMethod('seekTo(${position.inMilliseconds / 1000},$allowSeekAhead)');
     play();
+    holdPositionAt(position);
     updateValue(value.copyWith(position: position));
+  }
+
+  /// Where the last seek was aimed, until the player reports a time near it.
+  /// Until the new spot loads the player keeps reporting the old one, which
+  /// would pull the progress bar back there.
+  Duration? _seekTarget;
+  DateTime _seekStartedAt = DateTime.now();
+
+  /// How long a seek may take to land before the player's reports are trusted
+  /// again anyway.
+  static const _seekHoldLimit = Duration(seconds: 10);
+
+  /// Keeps showing [target] until the player reports reaching it. [seekTo]
+  /// does this itself; call it after seeking through the page directly.
+  void holdPositionAt(Duration target) {
+    if (!value.isReady) return;
+    _seekTarget = target;
+    _seekStartedAt = DateTime.now();
+  }
+
+  /// Whether a time reported by the player should be shown, rather than
+  /// ignored as a leftover from before the last seek.
+  bool acceptsReportedPosition(Duration reported) {
+    final target = _seekTarget;
+    if (target == null) return true;
+    final landed = (reported - target).abs() <= const Duration(seconds: 1);
+    final timedOut = DateTime.now().difference(_seekStartedAt) > _seekHoldLimit;
+    if (!landed && !timedOut) return false;
+    _seekTarget = null;
+    return true;
   }
 
   /// Sets the size in pixels of the player.

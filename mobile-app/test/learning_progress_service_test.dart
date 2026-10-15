@@ -70,4 +70,44 @@ void main() {
     expect(data.activities, isEmpty);
     expect(data.stats, isNull);
   });
+
+  test(
+    'marked assignments join the quizzes in recent activity, newest first',
+    () {
+      final data = LearningProgressData.fromJson(
+        {
+          'quizAttempts': [
+            {
+              'title': 'Checkpoint',
+              'score': 4,
+              'totalQuestions': 5,
+              'percentage': 80,
+              'createdAt': '2026-10-08T10:00:00Z',
+            },
+          ],
+        },
+        null,
+        assignmentActivities: [
+          ProgressActivity(
+            kind: 'assignment',
+            title: 'Steps of wudu',
+            score: 82,
+            totalQuestions: 100,
+            percentage: 82,
+            createdAt: DateTime.parse('2026-10-12T10:00:00Z'),
+            detail: '82/100 points - 82%',
+          ),
+        ],
+      );
+
+      expect(data.activities.map((a) => a.title), [
+        'Steps of wudu',
+        'Checkpoint',
+      ]);
+      expect(data.activities.first.isAssignment, isTrue);
+      expect(data.activities.first.detail, '82/100 points - 82%');
+      expect(data.activities.last.isAssignment, isFalse);
+      expect(data.activities.last.detail, isNull);
+    },
+  );
 }

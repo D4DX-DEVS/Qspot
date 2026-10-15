@@ -209,11 +209,17 @@ class _RawYoutubePlayerState extends State<RawYoutubePlayer>
             ..addJavaScriptHandler(
               handlerName: 'VideoTime',
               callback: (args) {
-                final position = args.first * 1000;
+                final position = Duration(
+                  milliseconds: (args.first * 1000).floor(),
+                );
                 final num buffered = args.last;
                 controller!.updateValue(
                   controller!.value.copyWith(
-                    position: Duration(milliseconds: position.floor()),
+                    // Right after a seek the player still reports the old
+                    // spot; keep showing the seek target until it catches up.
+                    position: controller!.acceptsReportedPosition(position)
+                        ? position
+                        : null,
                     buffered: buffered.toDouble(),
                   ),
                 );

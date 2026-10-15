@@ -6,9 +6,25 @@ import '../screens/auth/screens/login_screen.dart';
 import '../screens/bookmark/provider/bookmark_provider.dart';
 import '../screens/notification/provider/notification_provider.dart';
 import '../screens/quiz/provider/quiz_provider.dart';
+import '../screens/quiz/widgets/quiz_logout_warning_dialog.dart';
 import '../screens/schedule/provider/schedule_provider.dart';
 import '../screens/schedule/service/alarm_service.dart';
 import '../screens/video/provider/video_provider.dart';
+import '../widgets/common/logout_confirm_dialog.dart';
+
+/// Asks before logging out. With quiz answers on this phone that never reached
+/// the server, it warns that logging out deletes them; otherwise it asks the
+/// usual "Are you sure?". Resolves to true when the student goes ahead.
+Future<bool> confirmLogout(BuildContext context) async {
+  final unsent = await Provider.of<QuizProvider>(
+    context,
+    listen: false,
+  ).unsentQuizCount();
+  if (!context.mounted) return false;
+  return unsent > 0
+      ? QuizLogoutWarningDialog.show(context, unsent)
+      : showLogoutConfirmDialog(context);
+}
 
 /// Logs the current user out: clears every provider/service that caches
 /// per-account data (video progress, bookmarks, quiz state, notification
@@ -37,6 +53,9 @@ Future<void> performLogout(BuildContext context) async {
 
   videoProvider.clear();
   bookmarkProvider.clear();
+  // Saved quiz answers belong to this student only; the warning in
+  // [confirmLogout] told them about any that were never sent.
+  await quizProvider.deleteSavedQuizzes();
   quizProvider.clear();
   await notificationProvider.clear();
   scheduleProvider.clear();
