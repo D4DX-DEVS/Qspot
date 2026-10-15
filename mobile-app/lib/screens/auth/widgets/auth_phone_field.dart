@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../widgets/common/country_code_prefix.dart';
 import 'auth_text_field.dart';
@@ -9,7 +10,7 @@ class AuthPhoneField extends StatelessWidget {
   const AuthPhoneField({
     super.key,
     required this.controller,
-    this.hint = 'Enter your phone number',
+    this.hint = 'Enter Your Phone Number',
     this.showPhoneIcon = false,
   });
 
@@ -33,7 +34,7 @@ class AuthPhoneField extends StatelessWidget {
           if (showPhoneIcon)
             const Padding(
               padding: EdgeInsets.only(left: 16),
-              child: Icon(Icons.phone_outlined, size: 22),
+              child: Icon(LucideIcons.phone, size: 22),
             ),
           CountryCodePrefix(leftPadding: showPhoneIcon ? 12 : 18),
         ],

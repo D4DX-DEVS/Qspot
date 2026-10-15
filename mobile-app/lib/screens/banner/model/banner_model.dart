@@ -1,18 +1,27 @@
 class BannerModel {
   final String id;
   final String image;
+  final String? title;
+  final String? type;
 
-  BannerModel({required this.id, required this.image});
+  BannerModel({required this.id, required this.image, this.title, this.type});
 
   factory BannerModel.fromJson(Map<String, dynamic> json) {
     return BannerModel(
       id: (json['_id'] ?? json['id'])?.toString() ?? '0',
       image: json['image']?.toString() ?? '',
+      title: json['title']?.toString(),
+      type: json['type']?.toString(),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'id': id, 'image': image};
+    return {
+      'id': id,
+      'image': image,
+      if (title != null) 'title': title,
+      if (type != null) 'type': type,
+    };
   }
 
   // Return the image URL only if it's already a full URL from the API.

@@ -28,6 +28,60 @@ void main() {
     expect(item.grade, '9');
   });
 
+  test('reads the course and chapter a teacher linked it to', () {
+    final linkedAsRecords = AssignmentModel.fromJson({
+      '_id': 'a1',
+      'title': 'Linked',
+      'courseId': {'_id': 'c1', 'title': 'Tajweed'},
+      'subjectId': {'_id': 's1', 'name': 'Letters'},
+    });
+    final linkedAsIds = AssignmentModel.fromJson({
+      '_id': 'a2',
+      'title': 'Linked by id',
+      'courseId': 'c2',
+      'subjectId': 's2',
+    });
+    final unlinked = AssignmentModel.fromJson({
+      '_id': 'a3',
+      'title': 'Unlinked',
+      'courseId': null,
+    });
+
+    expect(linkedAsRecords.courseId, 'c1');
+    expect(linkedAsRecords.subjectId, 's1');
+    expect(linkedAsIds.courseId, 'c2');
+    expect(linkedAsIds.subjectId, 's2');
+    expect(unlinked.courseId, isNull);
+    expect(unlinked.subjectId, isNull);
+  });
+
+  test('reads what it is marked out of and the teacher mark', () {
+    final marked = AssignmentModel.fromJson({
+      '_id': 'a1',
+      'title': 'Marked',
+      'maxPoints': 20,
+      'submission': {
+        'status': 'graded',
+        'grade': 15,
+        'gradedAt': '2026-10-12T09:00:00Z',
+      },
+    });
+    final waiting = AssignmentModel.fromJson({
+      '_id': 'a2',
+      'title': 'Waiting',
+      'submission': {'status': 'submitted'},
+    });
+
+    expect(marked.maxPoints, 20);
+    expect(marked.gradePoints, 15);
+    expect(marked.isGraded, isTrue);
+    expect(marked.gradedAt, DateTime.parse('2026-10-12T09:00:00Z'));
+    // No total given means 100, and no mark means not graded yet.
+    expect(waiting.maxPoints, 100);
+    expect(waiting.isGraded, isFalse);
+    expect(waiting.gradedAt, isNull);
+  });
+
   test('list parser accepts wrapped responses and skips malformed rows', () {
     final items = AssignmentService.parseList({
       'data': {

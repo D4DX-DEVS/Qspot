@@ -1,15 +1,30 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../../services/api_client.dart';
+import '../../../services/quiz_submission_service.dart';
+import '../../../themes/accent_tone.dart';
 import '../../../themes/app_colors.dart';
+import '../../../themes/home_palette.dart';
+import '../../../widgets/animation/animated_progress_bar.dart';
+import '../../../widgets/animation/fade_on_change.dart';
+import '../../../widgets/animation/pop_on_change.dart';
+import '../../../widgets/animation/pressable_scale.dart';
 import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/offline_notice.dart';
+import '../../../widgets/common/state_message_view.dart';
+import '../../../widgets/common/tone_chip.dart';
+import '../../common/widgets/home_theme_scope.dart';
 import '../provider/quiz_provider.dart';
+import '../provider/quiz_question_screen_provider.dart';
+import '../widgets/quiz_submit_failed_dialog.dart';
+import '../widgets/quiz_too_late_dialog.dart';
 import 'quiz_results_screen.dart';
 
 /// Shows the active quiz session, one question at a time. The display
@@ -24,16 +39,47 @@ class QuizQuestionScreen extends StatefulWidget {
   State<QuizQuestionScreen> createState() => _QuizQuestionScreenState();
 }
 
-class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
-  bool _submitting = false;
+class _QuizQuestionScreenState extends State<QuizQuestionScreen>
+    with WidgetsBindingObserver {
+  // Each number dot is [_dotSize] wide with [_dotGap] margin on both sides.
+  static const double _dotSize = 32;
+  static const double _dotGap = 4;
+
+  final QuizQuestionScreenProvider _q = QuizQuestionScreenProvider();
+  final ScrollController _dotsController = ScrollController();
+  late QuizProvider _quizProvider;
   Timer? _timer;
-  int? _remainingSeconds;
-  bool _timerStarted = false;
+  int? _dotsScrolledFor;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  /// In the background the question on screen stops counting as "time on
+  /// screen", but every countdown keeps running; coming back re-reads them at
+  /// once, so a deadline that passed meanwhile is acted on straight away.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      _quizProvider.pauseVisit();
+    } else if (state == AppLifecycleState.resumed) {
+      _quizProvider.resumeVisit();
+      if (_q.timerStarted) {
+        // A question reached in the background starts its clock only now.
+        _q.setQuestionDeadline(_quizProvider.questionDeadline);
+        _onTick(_quizProvider);
+      }
+    }
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_timerStarted) {
+    _quizProvider = context.read<QuizProvider>();
+    if (!_q.timerStarted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _startTimerIfConfigured(context.read<QuizProvider>());
       });
@@ -42,50 +88,100 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
+    _q.dispose();
+    _dotsController.dispose();
+    // Leaving mid-quiz: the question on screen stops counting time.
+    _quizProvider.pauseVisit();
+    // The session is over once this screen goes (submitted, timed out or
+    // left). Deferred: listeners can't be notified while the tree is being
+    // torn down.
+    Future.microtask(_quizProvider.resetSession);
     super.dispose();
   }
 
   void _startTimerIfConfigured(QuizProvider quizProvider) {
-    if (_timerStarted || !quizProvider.isQuizActive) return;
-    final mode = quizProvider.timerMode;
-    final overall = mode == 'overall' || mode == 'both'
-        ? quizProvider.overallTimeLimit
-        : null;
-    final perQuestion = mode == 'per-question' || mode == 'both'
-        ? quizProvider.perQuestionTimeLimit
-        : null;
-    final initial = overall ?? perQuestion;
-    if (initial == null || initial <= 0) return;
-    _timerStarted = true;
-    _remainingSeconds = initial;
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted || _remainingSeconds == null) return;
-      if (_remainingSeconds! <= 1) {
-        _timer?.cancel();
-        setState(() => _remainingSeconds = 0);
-        _submit(quizProvider);
-      } else {
-        setState(() => _remainingSeconds = _remainingSeconds! - 1);
-      }
+    if (_q.timerStarted || !quizProvider.isQuizActive) return;
+    final overall = quizProvider.overallDeadline;
+    final question = quizProvider.questionDeadline;
+    final closing = quizProvider.closingDeadline;
+    if (overall == null && question == null && closing == null) return;
+    _q.startTimers(
+      overallDeadline: overall,
+      questionDeadline: question,
+      closingDeadline: closing,
+    );
+    _timer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _onTick(quizProvider),
+    );
+    // Reopened after a deadline passed (app closed, reinstalled): act on it
+    // now instead of showing the expired question for another second.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _onTick(quizProvider);
     });
   }
 
-  void _resetPerQuestionTimer(QuizProvider quizProvider) {
-    if (!_timerStarted || quizProvider.timerMode == 'overall') return;
-    final perQuestion = quizProvider.perQuestionTimeLimit;
-    if (perQuestion != null && perQuestion > 0) {
-      setState(() => _remainingSeconds = perQuestion);
+  void _onTick(QuizProvider quizProvider) {
+    // Paused while a submit is in flight, so it can't fire a second one.
+    if (!mounted || _q.submitting) return;
+    switch (_q.tick()) {
+      // The quiz's time is up, or it closed at its end time: submit now.
+      case QuizTimerExpiry.overall || QuizTimerExpiry.closing:
+        _submit(quizProvider);
+      case QuizTimerExpiry.question:
+        // Time's up for this question: it is skipped as timed out, keeping
+        // an answer picked in time, and the next one starts its own clock;
+        // after the last one the quiz is submitted.
+        if (quizProvider.timeOutCurrentQuestion()) {
+          _q.setQuestionDeadline(quizProvider.questionDeadline);
+        } else {
+          _submit(quizProvider);
+        }
+      case QuizTimerExpiry.none:
+        break;
     }
   }
 
-  String _timerLabel() {
-    final seconds = _remainingSeconds ?? 0;
-    return '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
+  /// Brings the current question's number dot into view (centred) when it
+  /// sits outside the visible part of the strip. Runs once per question
+  /// change, so timer rebuilds don't undo a manual scroll of the strip.
+  void _revealCurrentDot(int index) {
+    if (_dotsScrolledFor == index) return;
+    _dotsScrolledFor = index;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_dotsController.hasClients) return;
+      final position = _dotsController.position;
+      const extent = _dotSize + _dotGap * 2;
+      final start = AppTheme.paddingMedium + index * extent;
+      final end = start + extent;
+      final visibleEnd = position.pixels + position.viewportDimension;
+      if (start >= position.pixels && end <= visibleEnd) return;
+      final target = (start + extent / 2 - position.viewportDimension / 2)
+          .clamp(position.minScrollExtent, position.maxScrollExtent);
+      _dotsController.animateTo(
+        target,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Burgundy home theme; the page reads colours from the context inside it.
+    return HomeThemeScope(
+      child: ChangeNotifierProvider.value(
+        value: _q,
+        child: Consumer<QuizQuestionScreenProvider>(
+          builder: (_, q, __) => _buildPage(q),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPage(QuizQuestionScreenProvider q) {
     return Consumer<QuizProvider>(
       builder: (context, quizProvider, child) {
         final locale = quizProvider.sessionLanguage;
@@ -93,7 +189,6 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
         _startTimerIfConfigured(quizProvider);
 
         return Scaffold(
-          backgroundColor: AppColors.background,
           appBar: CommonAppBar(
             title: totalQuestions > 0
                 ? 'Question ${quizProvider.currentQuestionIndex + 1} of $totalQuestions'
@@ -102,54 +197,18 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                 : 'Quiz',
           ),
           body: totalQuestions == 0
-              ? _buildEmptyState(context)
-              : _buildQuestionBody(context, quizProvider, locale),
+              // Guards the 0-questions case (an empty `questions` array in
+              // the payload) instead of leaving the user on an infinite
+              // spinner; the app bar's back arrow takes them out.
+              ? const StateMessageView(
+                  icon: LucideIcons.listChecks,
+                  title: 'No Questions Available',
+                  message:
+                      'This quiz has no questions right now. Please try again later.',
+                )
+              : _buildQuestionBody(context, quizProvider, locale, q),
         );
       },
-    );
-  }
-
-  /// Guards the 0-questions case (an empty `questions` array in the
-  /// payload) instead of leaving the user on an infinite spinner.
-  Widget _buildEmptyState(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.paddingLarge),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.quiz_outlined,
-              size: 64,
-              color: AppColors.textMuted,
-            ),
-            const SizedBox(height: AppTheme.paddingMedium),
-            Text(
-              'No questions available',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(color: AppColors.textPrimary),
-            ),
-            const SizedBox(height: AppTheme.paddingSmall),
-            Text(
-              'This quiz has no questions right now. Please try again later.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppTheme.paddingLarge),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.onPrimary,
-              ),
-              child: const Text('Go Back'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -157,12 +216,12 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
     BuildContext context,
     QuizProvider quizProvider,
     String locale,
+    QuizQuestionScreenProvider q,
   ) {
+    final p = HomePalette.of(context);
     final question = quizProvider.currentQuestion;
     if (question == null) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
+      return Center(child: CircularProgressIndicator(color: p.brand));
     }
 
     final selectedAnswer = quizProvider.getSelectedAnswer(question.id);
@@ -173,297 +232,377 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
 
     return Column(
       children: [
-        Container(
+        if (quizProvider.openedFromDevice)
+          const OfflineNotice(
+            message:
+                "You're offline. Your answers are being saved on this phone "
+                'and will be sent when you submit with a connection.',
+          ),
+        Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.paddingMedium,
+            horizontal: AppTheme.contentInset,
             vertical: AppTheme.paddingSmall,
           ),
-          child: LinearProgressIndicator(
+          child: AnimatedProgressBar(
             value: (currentIndex + 1) / totalQuestions,
-            backgroundColor: AppColors.surfaceAlt,
-            valueColor: const AlwaysStoppedAnimation<Color>(
-              AppColors.primary,
-            ),
+            backgroundColor: p.brandSoft,
+            color: p.brand,
             minHeight: 4,
           ),
         ),
-        if (_remainingSeconds != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: _remainingSeconds! <= 10
-                      ? AppColors.danger.withValues(alpha: 0.12)
-                      : AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  child: Text(
-                    'Time ${_timerLabel()}',
-                    style: AppFonts.bold(
-                      color: _remainingSeconds! <= 10
-                          ? AppColors.danger
-                          : AppColors.primary,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+        if (q.overallRemaining != null ||
+            q.questionRemaining != null ||
+            q.closingWarning != null)
+          _timerChips(p, q),
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppTheme.paddingMedium),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _difficultyColor(
-                      question.difficulty,
-                    ).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: _difficultyColor(question.difficulty),
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    question.difficulty.toUpperCase(),
+          child: FadeOnChange(
+            trigger: question.id,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppTheme.contentInset),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _difficultyChip(p, question.difficulty),
+                  const SizedBox(height: AppTheme.paddingLarge),
+                  Text(
+                    questionText,
                     style: AppFonts.bold(
-                      color: _difficultyColor(question.difficulty),
-                      fontSize: 12,
+                      color: p.text,
+                      fontSize: 20,
+                      height: 1.4,
                     ),
                   ),
-                ),
-                const SizedBox(height: AppTheme.paddingLarge),
-                Text(
-                  questionText,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: AppTheme.paddingLarge * 2),
-                ...options.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final option = entry.value;
-                  final isSelected = selectedAnswer == index;
-
-                  return Padding(
-                    padding: const EdgeInsets.only(
-                      bottom: AppTheme.paddingMedium,
-                    ),
-                    child: InkWell(
-                      onTap: () => quizProvider.selectAnswer(index),
-                      borderRadius: BorderRadius.circular(
-                        AppTheme.radiusMedium,
+                  const SizedBox(height: AppTheme.sectionGap),
+                  for (final (index, option) in options.indexed)
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppTheme.paddingMedium,
                       ),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(AppTheme.paddingMedium),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.primary
-                              : AppColors.background,
-                          borderRadius: BorderRadius.circular(
-                            AppTheme.radiusMedium,
-                          ),
-                          border: Border.all(
-                            color: isSelected
-                                ? AppColors.primary
-                                : AppColors.border,
-                            width: isSelected ? 2 : 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 24,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : AppColors.surfaceAlt,
-                              ),
-                              child: isSelected
-                                  ? const Icon(
-                                      Icons.check,
-                                      size: 16,
-                                      color: AppColors.onPrimary,
-                                    )
-                                  : null,
-                            ),
-                            const SizedBox(width: AppTheme.paddingMedium),
-                            Expanded(
-                              child: Text(
-                                option,
-                                style: Theme.of(context).textTheme.bodyLarge
-                                    ?.copyWith(
-                                      color: isSelected
-                                          ? AppColors.onPrimary
-                                          : AppColors.textPrimary,
-                                      fontWeight: isSelected
-                                          ? FontWeight.w600
-                                          : FontWeight.normal,
-                                    ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      child: _optionTile(
+                        p,
+                        option: option,
+                        isSelected: selectedAnswer == index,
+                        popKey: ValueKey('${question.id}-$index'),
+                        onTap: () => quizProvider.selectAnswer(index),
                       ),
                     ),
-                  );
-                }),
-              ],
+                ],
+              ),
             ),
           ),
         ),
-        Container(
-          padding: const EdgeInsets.all(AppTheme.paddingMedium),
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            border: const Border(top: BorderSide(color: AppColors.border)),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.black.withValues(alpha: 0.06),
-                blurRadius: 10,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              ElevatedButton.icon(
-                onPressed: quizProvider.hasPreviousQuestion
-                    ? () => quizProvider.previousQuestion()
-                    : null,
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Previous'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.background,
-                  foregroundColor: AppColors.primary,
-                  side: const BorderSide(color: AppColors.border),
-                ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppTheme.paddingMedium,
-                  ),
-                  child: Row(
-                    children: List.generate(totalQuestions, (index) {
-                      final qId = quizProvider.sessionQuestions[index].id;
-                      final answered =
-                          quizProvider.getSelectedAnswer(qId) != null;
-                      return GestureDetector(
-                        onTap: () => quizProvider.goToQuestion(index),
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: index == currentIndex
-                                ? AppColors.primary
-                                : answered
-                                ? AppColors.primarySoft
-                                : AppColors.surfaceAlt,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${index + 1}',
-                              style: AppFonts.bold(
-                                color: index == currentIndex
-                                    ? AppColors.onPrimary
-                                    : answered
-                                    ? AppColors.primary
-                                    : AppColors.textMuted,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-              ),
-              ElevatedButton.icon(
-                onPressed: _submitting
-                    ? null
-                    : () {
-                        if (quizProvider.hasNextQuestion) {
-                          quizProvider.nextQuestion();
-                          _resetPerQuestionTimer(quizProvider);
-                        } else {
-                          _showSubmitDialog(context, quizProvider);
-                        }
-                      },
-                icon: Icon(
-                  quizProvider.hasNextQuestion
-                      ? Icons.arrow_forward
-                      : Icons.check,
-                ),
-                label: Text(quizProvider.hasNextQuestion ? 'Next' : 'Submit'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.onPrimary,
-                ),
-              ),
-            ],
-          ),
-        ),
+        _bottomBar(context, p, quizProvider, q, currentIndex, totalQuestions),
       ],
     );
   }
 
-  Color _difficultyColor(String difficulty) {
+  /// Countdown pills, right-aligned above the question: the whole-quiz time
+  /// and/or this question's time. Each turns to the warning tone in its last
+  /// ten seconds.
+  Widget _timerChips(HomePalette p, QuizQuestionScreenProvider q) {
+    final overall = q.overallRemaining;
+    final question = q.questionRemaining;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.contentInset,
+        4,
+        AppTheme.contentInset,
+        0,
+      ),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: Wrap(
+          alignment: WrapAlignment.end,
+          spacing: AppTheme.paddingSmall,
+          runSpacing: 4,
+          children: [
+            if (overall != null) _timerChip(p, 'Time', overall),
+            if (q.closingWarning != null)
+              _timerChip(p, 'Closes in', q.closingWarning!),
+            if (question != null) _timerChip(p, 'This question', question),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _timerChip(HomePalette p, String label, int seconds) => ToneChip(
+    label: '$label ${QuizQuestionScreenProvider.timerLabel(seconds)}',
+    tone: seconds <= 10 ? p.coral : p.rose,
+  );
+
+  Widget _difficultyChip(HomePalette p, String difficulty) {
+    final tone = _difficultyTone(p, difficulty);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: tone.soft,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: tone.color.withValues(alpha: 0.5)),
+      ),
+      child: Text(
+        difficulty.toUpperCase(),
+        style: AppFonts.bold(color: tone.color, fontSize: 12),
+      ),
+    );
+  }
+
+  Widget _optionTile(
+    HomePalette p, {
+    required String option,
+    required bool isSelected,
+    required Key popKey,
+    required VoidCallback onTap,
+  }) {
+    return PressableScale(
+      child: Material(
+        color: isSelected ? p.brand : p.card,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+          side: BorderSide(
+            color: isSelected ? p.brand : p.cardBorder,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppTheme.paddingMedium),
+            child: Row(
+              children: [
+                PopOnChange(
+                  key: popKey,
+                  active: isSelected,
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isSelected ? AppColors.white24 : p.brandSoft,
+                      border: Border.all(
+                        color: isSelected ? AppColors.white : p.cardBorder,
+                      ),
+                    ),
+                    child: isSelected
+                        ? const Icon(
+                            LucideIcons.check,
+                            size: 15,
+                            color: AppColors.white,
+                          )
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: AppTheme.paddingMedium),
+                Expanded(
+                  child: Text(
+                    option,
+                    style: isSelected
+                        ? AppFonts.semiBold(
+                            color: AppColors.white,
+                            fontSize: 16,
+                          )
+                        : AppFonts.regular(color: p.text, fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _bottomBar(
+    BuildContext context,
+    HomePalette p,
+    QuizProvider quizProvider,
+    QuizQuestionScreenProvider q,
+    int currentIndex,
+    int totalQuestions,
+  ) {
+    _revealCurrentDot(currentIndex);
+    // A per-question timer makes the quiz one-way: no Previous and no
+    // jumping between numbers (jumping ahead would skip questions for good).
+    final freeNavigation = !quizProvider.hasPerQuestionTimer;
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        AppTheme.paddingMedium,
+        AppTheme.paddingMedium,
+        AppTheme.paddingMedium,
+        AppTheme.paddingMedium + MediaQuery.paddingOf(context).bottom,
+      ),
+      decoration: BoxDecoration(
+        color: p.background,
+        border: Border(top: BorderSide(color: p.cardBorder)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: p.isDark ? 0.3 : 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          if (freeNavigation)
+            PressableScale(
+              enabled: quizProvider.hasPreviousQuestion,
+              child: ElevatedButton(
+                onPressed: quizProvider.hasPreviousQuestion
+                    ? () => quizProvider.previousQuestion()
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: p.card,
+                  foregroundColor: p.brand,
+                  side: BorderSide(color: p.cardBorder),
+                  padding: const EdgeInsets.all(12),
+                  minimumSize: const Size.square(48),
+                ),
+                child: const Icon(
+                  LucideIcons.arrowLeft,
+                  semanticLabel: 'Previous',
+                ),
+              ),
+            ),
+          Expanded(
+            child: SingleChildScrollView(
+              controller: _dotsController,
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.paddingMedium,
+              ),
+              child: Row(
+                children: List.generate(totalQuestions, (index) {
+                  final qId = quizProvider.sessionQuestions[index].id;
+                  final answered = quizProvider.getSelectedAnswer(qId) != null;
+                  return _questionDot(
+                    p,
+                    number: index + 1,
+                    isCurrent: index == currentIndex,
+                    answered: answered,
+                    onTap: freeNavigation
+                        ? () => quizProvider.goToQuestion(index)
+                        : null,
+                  );
+                }),
+              ),
+            ),
+          ),
+          PressableScale(
+            enabled: !q.submitting,
+            child: ElevatedButton(
+              onPressed: q.submitting
+                  ? null
+                  : () {
+                      if (quizProvider.hasNextQuestion) {
+                        quizProvider.nextQuestion();
+                        _q.setQuestionDeadline(quizProvider.questionDeadline);
+                      } else {
+                        _showSubmitDialog(context, quizProvider);
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: p.brand,
+                foregroundColor: AppColors.white,
+                padding: const EdgeInsets.all(12),
+                minimumSize: const Size.square(48),
+              ),
+              child: Icon(
+                quizProvider.hasNextQuestion
+                    ? LucideIcons.arrowRight
+                    : LucideIcons.check,
+                semanticLabel: quizProvider.hasNextQuestion ? 'Next' : 'Submit',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _questionDot(
+    HomePalette p, {
+    required int number,
+    required bool isCurrent,
+    required bool answered,
+    required VoidCallback? onTap,
+  }) {
+    return PressableScale(
+      enabled: onTap != null,
+      pressedScale: 0.88,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: _dotSize,
+          height: _dotSize,
+          margin: const EdgeInsets.symmetric(horizontal: _dotGap),
+          decoration: BoxDecoration(
+            color: isCurrent
+                ? p.brand
+                : answered
+                ? p.brandSoft
+                : p.cardBorder,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              '$number',
+              style: AppFonts.bold(
+                color: isCurrent
+                    ? AppColors.white
+                    : answered
+                    ? p.brand
+                    : p.textMuted,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  AccentTone _difficultyTone(HomePalette p, String difficulty) {
     switch (difficulty.toLowerCase()) {
       case 'easy':
-        return AppColors.success;
+        return p.mint;
       case 'medium':
-        return AppColors.warning;
+        return p.amber;
       case 'hard':
-        return AppColors.danger;
+        return p.coral;
       default:
-        return AppColors.textMuted;
+        return p.slate;
     }
   }
 
   void _showSubmitDialog(BuildContext context, QuizProvider quizProvider) {
+    final p = HomePalette.of(context);
     final answeredCount = quizProvider.answeredCount;
     final totalQuestions = quizProvider.totalQuestions;
 
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.background,
+        backgroundColor: p.card,
         title: Text(
           'Submit Quiz?',
-          style: AppFonts.medium(color: AppColors.textPrimary),
+          style: AppFonts.bold(color: p.text, fontSize: 18),
         ),
         content: Text(
           'You have answered $answeredCount out of $totalQuestions questions.\n\nDo you want to submit the quiz?',
-          style: AppFonts.regular(color: AppColors.textMuted),
+          style: AppFonts.regular(
+            color: p.textMuted,
+            fontSize: 14,
+            height: 1.5,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(
-              'Cancel',
-              style: AppFonts.medium(color: AppColors.textMuted),
-            ),
+            child: Text('Cancel', style: AppFonts.medium(color: p.textMuted)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -471,8 +610,8 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
               _submit(quizProvider);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.onPrimary,
+              backgroundColor: p.brand,
+              foregroundColor: AppColors.white,
             ),
             child: const Text('Submit'),
           ),
@@ -482,8 +621,15 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
   }
 
   Future<void> _submit(QuizProvider quizProvider) async {
-    setState(() => _submitting = true);
+    // The timer and the dialog can both trigger a submit; only the first
+    // one goes through.
+    if (_q.submitting) return;
+    _q.setSubmitting(true);
     final navigator = Navigator.of(context);
+    final route = ModalRoute.of(context)!;
+    // A timed-out submit can fire while the "Submit Quiz?" dialog is open.
+    // Close it so the results replace this screen, not the dialog.
+    navigator.popUntil((r) => r == route);
 
     try {
       final attempt = await quizProvider.submitQuiz();
@@ -495,27 +641,48 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
         MaterialPageRoute(
           builder: (_) => QuizResultsScreen.fromAttempt(
             attempt,
-            onDone: () =>
-                Navigator.of(navigator.context).popUntil((r) => r.isFirst),
+            // Back to the quiz list, same as the system back button.
+            onDone: () => navigator.pop(),
           ),
         ),
       );
+      // Stays "submitting" while this screen leaves, so the timer can't
+      // fire another submit during the transition.
     } on ApiException catch (e) {
       if (!mounted) return;
-      AppSnackBar.show(context, message: e.message, color: AppColors.danger);
-      if (e.status == 403) {
-        // Quiz is no longer live — route back to the quiz list.
-        navigator.pop();
+      if (!QuizSubmissionService.isDefiniteRejection(e)) {
+        await _offerRetry(quizProvider);
+        return;
       }
+      if (QuizSubmissionService.isTooLate(e)) {
+        final quizId = quizProvider.quizId;
+        await QuizTooLateDialog.show(context, endsAt: quizProvider.endsAt);
+        if (quizId != null) await quizProvider.dismissRefused(quizId);
+        if (mounted) navigator.pop();
+        return;
+      }
+      // Refused for good (switched off, changed, removed): back to the quiz
+      // list, where a notice says why.
+      AppSnackBar.show(context, message: e.message, color: AppColors.danger);
+      navigator.pop();
     } catch (e) {
       if (!mounted) return;
-      AppSnackBar.show(
-        context,
-        message: 'We couldn\'t submit your quiz. Please try again.',
-        color: AppColors.danger,
-      );
-    } finally {
-      if (mounted) setState(() => _submitting = false);
+      await _offerRetry(quizProvider);
+    }
+  }
+
+  /// No connection or a busy server: the answers are saved on the phone, so
+  /// the student chooses between trying again now and leaving them to be sent
+  /// automatically later. Stays in the "submitting" state meanwhile, so the
+  /// timer cannot start a second submit behind the dialog.
+  Future<void> _offerRetry(QuizProvider quizProvider) async {
+    final retry = await QuizSubmitFailedDialog.show(context);
+    if (!mounted) return;
+    if (retry) {
+      _q.setSubmitting(false);
+      await _submit(quizProvider);
+    } else {
+      Navigator.of(context).pop();
     }
   }
 }

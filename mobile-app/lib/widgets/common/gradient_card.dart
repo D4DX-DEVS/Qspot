@@ -9,6 +9,7 @@ class GradientCard extends StatelessWidget {
     super.key,
     required this.child,
     this.art,
+    this.backdrop,
     this.artSize = const Size(140, 120),
     this.padding = const EdgeInsets.all(20),
     this.minHeight = 0,
@@ -17,6 +18,9 @@ class GradientCard extends StatelessWidget {
 
   final Widget child;
   final Widget? art;
+
+  /// Fills the whole card behind everything else (e.g. a photo with a scrim).
+  final Widget? backdrop;
   final Size artSize;
   final EdgeInsetsGeometry padding;
   final double minHeight;
@@ -37,7 +41,9 @@ class GradientCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(radius),
         boxShadow: [
           BoxShadow(
-            color: palette.brand.withValues(alpha: palette.isDark ? 0.18 : 0.24),
+            color: palette.brand.withValues(
+              alpha: palette.isDark ? 0.18 : 0.24,
+            ),
             blurRadius: 22,
             offset: const Offset(0, 10),
           ),
@@ -45,6 +51,7 @@ class GradientCard extends StatelessWidget {
       ),
       child: Stack(
         children: [
+          if (backdrop != null) Positioned.fill(child: backdrop!),
           if (art != null)
             Positioned(
               right: 0,

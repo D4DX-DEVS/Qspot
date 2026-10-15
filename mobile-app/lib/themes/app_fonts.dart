@@ -9,7 +9,7 @@ class AppFonts {
   AppFonts._();
 
   /// Bundled from `assets/fonts` (see pubspec.yaml).
-  static const String family = 'Poppins';
+  static const String family = 'Manrope';
 
   /// Default body text (w400).
   static TextStyle regular({

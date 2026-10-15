@@ -6,6 +6,8 @@ const QuizQuestion = require('../models/quizQuestions');
 const QuizSession = require('../models/quizSession');
 const { authenticateAdmin, authenticateUser } = require('../middlewares/auth');
 const { recordLearningEvent } = require('../services/learningEvents');
+const { submissionWindow } = require('../services/quizWindow');
+const { assessTiming } = require('../services/quizTiming');
 
 const router = express.Router();
 
@@ -45,11 +47,31 @@ const buildResults = (attempt, questionMap) =>
             options_ml: optionsMl,
             attemptedAnswer: ans.attemptedAnswer,
             correctAnswer: q ? correctIndex(q, optionsEn) : -1,
-            isCorrect: Boolean(ans.isCorrect)
+            isCorrect: Boolean(ans.isCorrect),
+            status: ans.status || null,
+            duration: Number(ans.duration) || 0,
+            lateAnswer: ans.lateAnswer ?? null
         };
     });
 
-// POST /api/quizzes/attempt (user) - grades against the session's questionIds
+// The attempt as the app receives it: after grading (201) or on a repeat (409).
+const shapeAttempt = (attempt, config, questionMap) => ({
+    attemptId: attempt._id,
+    quizId: attempt.quizId,
+    title: config.title,
+    language: attempt.language || 'English',
+    score: attempt.score,
+    totalQuestions: attempt.totalQuestions,
+    percentage: attempt.percentage,
+    totalDuration: attempt.totalDuration,
+    createdAt: attempt.createdAt,
+    results: buildResults(attempt, questionMap)
+});
+
+// POST /api/quizzes/attempt (user) - grades against the session's questionIds.
+// Safe to repeat: the app retries a submission until it hears back, so a second
+// call for the same student + quiz never grades twice; it returns the saved
+// attempt with 409.
 router.post('/attempt', authenticateUser, async (req, res) => {
     try {
         const { quizId, language, answers, totalDuration } = req.body || {};
@@ -61,58 +83,67 @@ router.post('/attempt', authenticateUser, async (req, res) => {
             return res.status(400).json({ message: 'answers must be a non-empty array' });
         }
 
-        const config = await QuizConfig.findById(quizId);
+        const config = await QuizConfig.findById(quizId).lean();
         if (!config) {
-            return res.status(404).json({ message: 'Quiz not found' });
+            return res.status(404).json({ message: 'Quiz not found', code: 'QUIZ_NOT_FOUND' });
         }
 
-        const now = new Date();
-        if (!config.isEnable || !(now >= new Date(config.startDate) && now <= new Date(config.endDate))) {
-            return res.status(403).json({ message: 'Quiz is not live right now' });
-        }
+        const [existingAttempt, session] = await Promise.all([
+            Quiz.findOne({ userId: req.user.id, quizId }).lean(),
+            QuizSession.findOne({ userId: req.user.id, quizId }).lean()
+        ]);
 
-        const existingAttempt = await Quiz.findOne({ userId: req.user.id, quizId });
+        // Checked before the time window: a retry of a submission the server
+        // already saved must get its result back even after the quiz closed.
         if (existingAttempt) {
-            const questions = await QuizQuestion.find({ _id: { $in: existingAttempt.questionIds } });
+            const questions = await QuizQuestion.find({ _id: { $in: existingAttempt.questionIds } }).lean();
             const questionMap = new Map(questions.map((q) => [String(q._id), q]));
             return res.status(409).json({
                 message: 'Already attempted',
-                attempt: {
-                    attemptId: existingAttempt._id,
-                    quizId: existingAttempt.quizId,
-                    title: config.title,
-                    language: existingAttempt.language,
-                    score: existingAttempt.score,
-                    totalQuestions: existingAttempt.totalQuestions,
-                    percentage: existingAttempt.percentage,
-                    totalDuration: existingAttempt.totalDuration,
-                    createdAt: existingAttempt.createdAt,
-                    results: buildResults(existingAttempt, questionMap)
-                }
+                attempt: shapeAttempt(existingAttempt, config, questionMap)
             });
         }
 
-        const session = await QuizSession.findOne({ userId: req.user.id, quizId });
-        if (!session || session.questionIds.length === 0) {
-            return res.status(400).json({ message: 'No active quiz session. Fetch the questions first.' });
+        // A finished quiz still takes answers from a student who started it
+        // while it was live (the session proves that) for a short grace period.
+        const window = submissionWindow(config, new Date());
+        if (window === 'ended' && session) {
+            // Started in time, but the answers arrived after the grace period
+            // (e.g. sent when the phone came back online). The app shows a
+            // clear "too late" message for this code.
+            return res.status(403).json({
+                message: "This quiz has closed. Answers that arrive after it closes can't be marked.",
+                code: 'QUIZ_CLOSED',
+                endDate: config.endDate
+            });
+        }
+        if (window !== 'open' && !(window === 'grace' && session)) {
+            // The app tells the student why their answers were not taken.
+            return res.status(403).json({
+                message: 'Quiz is not live right now',
+                ...(config.isEnable ? {} : { code: 'QUIZ_DISABLED' })
+            });
         }
 
-        const questions = await QuizQuestion.find({ _id: { $in: session.questionIds } });
+        if (!session || session.questionIds.length === 0) {
+            return res.status(400).json({ message: 'No active quiz session. Fetch the questions first.', code: 'NO_SESSION' });
+        }
+
+        const questions = await QuizQuestion.find({ _id: { $in: session.questionIds } }).lean();
         const questionMap = new Map(questions.map((q) => [String(q._id), q]));
 
-        const gradedAnswers = [];
-        let score = 0;
-
+        // Resolve what the student picked for every served question first;
+        // the timing check below decides which of those answers still count.
+        const served = [];
         for (const questionId of session.questionIds) {
             const q = questionMap.get(String(questionId));
             if (!q) continue;
 
-            const submitted = answers.find((a) => String(a.questionId) === String(questionId));
+            const submitted = answers.find((a) => String(a?.questionId) === String(questionId));
             const optionsEn = readOptions(q.options_en);
             const expectedIndex = correctIndex(q, optionsEn);
 
             let attemptedIndex = null;
-            let isCorrect = false;
             if (submitted && submitted.attemptedAnswer !== undefined && submitted.attemptedAnswer !== null) {
                 const raw = submitted.attemptedAnswer;
                 if (typeof raw === 'number' || /^-?\d+$/.test(String(raw))) {
@@ -124,19 +155,41 @@ router.post('/attempt', authenticateUser, async (req, res) => {
                     if (idx < 0) idx = optionsMl.findIndex((o) => o.toLowerCase() === String(raw).trim().toLowerCase());
                     attemptedIndex = idx >= 0 ? idx : null;
                 }
-                isCorrect = attemptedIndex !== null && attemptedIndex === expectedIndex;
             }
-
-            if (isCorrect) score += 1;
-            gradedAnswers.push({
-                questionId,
-                attemptedAnswer: attemptedIndex,
-                isCorrect,
-                duration: Number(submitted?.duration) || 0
-            });
+            served.push({ questionId, submitted, attemptedIndex, expectedIndex });
         }
 
-        const totalQuestions = session.questionIds.length;
+        // Questions deleted since the session was saved are skipped above, so
+        // they must not count toward the total either.
+        if (served.length === 0) {
+            return res.status(400).json({ message: 'The questions in this quiz have changed. Please reopen it.', code: 'QUESTIONS_CHANGED' });
+        }
+
+        const timing = assessTiming({
+            config,
+            startedAt: session.startedAt,
+            receivedAt: new Date(),
+            totalDuration,
+            entries: served.map(({ submitted, attemptedIndex }) => ({ attemptedIndex, submitted }))
+        });
+
+        let score = 0;
+        const gradedAnswers = served.map(({ questionId, attemptedIndex, expectedIndex }, i) => {
+            const t = timing.answers[i];
+            // An answer given after the time ran out is not graded.
+            const counted = t.voided ? null : attemptedIndex;
+            const isCorrect = counted !== null && counted === expectedIndex;
+            if (isCorrect) score += 1;
+            return {
+                questionId,
+                attemptedAnswer: counted,
+                isCorrect,
+                duration: t.duration,
+                status: t.status,
+                lateAnswer: t.voided ? attemptedIndex : null
+            };
+        });
+        const totalQuestions = gradedAnswers.length;
         const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
 
         let attempt;
@@ -150,32 +203,34 @@ router.post('/attempt', authenticateUser, async (req, res) => {
                 score,
                 totalQuestions,
                 percentage,
-                totalDuration: Number(totalDuration) || 0
+                totalDuration: timing.totalDuration,
+                startedAt: session.startedAt || null
             });
         } catch (error) {
             if (error && error.code === 11000) {
-                return res.status(409).json({ message: 'Already attempted' });
+                // A retry raced the original request and the original won.
+                const saved = await Quiz.findOne({ userId: req.user.id, quizId }).lean();
+                return res.status(409).json({
+                    message: 'Already attempted',
+                    ...(saved ? { attempt: shapeAttempt(saved, config, questionMap) } : {})
+                });
             }
             throw error;
         }
 
-        await QuizSession.deleteOne({ userId: req.user.id, quizId });
-        await recordLearningEvent({ userId: req.user.id, type: 'quiz_completed', sourceType: 'quiz', sourceId: quizId, occurredAt: attempt.createdAt });
+        // The attempt is saved. These follow-up writes must not turn a stored
+        // submission into an error response (the app would retry for nothing).
+        const followUps = await Promise.allSettled([
+            QuizSession.deleteOne({ userId: req.user.id, quizId }),
+            recordLearningEvent({ userId: req.user.id, type: 'quiz_completed', sourceType: 'quiz', sourceId: quizId, occurredAt: attempt.createdAt })
+        ]);
+        followUps.forEach((result) => {
+            if (result.status === 'rejected') console.error('Quiz follow-up write failed:', result.reason);
+        });
 
         return res.status(201).json({
             message: 'Quiz attempt submitted',
-            attempt: {
-                attemptId: attempt._id,
-                quizId: attempt.quizId,
-                title: config.title,
-                language: attempt.language,
-                score: attempt.score,
-                totalQuestions: attempt.totalQuestions,
-                percentage: attempt.percentage,
-                totalDuration: attempt.totalDuration,
-                createdAt: attempt.createdAt,
-                results: buildResults(attempt, questionMap)
-            }
+            attempt: shapeAttempt(attempt, config, questionMap)
         });
     } catch (error) {
         console.error('Error submitting quiz attempt:', error);
@@ -232,6 +287,7 @@ router.get('/attempt/:attemptId', authenticateAdmin, async (req, res) => {
             percentage: Number(attempt.percentage) || 0,
             totalDuration: Number(attempt.totalDuration) || 0,
             createdAt: attempt.createdAt,
+            startedAt: attempt.startedAt || null,
             results: buildResults(attempt, questionMap)
         });
     } catch (error) {

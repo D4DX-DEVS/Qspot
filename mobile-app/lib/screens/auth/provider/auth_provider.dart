@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../model/user_model.dart';
 import '../service/auth_service.dart';
+import '../../../utils/user_friendly_error.dart';
 
 enum AuthState { initial, authenticated, unauthenticated, loading }
 
@@ -55,7 +56,33 @@ class AuthProvider with ChangeNotifier {
       return result;
     } catch (e) {
       debugPrint('❌ [AUTH PROVIDER] Request OTP error: $e');
-      _errorMessage = 'Failed to send OTP';
+      _errorMessage = 'We couldn’t send the code. ${userFriendlyError(e)}';
+      return {'success': false, 'message': _errorMessage};
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Sign in with phone number and date of birth ('YYYY-MM-DD').
+  Future<Map<String, dynamic>> login(String phone, String dob) async {
+    try {
+      _setLoading(true);
+      _errorMessage = null;
+
+      final result = await _authService.login(phone, dob);
+
+      if (result['success']) {
+        _user = result['user'];
+        _authState = AuthState.authenticated;
+        debugPrint('✅ [AUTH PROVIDER] User signed in');
+      } else {
+        _errorMessage = result['message'];
+      }
+
+      return result;
+    } catch (e) {
+      debugPrint('❌ [AUTH PROVIDER] Login error: $e');
+      _errorMessage = 'We couldn’t sign you in. ${userFriendlyError(e)}';
       return {'success': false, 'message': _errorMessage};
     } finally {
       _setLoading(false);
@@ -81,7 +108,7 @@ class AuthProvider with ChangeNotifier {
       return result;
     } catch (e) {
       debugPrint('❌ [AUTH PROVIDER] Verify OTP error: $e');
-      _errorMessage = 'Failed to verify OTP';
+      _errorMessage = 'We couldn’t verify that code. ${userFriendlyError(e)}';
       return {'success': false, 'message': _errorMessage};
     } finally {
       _setLoading(false);
@@ -92,14 +119,14 @@ class AuthProvider with ChangeNotifier {
   ///
   /// Registration never authenticates the app: the API returns no token
   /// for this call, so [_authState] is intentionally left untouched here.
-  /// The caller (registration screen) is expected to move on to the OTP
-  /// step for the same phone number on success.
+  /// The caller (registration screen) is expected to sign the new account in
+  /// with the same phone number and date of birth on success.
   Future<Map<String, dynamic>> register({
     required String phone,
     required String name,
     required String classNumber,
+    required String dob,
     String? email,
-    String? dob,
     Map<String, dynamic>? consent,
     List<String> courseIds = const [],
   }) async {
@@ -126,7 +153,8 @@ class AuthProvider with ChangeNotifier {
       return result;
     } catch (e) {
       debugPrint('❌ [AUTH PROVIDER] Register error: $e');
-      _errorMessage = 'Failed to register';
+      _errorMessage =
+          'We couldn’t create your account. ${userFriendlyError(e)}';
       return {'success': false, 'message': _errorMessage};
     } finally {
       _setLoading(false);

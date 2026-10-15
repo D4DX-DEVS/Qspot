@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
-import '../../../services/api_client.dart';
 import '../../../themes/app_colors.dart';
+import '../../../utils/user_friendly_error.dart';
+import '../../../widgets/animation/pressable_scale.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../themes/home_palette.dart';
+import '../../../widgets/common/info_note_card.dart';
+import '../../../widgets/common/soft_icon_tile.dart';
+import '../../auth/widgets/gradient_pill_button.dart';
+import '../../common/widgets/home_theme_scope.dart';
 import '../../speaker/provider/speaker_provider.dart';
-import '../model/question_model.dart';
+import '../provider/ask_question_screen_provider.dart';
 import '../../speaker/model/speaker_model.dart';
-import '../service/question_service.dart';
 import 'my_questions_screen.dart';
 
 class AskQuestionScreen extends StatefulWidget {
@@ -33,39 +40,64 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  SpeakerModel? _selectedFaculty;
-  bool _isSubmitting = false;
+  final AskQuestionScreenProvider _state = AskQuestionScreenProvider();
 
   @override
   void dispose() {
     _subjectController.dispose();
     _descriptionController.dispose();
+    _state.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.86,
+    // Burgundy home theme; the sheet reads colours from the context inside it.
+    return HomeThemeScope(
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.86,
+        // The sheet's own messenger shows snack bars on top of the sheet
+        // (and above the keyboard) instead of on the screen hidden behind it.
+        child: ScaffoldMessenger(
+          child: Scaffold(
+            backgroundColor: AppColors.transparent,
+            body: ChangeNotifierProvider.value(
+              value: _state,
+              child: Consumer<AskQuestionScreenProvider>(
+                builder: (context, state, _) => _buildPage(context, state),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPage(BuildContext context, AskQuestionScreenProvider state) {
+    final p = HomePalette.of(context);
+    OutlineInputBorder fieldBorder(Color color, [double width = 1]) {
+      return OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: color, width: width),
+      );
+    }
+
+    return SizedBox.expand(
       child: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.background,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: p.background,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: SafeArea(
           top: false,
           child: Column(
             children: [
-              _sheetHeader(context),
+              _sheetHeader(context, p),
               Expanded(
                 child: Consumer<SpeakerProvider>(
                   builder: (context, speakerProvider, child) {
                     if (speakerProvider.isLoading) {
-                      return const Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.primary,
-                        ),
-                      );
+                      return const Center(child: CircularProgressIndicator());
                     }
 
                     if (speakerProvider.speakers.isEmpty) {
@@ -75,23 +107,28 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
-                                Icons.people_outline,
-                                size: 64,
-                                color: AppColors.textMuted,
+                              SoftIconTile(
+                                icon: LucideIcons.users,
+                                tone: p.rose,
+                                size: 84,
+                                circle: true,
                               ),
                               const SizedBox(height: AppTheme.paddingMedium),
                               Text(
                                 'No Faculties Available',
-                                style: Theme.of(context).textTheme.headlineSmall
-                                    ?.copyWith(color: AppColors.textPrimary),
+                                style: AppFonts.bold(
+                                  color: p.text,
+                                  fontSize: 19,
+                                ),
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: AppTheme.paddingSmall),
                               Text(
                                 'Please check back later',
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(color: AppColors.textMuted),
+                                style: AppFonts.regular(
+                                  color: p.textMuted,
+                                  fontSize: 14,
+                                ),
                                 textAlign: TextAlign.center,
                               ),
                             ],
@@ -107,106 +144,79 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Info Card
-                            Container(
-                              padding: const EdgeInsets.all(
-                                AppTheme.paddingMedium,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primarySoft,
-                                borderRadius: BorderRadius.circular(
-                                  AppTheme.radiusMedium,
-                                ),
-                                border: Border.all(
-                                  color: AppColors.border,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.info_outline,
-                                    color: AppColors.primary,
-                                    size: 24,
-                                  ),
-                                  const SizedBox(width: AppTheme.paddingSmall),
-                                  Expanded(
-                                    child: Text(
-                                      'Ask questions to our faculties and get answers',
-                                      style: AppFonts.regular(
-                                        color: AppColors.textPrimary,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                            StaggeredEntrance(
+                              child: InfoNoteCard(
+                                icon: LucideIcons.info,
+                                tone: p.rose,
+                                message:
+                                    'Ask questions to our faculties and get answers',
                               ),
                             ),
 
                             const SizedBox(height: AppTheme.paddingLarge),
 
                             // Faculty Selection
-                            Text(
-                              'Select Faculty',
-                              style: AppFonts.semiBold(
-                                color: AppColors.textPrimary,
-                                fontSize: 16,
+                            StaggeredEntrance(
+                              index: 1,
+                              child: Text(
+                                'Select Faculty',
+                                style: AppFonts.semiBold(
+                                  color: p.text,
+                                  fontSize: 16,
+                                ),
                               ),
                             ),
                             const SizedBox(height: AppTheme.paddingSmall),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppTheme.paddingMedium,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.background,
-                                borderRadius: BorderRadius.circular(
-                                  AppTheme.radiusMedium,
+                            StaggeredEntrance(
+                              index: 1,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppTheme.paddingMedium,
                                 ),
-                                border: Border.all(
-                                  color: AppColors.border,
-                                  width: 1,
+                                decoration: BoxDecoration(
+                                  color: p.card,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: p.cardBorder),
                                 ),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<SpeakerModel>(
-                                  isExpanded: true,
-                                  value: _selectedFaculty,
-                                  hint: Text(
-                                    'Choose a faculty',
-                                    style: AppFonts.regular(
-                                      color: AppColors.textMuted,
-                                    ),
-                                  ),
-                                  dropdownColor: AppColors.background,
-                                  style: AppFonts.regular(
-                                    color: AppColors.textPrimary,
-                                    fontSize: 16,
-                                  ),
-                                  icon: Icon(
-                                    Icons.arrow_drop_down,
-                                    color: AppColors.textMuted,
-                                  ),
-                                  items: speakerProvider.speakers.map((
-                                    speaker,
-                                  ) {
-                                    return DropdownMenuItem<SpeakerModel>(
-                                      value: speaker,
-                                      child: Text(
-                                        speaker.name,
-                                        style: AppFonts.regular(
-                                          color: AppColors.textPrimary,
-                                          fontSize: 16,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<SpeakerModel>(
+                                    isExpanded: true,
+                                    // Long names grow the field instead of
+                                    // being cut off.
+                                    itemHeight: null,
+                                    value: state.selectedFaculty,
+                                    hint: Text(
+                                      'Choose a Faculty',
+                                      style: AppFonts.regular(
+                                        color: p.textMuted,
                                       ),
-                                    );
-                                  }).toList(),
-                                  onChanged: (SpeakerModel? newValue) {
-                                    setState(() {
-                                      _selectedFaculty = newValue;
-                                    });
-                                  },
+                                    ),
+                                    dropdownColor: p.card,
+                                    borderRadius: BorderRadius.circular(16),
+                                    style: AppFonts.regular(
+                                      color: p.text,
+                                      fontSize: 16,
+                                    ),
+                                    icon: Icon(
+                                      LucideIcons.chevronDown,
+                                      color: p.textMuted,
+                                    ),
+                                    items: speakerProvider.speakers.map((
+                                      speaker,
+                                    ) {
+                                      return DropdownMenuItem<SpeakerModel>(
+                                        value: speaker,
+                                        child: Text(
+                                          speaker.name,
+                                          style: AppFonts.regular(
+                                            color: p.text,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: state.selectFaculty,
+                                  ),
                                 ),
                               ),
                             ),
@@ -214,162 +224,114 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
                             const SizedBox(height: AppTheme.paddingLarge),
 
                             // Subject Field
-                            Text(
-                              'Subject',
-                              style: AppFonts.semiBold(
-                                color: AppColors.textPrimary,
-                                fontSize: 16,
+                            StaggeredEntrance(
+                              index: 2,
+                              child: Text(
+                                'Subject',
+                                style: AppFonts.semiBold(
+                                  color: p.text,
+                                  fontSize: 16,
+                                ),
                               ),
                             ),
                             const SizedBox(height: AppTheme.paddingSmall),
-                            TextFormField(
-                              controller: _subjectController,
-                              style: AppFonts.regular(
-                                color: AppColors.textPrimary,
-                                fontSize: 16,
+                            StaggeredEntrance(
+                              index: 2,
+                              child: TextFormField(
+                                controller: _subjectController,
+                                maxLength: 200,
+                                cursorColor: p.brand,
+                                style: AppFonts.regular(
+                                  color: p.text,
+                                  fontSize: 16,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: 'Enter Subject',
+                                  hintStyle: AppFonts.regular(
+                                    color: p.textMuted,
+                                  ),
+                                  filled: true,
+                                  fillColor: p.card,
+                                  border: fieldBorder(p.cardBorder),
+                                  enabledBorder: fieldBorder(p.cardBorder),
+                                  focusedBorder: fieldBorder(p.brand, 1.6),
+                                  errorBorder: fieldBorder(p.error),
+                                  focusedErrorBorder: fieldBorder(p.error, 1.6),
+                                  contentPadding: const EdgeInsets.all(
+                                    AppTheme.paddingMedium,
+                                  ),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Please enter a subject';
+                                  }
+                                  return null;
+                                },
                               ),
-                              decoration: InputDecoration(
-                                hintText: 'Enter subject',
-                                hintStyle: AppFonts.regular(
-                                  color: AppColors.textMuted,
-                                ),
-                                filled: true,
-                                fillColor: AppColors.surface,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    AppTheme.radiusMedium,
-                                  ),
-                                  borderSide: BorderSide(
-                                    color: AppColors.border,
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    AppTheme.radiusMedium,
-                                  ),
-                                  borderSide: BorderSide(
-                                    color: AppColors.border,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    AppTheme.radiusMedium,
-                                  ),
-                                  borderSide: const BorderSide(
-                                    color: AppColors.primary,
-                                    width: 2,
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.all(
-                                  AppTheme.paddingMedium,
-                                ),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter a subject';
-                                }
-                                return null;
-                              },
                             ),
 
                             const SizedBox(height: AppTheme.paddingLarge),
 
                             // Description Field
-                            Text(
-                              'Your Question',
-                              style: AppFonts.semiBold(
-                                color: AppColors.textPrimary,
-                                fontSize: 16,
+                            StaggeredEntrance(
+                              index: 3,
+                              child: Text(
+                                'Your Question',
+                                style: AppFonts.semiBold(
+                                  color: p.text,
+                                  fontSize: 16,
+                                ),
                               ),
                             ),
                             const SizedBox(height: AppTheme.paddingSmall),
-                            TextFormField(
-                              controller: _descriptionController,
-                              maxLines: 8,
-                              style: AppFonts.regular(
-                                color: AppColors.textPrimary,
-                                fontSize: 16,
+                            StaggeredEntrance(
+                              index: 3,
+                              child: TextFormField(
+                                controller: _descriptionController,
+                                maxLines: 8,
+                                maxLength: 10000,
+                                cursorColor: p.brand,
+                                style: AppFonts.regular(
+                                  color: p.text,
+                                  fontSize: 16,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText:
+                                      'Enter Your Question Here in Detail...',
+                                  hintStyle: AppFonts.regular(
+                                    color: p.textMuted,
+                                  ),
+                                  filled: true,
+                                  fillColor: p.card,
+                                  border: fieldBorder(p.cardBorder),
+                                  enabledBorder: fieldBorder(p.cardBorder),
+                                  focusedBorder: fieldBorder(p.brand, 1.6),
+                                  errorBorder: fieldBorder(p.error),
+                                  focusedErrorBorder: fieldBorder(p.error, 1.6),
+                                  contentPadding: const EdgeInsets.all(
+                                    AppTheme.paddingMedium,
+                                  ),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Please enter your question';
+                                  }
+                                  return null;
+                                },
                               ),
-                              decoration: InputDecoration(
-                                hintText:
-                                    'Enter your question here in detail...',
-                                hintStyle: AppFonts.regular(
-                                  color: AppColors.textMuted,
-                                ),
-                                filled: true,
-                                fillColor: AppColors.surface,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    AppTheme.radiusMedium,
-                                  ),
-                                  borderSide: BorderSide(
-                                    color: AppColors.border,
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    AppTheme.radiusMedium,
-                                  ),
-                                  borderSide: BorderSide(
-                                    color: AppColors.border,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    AppTheme.radiusMedium,
-                                  ),
-                                  borderSide: const BorderSide(
-                                    color: AppColors.primary,
-                                    width: 2,
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.all(
-                                  AppTheme.paddingMedium,
-                                ),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter your question';
-                                }
-                                return null;
-                              },
                             ),
 
                             const SizedBox(height: AppTheme.paddingLarge),
 
-                            // Submit Button
-                            SizedBox(
-                              width: double.infinity,
-                              height: 56,
-                              child: ElevatedButton(
-                                onPressed: _isSubmitting
-                                    ? null
-                                    : _submitQuestion,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
-                                  foregroundColor: AppColors.onPrimary,
-                                  disabledBackgroundColor: AppColors.surfaceAlt,
-                                  disabledForegroundColor: AppColors.textMuted,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      AppTheme.radiusMedium,
-                                    ),
-                                  ),
-                                  elevation: 0,
+                            StaggeredEntrance(
+                              index: 4,
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: GradientPillButton(
+                                  label: 'Submit Question',
+                                  onPressed: () => _submitQuestion(context),
+                                  isLoading: state.isSubmitting,
                                 ),
-                                child: _isSubmitting
-                                    ? const SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          color: AppColors.onPrimary,
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : Text(
-                                        'Submit Question',
-                                        style: AppFonts.bold(fontSize: 16),
-                                      ),
                               ),
                             ),
                           ],
@@ -388,7 +350,7 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
 
   /// Close on the left, centred title, "my questions" on the right — the same
   /// header shape as the reference app's popups.
-  Widget _sheetHeader(BuildContext context) {
+  Widget _sheetHeader(BuildContext context, HomePalette p) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
       child: Stack(
@@ -396,33 +358,32 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
         children: [
           Align(
             alignment: Alignment.centerLeft,
-            child: InkWell(
-              onTap: () => Navigator.of(context).pop(),
-              customBorder: const CircleBorder(),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: AppColors.surfaceAlt,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.close,
-                  color: AppColors.textPrimary,
-                  size: 20,
+            child: PressableScale(
+              pressedScale: 0.9,
+              child: InkWell(
+                onTap: () => Navigator.of(context).pop(),
+                customBorder: const CircleBorder(),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: p.brandSoft,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(LucideIcons.x, color: p.text, size: 20),
                 ),
               ),
             ),
           ),
           Text(
-            'Ask a question',
-            style: AppFonts.bold(color: AppColors.textPrimary, fontSize: 17),
+            'Ask a Question',
+            style: AppFonts.bold(color: p.text, fontSize: 17),
           ),
           Align(
             alignment: Alignment.centerRight,
             child: IconButton(
-              icon: const Icon(Icons.history, color: AppColors.textMuted),
-              tooltip: 'My questions',
+              icon: Icon(LucideIcons.history, color: p.textMuted),
+              tooltip: 'My Questions',
               onPressed: () {
                 Navigator.push(
                   context,
@@ -438,10 +399,12 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
     );
   }
 
-  Future<void> _submitQuestion() async {
-    if (_selectedFaculty == null) {
+  /// [sheetContext] sits under the sheet's messenger, so snack bars show on
+  /// the sheet.
+  Future<void> _submitQuestion(BuildContext sheetContext) async {
+    if (_state.selectedFaculty == null) {
       AppSnackBar.show(
-        context,
+        sheetContext,
         message: 'Please choose a faculty to send your question to',
         color: AppColors.warningOrange,
       );
@@ -449,43 +412,34 @@ class _AskQuestionScreenState extends State<AskQuestionScreen> {
     }
 
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isSubmitting = true;
-      });
+      _state.startSubmitting();
 
       try {
-        final question = QuestionModel(
+        await _state.submit(
           subject: _subjectController.text.trim(),
           description: _descriptionController.text.trim(),
-          faculty: _selectedFaculty!.id,
         );
 
-        await QuestionService.submit(question);
-
-        if (mounted) {
+        if (sheetContext.mounted) {
           // Clear the form
           _subjectController.clear();
           _descriptionController.clear();
-          setState(() {
-            _selectedFaculty = null;
-            _isSubmitting = false;
-          });
+          _state.finishSubmitting(clearFaculty: true);
 
           AppSnackBar.show(
-            context,
+            sheetContext,
             message: 'Your question has been sent to the faculty',
             color: AppColors.success,
           );
         }
       } catch (e) {
-        final message = e is ApiException
-            ? e.message
-            : 'We couldn\'t send your question. Please try again.';
-        if (mounted) {
-          setState(() {
-            _isSubmitting = false;
-          });
-          AppSnackBar.show(context, message: message, color: AppColors.danger);
+        if (sheetContext.mounted) {
+          _state.finishSubmitting();
+          AppSnackBar.show(
+            sheetContext,
+            message: 'We couldn\'t send your question. ${userFriendlyError(e)}',
+            color: AppColors.danger,
+          );
         }
       }
     }

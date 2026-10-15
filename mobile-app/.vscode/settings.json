@@ -1,3 +1,4 @@
 {
-    "kiroAgent.configureMCP": "Disabled"
+    "kiroAgent.configureMCP": "Disabled",
+    "dart.flutterSdkPath": "/Users/nihal_mullungal/fvm/versions/3.47.5"
 }

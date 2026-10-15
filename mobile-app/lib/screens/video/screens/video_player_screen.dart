@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart' as vp;
 import 'package:webview_flutter/webview_flutter.dart';
@@ -13,12 +14,21 @@ import '../../../themes/app_colors.dart';
 import '../../../widgets/common/app_snack_bar.dart';
 import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../widgets/animation/pop_on_change.dart';
+import '../../../widgets/animation/pressable_scale.dart';
 import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/youtube_bottom_actions.dart';
 import '../../bookmark/provider/bookmark_provider.dart';
 import '../model/video_model.dart';
+import '../provider/video_player_screen_provider.dart';
 import '../provider/video_provider.dart';
 import '../widgets/learn_note_sheet.dart';
 import '../widgets/video_details_sheet.dart';
+import '../widgets/video_loading_spinner.dart';
+import '../widgets/video_poster.dart';
+import '../widgets/video_scrim.dart';
+import '../widgets/video_title_block.dart';
+import '../widgets/youtube_loading_spinner.dart';
 import 'video_questions_screen.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
@@ -35,13 +45,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   vp.VideoPlayerController? _directController;
   ChewieController? _chewieController;
   WebViewController? _webViewController;
-  bool _isPlayerReady = false;
-  bool _isFullScreen = false;
+  final VideoPlayerScreenProvider _playback = VideoPlayerScreenProvider();
   bool _isLiveStream = false;
   bool _isDirect = false;
 
   // Server-side watch state for this video.
-  VideoProgressStatus? _progress;
   int _lastKnownPosition = 0;
   int _pendingWatchedSeconds = 0;
   int _lastHeartbeatAt = -1;
@@ -119,7 +127,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           backgroundColor: AppColors.surfaceAlt,
         ),
       );
-      setState(() => _isPlayerReady = true);
+      _playback.setPlayerReady(true);
       _directTicker = Timer.periodic(const Duration(seconds: 1), (_) {
         _onDirectTick();
       });
@@ -157,9 +165,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (String url) {
-            setState(() {
-              _isPlayerReady = true;
-            });
+            if (!mounted) return;
+            _playback.setPlayerReady(true);
           },
           onWebResourceError: (WebResourceError error) {
             debugPrint('WebView error: ${error.description}');
@@ -182,7 +189,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   void _onYoutubeTick() {
-    if (_isPlayerReady && mounted && _youtubeController != null) {
+    if (_playback.isPlayerReady && mounted && _youtubeController != null) {
       final position = _youtubeController!.value.position.inSeconds;
 
       // Only forward playback counts. A seek makes delta jump far beyond the
@@ -221,7 +228,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     );
 
     if (!mounted || status == null) return;
-    setState(() => _progress = status);
+    _playback.setProgress(status);
 
     // Apply immediately so "Jump back in" / progress bars elsewhere update
     // without waiting for an app restart (fixes M13).
@@ -251,10 +258,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.verified, color: AppColors.success),
+                Icon(LucideIcons.badgeCheck, color: AppColors.success),
                 SizedBox(width: 8),
                 Text(
-                  'Video completed',
+                  'Video Completed',
                   style: AppFonts.bold(
                     fontSize: 18,
                     color: AppColors.textPrimary,
@@ -282,7 +289,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                 ),
                 onPressed: () => Navigator.of(context).pop(true),
                 child: Text(
-                  'Answer ${status.questionCount} question'
+                  'Answer ${status.questionCount} Question'
                   '${status.questionCount == 1 ? '' : 's'}',
                 ),
               ),
@@ -304,7 +311,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   void _openPractice() {
-    if (_progress?.completed != true) return;
+    if (_playback.progress?.completed != true) return;
     VideoQuestionsScreen.open(context, widget.video);
   }
 
@@ -331,7 +338,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   @override
   void dispose() {
     // Save final progress before disposing.
-    if (_isPlayerReady && !_isLiveStream) {
+    if (_playback.isPlayerReady && !_isLiveStream) {
       if (_youtubeController != null) {
         _saveProgress(_youtubeController!.value.position.inSeconds);
       } else if (_directController?.value.isInitialized == true) {
@@ -350,11 +357,21 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       DeviceOrientation.portraitDown,
     ]);
 
+    _playback.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _playback,
+      child: Consumer<VideoPlayerScreenProvider>(
+        builder: (_, playback, __) => _buildPage(playback),
+      ),
+    );
+  }
+
+  Widget _buildPage(VideoPlayerScreenProvider playback) {
     if (_isLiveStream && _webViewController != null) {
       return _buildLiveStreamPlayer();
     }
@@ -370,23 +387,20 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
     return YoutubePlayerBuilder(
       onExitFullScreen: () {
-        setState(() {
-          _isFullScreen = false;
-        });
+        _playback.setFullScreen(false);
         SystemChrome.setPreferredOrientations([
           DeviceOrientation.portraitUp,
           DeviceOrientation.portraitDown,
         ]);
       },
       onEnterFullScreen: () {
-        setState(() {
-          _isFullScreen = true;
-        });
+        _playback.setFullScreen(true);
       },
       player: YoutubePlayer(
         controller: _youtubeController!,
         aspectRatio: widget.video.playerAspectRatio,
         showVideoProgressIndicator: true,
+        thumbnail: VideoPoster(thumbnailUrl: widget.video.thumbnailUrl),
         progressIndicatorColor: AppColors.primary,
         progressColors: ProgressBarColors(
           playedColor: AppColors.primary,
@@ -394,10 +408,22 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           bufferedColor: AppColors.textMuted.withValues(alpha: 0.3),
           backgroundColor: AppColors.surfaceAlt,
         ),
+        actionsPadding: EdgeInsets.zero,
+        bottomActions: [
+          Expanded(
+            child: YoutubeBottomActions(
+              controller: _youtubeController!,
+              progressColors: ProgressBarColors(
+                playedColor: AppColors.primary,
+                handleColor: AppColors.primary,
+                bufferedColor: AppColors.textMuted.withValues(alpha: 0.3),
+                backgroundColor: AppColors.surfaceAlt,
+              ),
+            ),
+          ),
+        ],
         onReady: () {
-          setState(() {
-            _isPlayerReady = true;
-          });
+          _playback.setPlayerReady(true);
         },
         onEnded: (metaData) {
           if (_youtubeController != null) {
@@ -406,30 +432,47 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           }
         },
       ),
-      builder: (context, player) => _buildReelsStyleScaffold(player),
+      // The poster sits on top until the player is ready, covering the
+      // plugin's own spinner (its `bufferIndicator` option is not wired up).
+      builder: (context, player) => _buildReelsStyleScaffold(
+        Stack(
+          fit: StackFit.expand,
+          children: [
+            player,
+            VideoPoster(
+              thumbnailUrl: widget.video.thumbnailUrl,
+              visible: !playback.isPlayerReady,
+            ),
+            YoutubeLoadingSpinner(controller: _youtubeController!),
+          ],
+        ),
+      ),
     );
   }
 
+  /// The screen (back button, chips, title) shows straight away; only the
+  /// video area holds the thumbnail until the player is initialised.
   Widget _buildDirectPlayerScreen() {
-    if (!_isPlayerReady || _chewieController == null) {
-      return const Scaffold(
-        backgroundColor: AppColors.black,
-        body: Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        ),
-      );
-    }
+    final ready = _playback.isPlayerReady && _chewieController != null;
     return _buildReelsStyleScaffold(
-      AspectRatio(
-        aspectRatio: widget.video.playerAspectRatio,
-        child: Chewie(controller: _chewieController!),
-      ),
+      ready
+          ? Chewie(controller: _chewieController!)
+          : Stack(
+              fit: StackFit.expand,
+              children: [
+                VideoPoster(thumbnailUrl: widget.video.thumbnailUrl),
+                const VideoLoadingSpinner(loading: true),
+              ],
+            ),
     );
   }
 
   /// The Reels-style stage shared by the YouTube and direct-URL players: the
   /// video centred on a black background with the overlay controls on top.
   Widget _buildReelsStyleScaffold(Widget player) {
+    final landscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
+
     return Scaffold(
       backgroundColor: AppColors.black,
       body: Stack(
@@ -441,142 +484,140 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               child: player,
             ),
           ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: IgnorePointer(
-              child: Container(
-                height: 260,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [AppColors.transparent, AppColors.scrim],
+          // Skipped in landscape: nothing sits at the bottom there, and the
+          // fade would dim the player's own seek bar and buttons underneath it.
+          if (!landscape)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: IgnorePointer(
+                child: Container(
+                  height: 260,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [AppColors.transparent, AppColors.scrim],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                children: [
-                  _circleButton(
-                    Icons.arrow_back,
-                    () => Navigator.of(context).pop(),
-                  ),
-                  const Spacer(),
-                  if (_progress?.completed == true)
-                    Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.success,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            size: 14,
-                            color: AppColors.white,
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            'Completed',
-                            style: AppFonts.semiBold(
-                              color: AppColors.white,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  Consumer<BookmarkProvider>(
-                    builder: (context, bookmarkProvider, child) {
-                      final isBookmarked = bookmarkProvider.isBookmarkedSync(
-                        widget.video.id,
-                      );
-                      return _circleButton(
-                        isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                        _toggleBookmark,
-                      );
-                    },
-                  ),
-                ],
-              ),
+          if (landscape)
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: VideoScrim(height: 120, fromTop: true),
             ),
-          ),
-          Positioned(
-            left: 20,
-            right: 20,
-            bottom: 20,
-            child: SafeArea(
-              top: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      _detailsChip('Learn', 0),
-                      const SizedBox(width: 8),
-                      _detailsChip('Downloads', 1),
-                      const SizedBox(width: 8),
-                      _practiceChip(),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    widget.video.displayTitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppFonts.bold(
-                      color: AppColors.white,
-                      fontSize: 17,
-                      height: 1.3,
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    _circleButton(
+                      LucideIcons.arrowLeft,
+                      () => Navigator.of(context).pop(),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    [
-                      if (widget.video.subjectName != null &&
-                          widget.video.subjectName!.isNotEmpty)
-                        widget.video.subjectName!,
-                      if (widget.video.formattedDate.isNotEmpty)
-                        widget.video.formattedDate,
-                    ].join('  ·  '),
-                    style: AppFonts.regular(
-                      color: AppColors.white70,
-                      fontSize: 12.5,
-                    ),
-                  ),
-                  if (_progress != null &&
-                      !_progress!.completed &&
-                      _progress!.percent > 0) ...[
-                    const SizedBox(height: 12),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(3),
-                      child: LinearProgressIndicator(
-                        value: _progress!.percent,
-                        minHeight: 3,
-                        backgroundColor: AppColors.white24,
-                        valueColor: const AlwaysStoppedAnimation(
-                          AppColors.white,
+                    if (landscape)
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: VideoTitleBlock(video: widget.video),
+                        ),
+                      )
+                    else
+                      const Spacer(),
+                    if (_playback.progress?.completed == true)
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.success,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              LucideIcons.circleCheck,
+                              size: 14,
+                              color: AppColors.white,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Completed',
+                              style: AppFonts.semiBold(
+                                color: AppColors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                    Consumer<BookmarkProvider>(
+                      builder: (context, bookmarkProvider, child) {
+                        final isBookmarked = bookmarkProvider.isBookmarkedSync(
+                          widget.video.id,
+                        );
+                        return PopOnChange(
+                          active: isBookmarked,
+                          child: _circleButton(
+                            isBookmarked
+                                ? LucideIcons.bookmarkCheck
+                                : LucideIcons.bookmark,
+                            _toggleBookmark,
+                          ),
+                        );
+                      },
                     ),
+                    // The Learn / Downloads chips are hidden in landscape, so
+                    // the details sheet gets its own button here.
+                    if (landscape)
+                      Tooltip(
+                        message: 'Details',
+                        child: _circleButton(
+                          LucideIcons.info,
+                          () => VideoDetailsSheet.show(context, widget.video),
+                        ),
+                      ),
                   ],
-                ],
+                ),
               ),
             ),
           ),
+          if (!landscape)
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: 20,
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        _detailsChip('Learn', 0),
+                        const SizedBox(width: 8),
+                        _detailsChip('Downloads', 1),
+                        const SizedBox(width: 8),
+                        _practiceChip(),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    VideoTitleBlock(video: widget.video),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -592,31 +633,38 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   /// The Practice chip is disabled until the video is marked complete on the
-  /// server (M19) — no local heuristic decides this, only `_progress`.
+  /// server (M19) — no local heuristic decides this, only the server progress.
   Widget _practiceChip() {
-    final unlocked = _progress?.completed == true;
-    return _chip(
-      'Practice',
-      unlocked ? _openPractice : null,
-      enabled: unlocked,
+    final unlocked = _playback.progress?.completed == true;
+    return PopOnChange(
+      active: unlocked,
+      peak: 1.15,
+      child: _chip(
+        'Practice',
+        unlocked ? _openPractice : null,
+        enabled: unlocked,
+      ),
     );
   }
 
   Widget _chip(String label, VoidCallback? onTap, {bool enabled = true}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(
-          color: AppColors.white.withValues(alpha: enabled ? 0.18 : 0.08),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: AppFonts.semiBold(
-            color: enabled ? AppColors.white : AppColors.white38,
-            fontSize: 12.5,
+    return PressableScale(
+      enabled: onTap != null,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          decoration: BoxDecoration(
+            color: AppColors.white.withValues(alpha: enabled ? 0.18 : 0.08),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            label,
+            style: AppFonts.semiBold(
+              color: enabled ? AppColors.white : AppColors.white38,
+              fontSize: 12.5,
+            ),
           ),
         ),
       ),
@@ -626,17 +674,19 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   Widget _circleButton(IconData icon, VoidCallback onTap) {
     return Padding(
       padding: const EdgeInsets.all(4),
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: AppColors.black.withValues(alpha: 0.35),
-            shape: BoxShape.circle,
+      child: PressableScale(
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.black.withValues(alpha: 0.35),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: AppColors.white, size: 20),
           ),
-          child: Icon(icon, color: AppColors.white, size: 20),
         ),
       ),
     );
@@ -645,7 +695,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   Widget _buildLiveStreamPlayer() {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: _isFullScreen
+      appBar: _playback.isFullScreen
           ? null
           : CommonAppBar(
               title: widget.video.displayTitle,
@@ -655,27 +705,30 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     final isBookmarked = bookmarkProvider.isBookmarkedSync(
                       widget.video.id,
                     );
-                    return IconButton(
-                      onPressed: _toggleBookmark,
-                      icon: Icon(
-                        isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                        color: isBookmarked
-                            ? AppColors.primary
-                            : AppColors.textPrimary,
+                    return PopOnChange(
+                      active: isBookmarked,
+                      child: IconButton(
+                        onPressed: _toggleBookmark,
+                        icon: Icon(
+                          isBookmarked
+                              ? LucideIcons.bookmarkCheck
+                              : LucideIcons.bookmark,
+                          color: isBookmarked
+                              ? AppColors.primary
+                              : AppColors.textPrimary,
+                        ),
+                        tooltip: isBookmarked
+                            ? 'Remove Bookmark'
+                            : 'Add Bookmark',
                       ),
-                      tooltip: isBookmarked
-                          ? 'Remove bookmark'
-                          : 'Add bookmark',
                     );
                   },
                 ),
                 IconButton(
                   onPressed: () {
-                    setState(() {
-                      _isFullScreen = !_isFullScreen;
-                    });
+                    _playback.toggleFullScreen();
                     SystemChrome.setPreferredOrientations(
-                      _isFullScreen
+                      _playback.isFullScreen
                           ? [
                               DeviceOrientation.landscapeLeft,
                               DeviceOrientation.landscapeRight,
@@ -687,7 +740,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     );
                   },
                   icon: Icon(
-                    _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                    _playback.isFullScreen
+                        ? LucideIcons.minimize
+                        : LucideIcons.maximize,
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -696,11 +751,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       body: Column(
         children: [
           Expanded(
-            flex: _isFullScreen ? 1 : 3,
+            flex: _playback.isFullScreen ? 1 : 3,
             child: Container(
               width: double.infinity,
               decoration: const BoxDecoration(color: AppColors.black),
-              child: _isPlayerReady
+              child: _playback.isPlayerReady
                   ? WebViewWidget(controller: _webViewController!)
                   : const Center(
                       child: CircularProgressIndicator(
@@ -709,7 +764,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     ),
             ),
           ),
-          if (!_isFullScreen)
+          if (!_playback.isFullScreen)
             Expanded(
               flex: 2,
               child: SingleChildScrollView(
@@ -786,7 +841,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 64, color: AppColors.textMuted),
+              Icon(
+                LucideIcons.circleAlert,
+                size: 64,
+                color: AppColors.textMuted,
+              ),
               const SizedBox(height: AppTheme.paddingMedium),
               Text(
                 'This video cannot be played right now.',

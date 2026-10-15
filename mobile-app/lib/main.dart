@@ -11,6 +11,7 @@ import 'package:qspot/screens/schedule/service/alarm_service.dart';
 import 'package:qspot/screens/speaker/provider/speaker_provider.dart';
 import 'package:qspot/screens/subject/provider/subject_provider.dart';
 import 'package:qspot/screens/video/provider/video_provider.dart';
+import 'package:qspot/routes/app_routes.dart';
 import 'package:qspot/services/api_client.dart';
 import 'package:qspot/services/common/storage_service.dart';
 
@@ -53,6 +54,7 @@ class QSpotApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         home: const SplashScreen(),
+        onGenerateRoute: AppRoutes.onGenerateRoute,
         builder: (context, child) {
           // Respect the system/user text scale factor (accessibility) but
           // clamp it so extreme settings don't break fixed-height layouts.

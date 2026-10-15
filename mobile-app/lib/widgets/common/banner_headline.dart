@@ -36,8 +36,6 @@ class BannerHeadline extends StatelessWidget {
               Flexible(
                 child: Text(
                   title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                   style: AppFonts.bold(
                     color: AppColors.white,
                     fontSize: titleSize,
@@ -55,8 +53,6 @@ class BannerHeadline extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               subtitle!,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
               style: AppFonts.regular(
                 color: AppColors.white.withValues(alpha: 0.86),
                 fontSize: 13,

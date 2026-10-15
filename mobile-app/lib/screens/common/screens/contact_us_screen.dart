@@ -1,177 +1,139 @@
 import 'package:flutter/material.dart';
-import '../../../themes/app_colors.dart';
-import '../../../themes/app_theme.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../themes/home_palette.dart';
+import '../../../utils/address_maps.dart';
+import '../../../utils/feedback_mail.dart';
+import '../../../utils/phone_dialer.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/info_note_card.dart';
+import '../../settings/widgets/settings_group_card.dart';
+import '../../settings/widgets/settings_row.dart';
+import '../widgets/home_theme_scope.dart';
+
+enum _PhoneContactAction { call, whatsapp }
 
 class ContactUsScreen extends StatelessWidget {
   const ContactUsScreen({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: const CommonAppBar(title: 'Contact Us'),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
+  static const _phoneNumber = '+91 98959 89800';
 
-            // Title and Subtitle
-            Text(
-              'Get in Touch',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "We'd love to hear from you",
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(color: AppColors.textMuted),
-            ),
-
-            const SizedBox(height: 40),
-
-            // Contact Information Card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: AppTheme.gradientDecoration(),
-              child: Column(
-                children: [
-                  // Phone Section
-                  _buildContactSection(
-                    context: context,
-                    icon: Icons.phone,
-                    title: 'Phone',
-                    detail: '+91 98959 89800',
-                  ),
-
-                  const Divider(color: AppColors.white24, height: 32),
-
-                  // Email Section
-                  _buildContactSection(
-                    context: context,
-                    icon: Icons.mail,
-                    title: 'Email',
-                    detail: 'mail@d4dx.co',
-                  ),
-
-                  const Divider(color: AppColors.white24, height: 32),
-
-                  // Address Section
-                  _buildContactSection(
-                    context: context,
-                    icon: Icons.location_on,
-                    title: 'Address',
-                    detail:
-                        'D4DX Innovations LLP\nMavoor Road, Calicut, Kerala,\nPin 673004',
-                    isMultiLine: true,
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 40),
-
-            // Additional Info
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(AppTheme.paddingMedium),
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                border: Border.all(color: AppColors.border, width: 1),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
-                      const SizedBox(width: AppTheme.paddingSmall),
-                      Text(
-                        'About QSpot',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppTheme.paddingSmall),
-                  Text(
-                    'QSpot is your dedicated space for Quran videos and Islamic knowledge. We provide inspiring content from renowned speakers and scholars to help you on your spiritual journey.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textMuted,
-                      height: 1.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContactSection({
-    required BuildContext context,
-    required IconData icon,
-    required String title,
-    required String detail,
-    bool isMultiLine = false,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Icon Container
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: AppColors.onPrimary,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, color: AppColors.primary, size: 24),
-        ),
-
-        const SizedBox(width: 16),
-
-        // Text Content
-        Expanded(
+  Future<void> _showPhoneActions(BuildContext context) async {
+    final p = HomePalette.of(context);
+    final action = await showModalBottomSheet<_PhoneContactAction>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: p.card,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.onPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
+              ListTile(
+                leading: Icon(LucideIcons.phone, color: p.brand),
+                title: const Text('Call us'),
+                subtitle: const Text(_phoneNumber),
+                onTap: () =>
+                    Navigator.pop(sheetContext, _PhoneContactAction.call),
               ),
-              const SizedBox(height: 4),
-              Text(
-                detail,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.onPrimary,
-                  height: isMultiLine ? 1.4 : 1.2,
-                ),
+              ListTile(
+                leading: Icon(LucideIcons.messageCircle, color: p.teal.color),
+                title: const Text('Message on WhatsApp'),
+                subtitle: const Text('Open a WhatsApp chat'),
+                onTap: () =>
+                    Navigator.pop(sheetContext, _PhoneContactAction.whatsapp),
               ),
             ],
           ),
         ),
-      ],
+      ),
+    );
+
+    if (!context.mounted || action == null) return;
+    switch (action) {
+      case _PhoneContactAction.call:
+        await callPhone(context, _phoneNumber);
+      case _PhoneContactAction.whatsapp:
+        await messageOnWhatsApp(context, _phoneNumber);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Burgundy home theme; the page reads colours from the context inside it.
+    return HomeThemeScope(child: Builder(builder: _buildPage));
+  }
+
+  Widget _buildPage(BuildContext context) {
+    final p = HomePalette.of(context);
+    return Scaffold(
+      appBar: const CommonAppBar(title: 'Contact Us'),
+      body: ListView(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          8,
+          16,
+          24 + MediaQuery.paddingOf(context).bottom,
+        ),
+        children: [
+          StaggeredEntrance(
+            child: Text(
+              'Get in Touch',
+              style: AppFonts.extraBold(color: p.text, fontSize: 26),
+            ),
+          ),
+          const SizedBox(height: 4),
+          StaggeredEntrance(
+            index: 1,
+            child: Text(
+              "We'd love to hear from you",
+              style: AppFonts.regular(color: p.textMuted, fontSize: 14),
+            ),
+          ),
+          const SizedBox(height: 20),
+          StaggeredEntrance(
+            index: 2,
+            child: SettingsGroupCard(
+              children: [
+                SettingsRow(
+                  icon: LucideIcons.phone,
+                  tone: p.rose,
+                  title: 'Phone',
+                  subtitle: '$_phoneNumber · Call or WhatsApp',
+                  onTap: () => _showPhoneActions(context),
+                ),
+                SettingsRow(
+                  icon: LucideIcons.mail,
+                  tone: p.coral,
+                  title: 'Email',
+                  subtitle: 'mail@d4dx.co',
+                  onTap: () => sendFeedbackMail(context),
+                ),
+                SettingsRow(
+                  icon: LucideIcons.mapPin,
+                  tone: p.teal,
+                  title: 'Address',
+                  subtitle:
+                      'D4DX Innovations LLP\nMavoor Road, Calicut, Kerala,\nPin 673004',
+                  onTap: () => openD4dxAddress(context),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          StaggeredEntrance(
+            index: 3,
+            child: InfoNoteCard(
+              icon: LucideIcons.info,
+              tone: p.rose,
+              message:
+                  'Stuck, found a bug, or got an idea? Message us. We read everything.',
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

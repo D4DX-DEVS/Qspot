@@ -41,12 +41,13 @@ class ActivityTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(kind, style: AppFonts.semiBold(color: muted, fontSize: 10.5)),
+                Text(
+                  kind,
+                  style: AppFonts.semiBold(color: muted, fontSize: 10.5),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                   style: AppFonts.bold(color: scheme.onSurface, fontSize: 13.5),
                 ),
                 const SizedBox(height: 4),

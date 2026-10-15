@@ -1,3 +1,6 @@
+import '../../../utils/json_parsing.dart';
+import '../../../utils/api_urls.dart';
+
 /// A handout attached to an episode.
 class VideoDownload {
   final String title;
@@ -15,6 +18,26 @@ class VideoDownload {
   }
 
   Map<String, dynamic> toJson() => {'title': title, 'url': url, 'key': key};
+
+  /// Development uploads use API-relative paths; CDN links remain absolute.
+  String get resolvedUrl {
+    final parsed = Uri.tryParse(url);
+    if (parsed == null || url.isEmpty) return '';
+    final resolved = Uri.parse(ApiUrls.baseUrl).resolveUri(parsed);
+    if (!const {'http', 'https'}.contains(resolved.scheme) ||
+        resolved.host.isEmpty ||
+        RegExp(r'[\s%]').hasMatch(resolved.host)) {
+      return '';
+    }
+    return resolved.toString();
+  }
+
+  String get _extension =>
+      (Uri.tryParse(url)?.path ?? '').split('.').last.toLowerCase();
+  bool get isImage =>
+      const {'jpg', 'jpeg', 'png', 'webp', 'gif'}.contains(_extension);
+  bool get isPdf => _extension == 'pdf';
+  bool get isText => _extension == 'txt';
 }
 
 class VideoModel {
@@ -33,6 +56,10 @@ class VideoModel {
   final String learnText;
   final List<String> learnPoints;
   final List<VideoDownload> downloads;
+
+  /// Note or key points to show in Learn; files show only in Downloads.
+  bool get hasLearnContent =>
+      learnText.trim().isNotEmpty || learnPoints.isNotEmpty;
   final int order;
   final int durationSeconds;
   final int questionCount;
@@ -155,11 +182,11 @@ class VideoModel {
                 .where((item) => item.title.isNotEmpty && item.url.isNotEmpty)
                 .toList()
           : const [],
-      order: (json['order'] as num?)?.toInt() ?? 0,
-      durationSeconds: (json['durationSeconds'] as num?)?.toInt() ?? 0,
-      questionCount: (json['questionCount'] as num?)?.toInt() ?? 0,
+      order: jsonInt(json['order']) ?? 0,
+      durationSeconds: jsonInt(json['durationSeconds']) ?? 0,
+      questionCount: jsonInt(json['questionCount']) ?? 0,
       isUpcoming: upcoming,
-      progress: (json['progress'] as num?)?.toInt() ?? 0,
+      progress: jsonInt(json['progress']) ?? 0,
     );
   }
 

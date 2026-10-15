@@ -4,7 +4,7 @@ const QuizConfig = require('../models/quizConfig');
 const QuizQuestion = require('../models/quizQuestions');
 const QuizSession = require('../models/quizSession');
 const Quiz = require('../models/quiz');
-const VideoProgress = require('../models/videoProgress');
+const { isAccessible, completedVideoCheck } = require('../services/quizAccess');
 const { authenticateUser } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -31,17 +31,23 @@ const statusOf = (quiz, now = new Date()) => {
     return 'live';
 };
 
-const isAccessible = async (quiz, user) => {
-    const allowed = Array.isArray(quiz.allowedClasses) ? quiz.allowedClasses.filter(Boolean) : [];
-    if (allowed.length > 0 && !allowed.includes(String(user.class || ''))) return false;
-    if (quiz.conditions?.requireCompletedVideo) {
-        const completed = await VideoProgress.exists({ userId: user.id, completed: true });
-        if (!completed) return false;
+// Certificate settings as they apply to this student. Uses the same class
+// match as issuance in routes/certificates.js (trimmed, case-insensitive), so
+// the app never promises a certificate the issue batch would skip.
+const certificateFor = (quiz, user) => {
+    const config = quiz.certificate;
+    if (!config?.enabled) return { enabled: false, minimumPercentage: 0 };
+    const classes = (config.eligibleClasses || [])
+        .map((value) => String(value).trim().toLowerCase())
+        .filter(Boolean);
+    const userClass = String(user?.class || '').trim().toLowerCase();
+    if (classes.length > 0 && !classes.includes(userClass)) {
+        return { enabled: false, minimumPercentage: 0 };
     }
-    return true;
+    return { enabled: true, minimumPercentage: Number(config.minimumPercentage) || 0 };
 };
 
-const shapeQuiz = (quiz, questionCount, myAttempt) => ({
+const shapeQuiz = (quiz, questionCount, myAttempt, user) => ({
     _id: quiz._id,
     title: quiz.title,
     assessmentType: quiz.assessmentType || 'quiz',
@@ -56,7 +62,9 @@ const shapeQuiz = (quiz, questionCount, myAttempt) => ({
     conditions: quiz.conditions || {},
     optionsCount: quiz.optionsCount,
     status: statusOf(quiz),
-    questionCount,
+    certificate: certificateFor(quiz, user),
+    // What a student is actually served, not the size of the pool.
+    questionCount: Math.min(questionCount, quiz.numberOfQuestions),
     myAttempt: myAttempt
         ? {
               attemptId: myAttempt._id,
@@ -74,12 +82,14 @@ router.get('/', authenticateUser, async (req, res) => {
         const now = new Date();
         const endedSince = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-        const quizzes = (await QuizConfig.find({
+        const quizzes = await QuizConfig.find({
             isEnable: true,
             $or: [{ endDate: { $gte: endedSince } }]
-        }).sort({ startDate: -1 }));
-        const accessibleQuizzes = [];
-        for (const quiz of quizzes) if (await isAccessible(quiz, req.user)) accessibleQuizzes.push(quiz);
+        }).sort({ startDate: -1 }).lean();
+        // Checked together: the "finished a video?" lookup runs once at most.
+        const hasCompletedVideo = completedVideoCheck(req.user);
+        const access = await Promise.all(quizzes.map((quiz) => isAccessible(quiz, req.user, hasCompletedVideo)));
+        const accessibleQuizzes = quizzes.filter((_, i) => access[i]);
 
         const quizIds = accessibleQuizzes.map((q) => q._id);
         const [counts, attempts] = await Promise.all([
@@ -87,13 +97,13 @@ router.get('/', authenticateUser, async (req, res) => {
                 { $match: { quizId: { $in: quizIds } } },
                 { $group: { _id: '$quizId', count: { $sum: 1 } } }
             ]),
-            Quiz.find({ userId: req.user.id, quizId: { $in: quizIds } })
+            Quiz.find({ userId: req.user.id, quizId: { $in: quizIds } }).lean()
         ]);
         const countMap = new Map(counts.map((c) => [String(c._id), c.count]));
         const attemptMap = new Map(attempts.map((a) => [String(a.quizId), a]));
 
         const shaped = accessibleQuizzes.map((q) =>
-            shapeQuiz(q, countMap.get(String(q._id)) || 0, attemptMap.get(String(q._id)))
+            shapeQuiz(q, countMap.get(String(q._id)) || 0, attemptMap.get(String(q._id)), req.user)
         );
 
         const rank = { live: 0, upcoming: 1, ended: 2 };
@@ -128,14 +138,16 @@ router.get('/:id', authenticateUser, async (req, res) => {
             Quiz.findOne({ userId: req.user.id, quizId: id })
         ]);
 
-        res.json(shapeQuiz(quiz, questionCount, myAttempt));
+        res.json(shapeQuiz(quiz, questionCount, myAttempt, req.user));
     } catch (error) {
         console.error('Error fetching user quiz:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 });
 
-// GET /api/user-quizzes/:id/questions (user) - starts/resumes a quizSession
+// GET /api/user-quizzes/:id/questions (user) - starts/resumes a quizSession.
+// The app downloads the whole quiz with this one call and keeps it on the
+// device, so this is the only request a student makes while taking the quiz.
 router.get('/:id/questions', authenticateUser, async (req, res) => {
     try {
         const { id } = req.params;
@@ -143,7 +155,7 @@ router.get('/:id/questions', authenticateUser, async (req, res) => {
             return res.status(400).json({ message: 'Invalid quiz ID' });
         }
 
-        const quiz = await QuizConfig.findOne({ _id: id, isEnable: true });
+        const quiz = await QuizConfig.findOne({ _id: id, isEnable: true }).lean();
         if (!quiz || !(await isAccessible(quiz, req.user))) {
             return res.status(404).json({ message: 'Quiz not found' });
         }
@@ -153,17 +165,38 @@ router.get('/:id/questions', authenticateUser, async (req, res) => {
             return res.status(403).json({ message: 'Quiz is not live right now' });
         }
 
-        const existingAttempt = await Quiz.findOne({ userId: req.user.id, quizId: id });
+        // Repeat calls return the SAME set of questions: read the session back
+        // if one exists instead of re-selecting.
+        const [existingAttempt, existingSession] = await Promise.all([
+            Quiz.exists({ userId: req.user.id, quizId: id }),
+            QuizSession.findOne({ userId: req.user.id, quizId: id }).lean()
+        ]);
         if (existingAttempt) {
             return res.status(409).json({ message: 'Already attempted' });
         }
+        let session = existingSession;
+        let questions = null;
 
-        // Repeat calls return the SAME set of questions: read the session back
-        // if one exists instead of re-selecting.
-        let session = await QuizSession.findOne({ userId: req.user.id, quizId: id });
+        // A session that no longer holds numberOfQuestions existing questions
+        // (saved before the quiz had enough, or some were deleted since) is
+        // re-picked. Only this student opening the quiz gets here, and opening
+        // it already resets their in-app answers, so no progress is lost.
+        if (session) {
+            questions = await QuizQuestion.find({ _id: { $in: session.questionIds }, quizId: id })
+                .select(QUESTION_FIELDS)
+                .lean();
+            if (questions.length !== quiz.numberOfQuestions) {
+                await QuizSession.deleteOne({ _id: session._id });
+                session = null;
+                questions = null;
+            }
+        }
 
         if (!session) {
-            const pool = await QuizQuestion.find({ quizId: id }).select('_id');
+            const pool = await QuizQuestion.find({ quizId: id }).select('_id').lean();
+            if (pool.length < quiz.numberOfQuestions) {
+                return res.status(403).json({ message: "This quiz isn't ready yet. Please check back later." });
+            }
             let selected = pool.map((q) => q._id);
 
             if (quiz.questionsRandomization) {
@@ -183,20 +216,27 @@ router.get('/:id/questions', authenticateUser, async (req, res) => {
                 });
             } catch (error) {
                 if (error && error.code === 11000) {
-                    session = await QuizSession.findOne({ userId: req.user.id, quizId: id });
+                    session = await QuizSession.findOne({ userId: req.user.id, quizId: id }).lean();
                 } else {
                     throw error;
                 }
             }
+            questions = await QuizQuestion.find({ _id: { $in: session.questionIds } }).select(QUESTION_FIELDS).lean();
         }
 
-        const questions = await QuizQuestion.find({ _id: { $in: session.questionIds } }).select(QUESTION_FIELDS);
         const byId = new Map(questions.map((q) => [String(q._id), q]));
         const ordered = session.questionIds.map((qid) => byId.get(String(qid))).filter(Boolean);
 
         res.json({
             quizId: quiz._id,
             title: quiz.title,
+            // The quiz clock runs from when the questions were first handed
+            // out. serverNow lets the app line its own clock up with ours, so
+            // reinstalling or changing the phone's time never refills it.
+            startedAt: session.startedAt,
+            serverNow: new Date(),
+            // The app submits on its own at this moment (server clock).
+            endDate: quiz.endDate,
             assessmentType: quiz.assessmentType || 'quiz',
             overallTimeLimit: quiz.overallTimeLimit,
             perQuestionTimeLimit: quiz.perQuestionTimeLimit,

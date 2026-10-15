@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../themes/app_fonts.dart';
+import '../../../widgets/animation/count_up_text.dart';
+import '../../../widgets/animation/motion.dart';
 import '../../../widgets/common/surface_card.dart';
 
 /// Card with a percentage ring beside a title, a detail line and an
@@ -37,15 +39,23 @@ class MasteryRingCard extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                CircularProgressIndicator(
-                  value: value,
-                  strokeWidth: 8,
-                  strokeCap: StrokeCap.round,
-                  backgroundColor: scheme.primaryContainer,
-                  color: scheme.primary,
+                // Sweeps up from empty once, in step with the count-up below.
+                TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 0, end: value),
+                  duration: Motion.reduced(context)
+                      ? Duration.zero
+                      : Motion.slow,
+                  curve: Motion.smooth,
+                  builder: (_, sweep, __) => CircularProgressIndicator(
+                    value: sweep,
+                    strokeWidth: 8,
+                    strokeCap: StrokeCap.round,
+                    backgroundColor: scheme.primaryContainer,
+                    color: scheme.primary,
+                  ),
                 ),
                 Center(
-                  child: Text(
+                  child: CountUpText(
                     '${(value * 100).round()}%',
                     style: AppFonts.bold(color: scheme.onSurface, fontSize: 18),
                   ),

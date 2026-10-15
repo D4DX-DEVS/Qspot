@@ -7,12 +7,14 @@ import usePageTitle from '../hooks/usePageTitle';
 import apiClient from '../api/client';
 import { formatDuration, formatDateTime } from '../utils/format';
 import brandIcon from '../assets/Icon.png';
+import QuestionTimingDetails, { QuestionStatusBadge } from '../components/quiz/QuestionTimingDetails';
 
 // GET /api/quizzes/attempt/:attemptId ->
 // { attemptId, quizId, title, user, language, score, totalQuestions,
-//   percentage, totalDuration, createdAt, results: [QuestionResult] }
+//   percentage, totalDuration, createdAt, startedAt, results: [QuestionResult] }
 // QuestionResult = { questionId, type, question_en, question_ml, options_en,
-//   options_ml, attemptedAnswer: index|null, correctAnswer: index, isCorrect }
+//   options_ml, attemptedAnswer: index|null, correctAnswer: index, isCorrect,
+//   status, duration (seconds taken), lateAnswer }
 const QuizAttemptDetailPage = () => {
   const { attemptId } = useParams();
   const navigate = useNavigate();
@@ -123,6 +125,12 @@ const QuizAttemptDetailPage = () => {
                   </div>
                   <div className="p-2.5 bg-gray-800/30 rounded-lg border border-gray-700/30">
                     <div className="flex items-center justify-between">
+                      <label className="text-xs font-medium text-gray-400">Started At</label>
+                      <p className="text-xs font-semibold text-white text-right">{formatDateTime(attempt.startedAt)}</p>
+                    </div>
+                  </div>
+                  <div className="p-2.5 bg-gray-800/30 rounded-lg border border-gray-700/30">
+                    <div className="flex items-center justify-between">
                       <label className="text-xs font-medium text-gray-400">Submitted At</label>
                       <p className="text-xs font-semibold text-white text-right">{formatDateTime(attempt.createdAt)}</p>
                     </div>
@@ -172,6 +180,8 @@ const QuizAttemptDetailPage = () => {
                     const isCorrect = Boolean(result.isCorrect);
                     const attemptedIndex =
                       typeof result.attemptedAnswer === 'number' ? result.attemptedAnswer : null;
+                    // Picked after the time ran out: shown, but not counted.
+                    const lateIndex = typeof result.lateAnswer === 'number' ? result.lateAnswer : null;
                     return (
                       <div
                         key={result.questionId || index}
@@ -181,12 +191,15 @@ const QuizAttemptDetailPage = () => {
                       >
                         <div className="flex items-start justify-between mb-1.5">
                           <span className="text-[13px] font-semibold text-white">Question {index + 1}</span>
-                          <span
-                            className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded-full ${
-                              isCorrect ? 'bg-green-900/50 text-green-200' : 'bg-red-900/50 text-red-200'
-                            }`}
-                          >
-                            {isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                          <span className="flex flex-wrap justify-end gap-1">
+                            <QuestionStatusBadge status={result.status} />
+                            <span
+                              className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded-full ${
+                                isCorrect ? 'bg-green-900/50 text-green-200' : 'bg-red-900/50 text-red-200'
+                              }`}
+                            >
+                              {isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                            </span>
                           </span>
                         </div>
                         <p className="mt-1 text-[13px] text-gray-200 leading-relaxed">{result.question_en}</p>
@@ -199,10 +212,13 @@ const QuizAttemptDetailPage = () => {
                               {result.options_en.map((option, optIdx) => {
                                 const isCorrectOption = optIdx === result.correctAnswer;
                                 const isUserOption = optIdx === attemptedIndex;
+                                const isLateOption = optIdx === lateIndex;
                                 const colorClasses = isCorrectOption
                                   ? 'bg-green-900/30 border-green-600/50 text-green-300'
                                   : isUserOption
                                   ? 'bg-red-900/30 border-red-600/50 text-red-300'
+                                  : isLateOption
+                                  ? 'bg-orange-900/30 border-orange-600/50 text-orange-300'
                                   : 'bg-gray-800/30 border-gray-600/50 text-gray-300';
                                 return (
                                   <div
@@ -210,7 +226,12 @@ const QuizAttemptDetailPage = () => {
                                     className={`p-1.5 rounded border flex items-center justify-between ${colorClasses}`}
                                   >
                                     <span className="text-[12px]">{option}</span>
-                                    <span className="ml-1.5">
+                                    <span className="ml-1.5 flex items-center gap-1">
+                                      {isLateOption && (
+                                        <span className="rounded-full bg-orange-900/60 px-1.5 py-0.5 text-[10px] font-semibold text-orange-200">
+                                          Late
+                                        </span>
+                                      )}
                                       {isCorrectOption && <span className="text-green-400 text-xs font-bold">✓</span>}
                                       {isUserOption && !isCorrectOption && (
                                         <span className="text-red-400 text-xs font-bold">✗</span>
@@ -232,11 +253,19 @@ const QuizAttemptDetailPage = () => {
                           </div>
                           <div>
                             <label className="block text-[10px] font-medium text-gray-400 mb-1">User's Answer</label>
-                            <p className={`text-[13px] font-semibold ${isCorrect ? 'text-green-400' : 'text-red-400'}`}>
-                              {attemptedIndex !== null ? result.options_en?.[attemptedIndex] ?? 'NA' : 'Not answered'}
-                            </p>
+                            {lateIndex !== null ? (
+                              <p className="text-[13px] font-semibold text-orange-400">
+                                {result.options_en?.[lateIndex] ?? 'NA'} — late, not counted
+                              </p>
+                            ) : (
+                              <p className={`text-[13px] font-semibold ${isCorrect ? 'text-green-400' : 'text-red-400'}`}>
+                                {attemptedIndex !== null ? result.options_en?.[attemptedIndex] ?? 'NA' : 'Not answered'}
+                              </p>
+                            )}
                           </div>
                         </div>
+
+                        <QuestionTimingDetails result={result} />
                       </div>
                     );
                   })}

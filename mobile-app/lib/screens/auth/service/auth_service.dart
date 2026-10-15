@@ -8,10 +8,14 @@ import '../../../services/common/storage_service.dart';
 /// Auth API calls, backed by [ApiClient].
 ///
 /// Endpoint contract:
-///  - POST /api/user/register            {name, phone, class, email?, dob?, consent?}
+///  - POST /api/user/register            {name, phone, class, dob, email?, consent?}
 ///        -> 201 {message, user}  (no token: registration does not log in)
+///  - POST /api/user/login                {phone, dob} -> {message, token, user}
 ///  - POST /api/user/login/request-otp    {phone} -> {message, phone, cooldown}
 ///  - POST /api/user/login/verify         {phone, code} -> {message, token, user}
+///
+/// Signing in uses phone + date of birth. The OTP calls are kept for the
+/// number-verification step, which is not built yet.
 class AuthService {
   static const String _userKey = 'user_data';
   static const String _tokenKey = 'auth_token';
@@ -38,6 +42,23 @@ class AuthService {
     }
   }
 
+  /// Sign in with phone number and date of birth ('YYYY-MM-DD') and, on
+  /// success, persist the session (token + user + userId).
+  Future<Map<String, dynamic>> login(String phone, String dob) async {
+    try {
+      final data = await ApiClient.post(
+        '/api/user/login',
+        body: {'phone': phone, 'dob': dob},
+      );
+      return await _startSession(data);
+    } on ApiException catch (e) {
+      return {'success': false, 'message': e.message, 'status': e.status};
+    } catch (e) {
+      debugPrint('AuthService.login failed: $e');
+      return {'success': false, 'message': 'Network error. Please try again.'};
+    }
+  }
+
   /// Verify OTP and, on success, persist the session (token + user + userId).
   Future<Map<String, dynamic>> verifyOtp(String phone, String otp) async {
     try {
@@ -45,29 +66,33 @@ class AuthService {
         '/api/user/login/verify',
         body: {'phone': phone, 'code': otp},
       );
-
-      final map = data is Map ? data : <String, dynamic>{};
-      final userData = map['user'] is Map
-          ? Map<String, dynamic>.from(map['user'] as Map)
-          : <String, dynamic>{};
-      if (map['token'] != null) {
-        userData['token'] = map['token'];
-      }
-
-      final user = UserModel.fromJson(userData);
-      await saveUserData(user);
-
-      return {
-        'success': true,
-        'user': user,
-        'message': map['message'] ?? 'Login successful',
-      };
+      return await _startSession(data);
     } on ApiException catch (e) {
       return {'success': false, 'message': e.message, 'status': e.status};
     } catch (e) {
       debugPrint('AuthService.verifyOtp failed: $e');
       return {'success': false, 'message': 'Network error. Please try again.'};
     }
+  }
+
+  /// Saves the `{message, token, user}` a sign-in call returned.
+  Future<Map<String, dynamic>> _startSession(dynamic data) async {
+    final map = data is Map ? data : <String, dynamic>{};
+    final userData = map['user'] is Map
+        ? Map<String, dynamic>.from(map['user'] as Map)
+        : <String, dynamic>{};
+    if (map['token'] != null) {
+      userData['token'] = map['token'];
+    }
+
+    final user = UserModel.fromJson(userData);
+    await saveUserData(user);
+
+    return {
+      'success': true,
+      'user': user,
+      'message': map['message'] ?? 'Login successful',
+    };
   }
 
   /// Register a new user. The API does not return a token for this call,
@@ -77,8 +102,8 @@ class AuthService {
     required String phone,
     required String name,
     required String classNumber,
+    required String dob,
     String? email,
-    String? dob,
     Map<String, dynamic>? consent,
     List<String> courseIds = const [],
   }) async {
@@ -87,8 +112,8 @@ class AuthService {
         'name': name,
         'phone': phone,
         'class': classNumber,
+        'dob': dob,
         if (email != null && email.isNotEmpty) 'email': email,
-        if (dob != null && dob.isNotEmpty) 'dob': dob,
         if (consent != null) 'consent': consent,
         if (courseIds.isNotEmpty) 'courseIds': courseIds,
       };

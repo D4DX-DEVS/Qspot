@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../themes/app_fonts.dart';
 import '../../../themes/auth_theme.dart';
@@ -10,7 +11,7 @@ class ClassDropdownField extends StatelessWidget {
     super.key,
     required this.value,
     required this.onChanged,
-    this.hint = 'Class (for example 9, 10, 11)',
+    this.hint = 'Which Class Are You In?',
     this.classes = defaultClasses,
   });
 
@@ -40,13 +41,13 @@ class ClassDropdownField extends StatelessWidget {
             DropdownMenuItem(value: item, child: Text('Class $item')),
         ],
         style: AppFonts.regular(color: colors.onSurface, fontSize: 16),
-        icon: const Icon(Icons.keyboard_arrow_down_rounded),
+        icon: const Icon(LucideIcons.chevronDown),
         iconEnabledColor: colors.onSurface,
         borderRadius: BorderRadius.circular(AuthTheme.fieldRadius),
         menuMaxHeight: 360,
         decoration: InputDecoration(
           hintText: hint,
-          prefixIcon: const Icon(Icons.school_outlined, size: 22),
+          prefixIcon: const Icon(LucideIcons.graduationCap, size: 22),
         ),
       ),
     );

@@ -1,9 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../services/video_progress_service.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../themes/home_palette.dart';
+import '../../../widgets/animation/pressable_scale.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../model/subject_model.dart';
 
 /// The panel shown the first time a chapter is opened: what the chapter
@@ -40,19 +44,19 @@ class ChapterGuideSheet extends StatelessWidget {
   static IconData iconFor(String icon) {
     switch (icon) {
       case 'video':
-        return Icons.play_circle_fill;
+        return LucideIcons.circlePlay;
       case 'quiz':
-        return Icons.quiz_outlined;
+        return LucideIcons.listChecks;
       case 'question':
-        return Icons.forum_outlined;
+        return LucideIcons.messagesSquare;
       case 'schedule':
-        return Icons.calendar_month_outlined;
+        return LucideIcons.calendarDays;
       case 'progress':
-        return Icons.trending_up;
+        return LucideIcons.trendingUp;
       case 'note':
-        return Icons.description_outlined;
+        return LucideIcons.fileText;
       default:
-        return Icons.info_outline;
+        return LucideIcons.info;
     }
   }
 
@@ -61,7 +65,7 @@ class ChapterGuideSheet extends StatelessWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.background,
+      backgroundColor: HomePalette.of(context).card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -71,6 +75,7 @@ class ChapterGuideSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = HomePalette.of(context);
     final points = subject.guidePoints.isEmpty
         ? SubjectModel.defaultGuidePoints
         : subject.guidePoints;
@@ -84,114 +89,127 @@ class ChapterGuideSheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // The chapter's own cover art, so the panel feels like part of it.
-            Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: subject.imageUrl == null
-                    ? Container(
-                        width: 104,
-                        height: 104,
-                        color: AppColors.primarySoft,
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          Icons.menu_book,
-                          color: AppColors.primary,
-                          size: 34,
-                        ),
-                      )
-                    : CachedNetworkImage(
-                        imageUrl: subject.imageUrl!,
-                        width: 104,
-                        height: 104,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
+            StaggeredEntrance(
+              child: Center(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: subject.imageUrl == null
+                      ? Container(
                           width: 104,
                           height: 104,
-                          color: AppColors.surfaceAlt,
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          width: 104,
-                          height: 104,
-                          color: AppColors.primarySoft,
+                          color: p.brandSoft,
                           alignment: Alignment.center,
-                          child: const Icon(
-                            Icons.menu_book,
-                            color: AppColors.primary,
+                          child: Icon(
+                            LucideIcons.bookOpen,
+                            color: p.brand,
                             size: 34,
                           ),
+                        )
+                      : CachedNetworkImage(
+                          imageUrl: subject.imageUrl!,
+                          width: 104,
+                          height: 104,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            width: 104,
+                            height: 104,
+                            color: p.brandSoft,
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            width: 104,
+                            height: 104,
+                            color: p.brandSoft,
+                            alignment: Alignment.center,
+                            child: Icon(
+                              LucideIcons.bookOpen,
+                              color: p.brand,
+                              size: 34,
+                            ),
+                          ),
                         ),
-                      ),
+                ),
               ),
             ),
             const SizedBox(height: 22),
-            Text(
-              subject.guideTitle.isEmpty
-                  ? SubjectModel.defaultGuideTitle
-                  : subject.guideTitle,
-              textAlign: TextAlign.center,
-              style: AppFonts.bold(
-                color: AppColors.textPrimary,
-                fontSize: 22,
-                height: 1.25,
+            StaggeredEntrance(
+              index: 1,
+              child: Text(
+                subject.guideTitle.isEmpty
+                    ? SubjectModel.defaultGuideTitle
+                    : subject.guideTitle,
+                textAlign: TextAlign.center,
+                style: AppFonts.bold(color: p.text, fontSize: 22, height: 1.25),
               ),
             ),
             const SizedBox(height: 6),
-            Text(
-              subject.subject,
-              textAlign: TextAlign.center,
-              style: AppFonts.regular(color: AppColors.textMuted, fontSize: 13),
+            StaggeredEntrance(
+              index: 1,
+              child: Text(
+                subject.subject,
+                textAlign: TextAlign.center,
+                style: AppFonts.regular(color: p.textMuted, fontSize: 13),
+              ),
             ),
             const SizedBox(height: 24),
-            ...points.map(
-              (point) => Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AppColors.primarySoft,
-                        borderRadius: BorderRadius.circular(12),
+            ...points.indexed.map(
+              (entry) => StaggeredEntrance(
+                index: entry.$1 + 2,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: p.brandSoft,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          iconFor(entry.$2.icon),
+                          color: p.brand,
+                          size: 20,
+                        ),
                       ),
-                      alignment: Alignment.center,
-                      child: Icon(
-                        iconFor(point.icon),
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          point.text,
-                          style: AppFonts.regular(
-                            color: AppColors.textPrimary,
-                            fontSize: 15,
-                            height: 1.4,
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            entry.$2.text,
+                            style: AppFonts.regular(
+                              color: p.text,
+                              fontSize: 15,
+                              height: 1.4,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 12),
-            SizedBox(
-              height: 54,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.onPrimary,
-                  shape: const StadiumBorder(),
-                  textStyle: AppFonts.bold(fontSize: 16),
+            StaggeredEntrance(
+              index: points.length + 2,
+              child: PressableScale(
+                haptic: true,
+                child: SizedBox(
+                  height: 54,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: p.brand,
+                      foregroundColor: AppColors.onPrimary,
+                      shape: const StadiumBorder(),
+                      textStyle: AppFonts.bold(fontSize: 16),
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Got It'),
+                  ),
                 ),
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Got it'),
               ),
             ),
           ],

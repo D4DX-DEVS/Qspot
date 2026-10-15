@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../themes/app_fonts.dart';
+import '../animation/pressable_scale.dart';
 
 /// Rounded outlined button in the brand colour on the card surface, e.g.
 /// "Try again" or "Logout". Stretches to the available width when [expand].
@@ -39,6 +40,9 @@ class SoftOutlineButton extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
-    return expand ? SizedBox(width: double.infinity, child: button) : button;
+    final pressable = PressableScale(haptic: true, child: button);
+    return expand
+        ? SizedBox(width: double.infinity, child: pressable)
+        : pressable;
   }
 }

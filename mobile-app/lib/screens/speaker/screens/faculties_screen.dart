@@ -1,15 +1,25 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 import '../../../themes/app_colors.dart';
-import '../../../themes/app_theme.dart';
 import '../../../themes/app_fonts.dart';
+import '../../../themes/home_palette.dart';
+import '../../../widgets/animation/count_up_text.dart';
+import '../../../widgets/animation/pressable_scale.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/loading_skeleton.dart';
+import '../../../widgets/common/soft_icon_tile.dart';
+import '../../../widgets/common/state_message_view.dart';
+import '../../../widgets/common/surface_card.dart';
+import '../../common/widgets/home_theme_scope.dart';
 import '../../video/model/video_model.dart';
 import '../../video/provider/video_provider.dart';
 import '../../video/screens/video_reels_screen.dart';
 import '../model/speaker_model.dart';
+import '../provider/faculties_screen_provider.dart';
 import '../provider/speaker_provider.dart';
 
 /// One full profile per faculty member, stacked so scrolling moves from one
@@ -23,46 +33,56 @@ class FacultiesScreen extends StatefulWidget {
 
 class _FacultiesScreenState extends State<FacultiesScreen> {
   final TextEditingController _searchController = TextEditingController();
-  bool _isSearching = false;
-  String _query = '';
+  final FacultiesScreenProvider _faculties = FacultiesScreenProvider();
 
   @override
   void dispose() {
     _searchController.dispose();
+    _faculties.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Burgundy home theme; the page reads colours from the context inside it.
+    return HomeThemeScope(
+      child: ChangeNotifierProvider.value(
+        value: _faculties,
+        child: Consumer<FacultiesScreenProvider>(
+          builder: (context, search, _) => _buildPage(context, search),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPage(BuildContext context, FacultiesScreenProvider search) {
+    final p = HomePalette.of(context);
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: CommonAppBar(
         title: 'Faculties',
-        titleWidget: _isSearching
+        titleWidget: search.isSearching
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                style: AppFonts.regular(color: AppColors.textPrimary),
+                style: AppFonts.regular(color: p.text),
                 decoration: InputDecoration(
-                  hintText: 'Search faculties…',
-                  hintStyle: AppFonts.regular(color: AppColors.textMuted),
+                  hintText: 'Search Faculties…',
+                  hintStyle: AppFonts.regular(color: p.textMuted),
                   border: InputBorder.none,
                 ),
-                onChanged: (value) => setState(() => _query = value.trim()),
+                onChanged: search.setQuery,
               )
             : null,
         actions: [
           IconButton(
-            tooltip: _isSearching ? 'Close search' : 'Search faculties',
-            icon: Icon(_isSearching ? Icons.close : Icons.search),
+            tooltip: search.isSearching ? 'Close Search' : 'Search Faculties',
+            icon: Icon(
+              search.isSearching ? LucideIcons.x : LucideIcons.search,
+              color: p.text,
+            ),
             onPressed: () {
-              setState(() {
-                _isSearching = !_isSearching;
-                if (!_isSearching) {
-                  _searchController.clear();
-                  _query = '';
-                }
-              });
+              if (search.isSearching) _searchController.clear();
+              search.toggleSearching();
             },
           ),
         ],
@@ -70,107 +90,58 @@ class _FacultiesScreenState extends State<FacultiesScreen> {
       body: Consumer2<SpeakerProvider, VideoProvider>(
         builder: (context, speakerProvider, videoProvider, child) {
           if (speakerProvider.isLoading && speakerProvider.speakers.isEmpty) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
+            return const LoadingSkeleton();
           }
 
           if (speakerProvider.hasError && speakerProvider.speakers.isEmpty) {
-            return _message(
-              icon: Icons.error_outline,
-              title: 'Could not load faculties',
-              subtitle: speakerProvider.errorMessage,
-              action: TextButton(
-                onPressed: () => speakerProvider.refresh(),
-                child: const Text('Try again'),
-              ),
+            return StateMessageView(
+              icon: LucideIcons.circleAlert,
+              title: 'Could Not Load Faculties',
+              message: speakerProvider.errorMessage,
+              onRetry: () => speakerProvider.refresh(),
             );
           }
 
           final all = speakerProvider.speakers;
-          final faculties = _query.isEmpty
-              ? all
-              : all.where((speaker) => _matches(speaker, _query)).toList();
+          final faculties = search.filter(all);
 
           if (all.isEmpty) {
-            return _message(
-              icon: Icons.people_outline,
-              title: 'No faculties yet',
-              subtitle:
-                  'Faculty profiles will appear here once they are added.',
+            return const StateMessageView(
+              icon: LucideIcons.users,
+              title: 'No Faculties Yet',
+              message: 'Faculty profiles will appear here once they are added.',
             );
           }
 
           if (faculties.isEmpty) {
-            return _message(
-              icon: Icons.search_off,
-              title: 'No match for "$_query"',
-              subtitle: 'Try a different name.',
+            return StateMessageView(
+              icon: LucideIcons.searchX,
+              title: 'No Match for "${search.query}"',
+              message: 'Try a different name.',
             );
           }
 
           return RefreshIndicator(
             onRefresh: () => speakerProvider.refresh(),
-            backgroundColor: AppColors.background,
-            color: AppColors.primary,
+            backgroundColor: p.card,
+            color: p.brand,
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
               itemCount: faculties.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 24),
+              separatorBuilder: (_, __) => const SizedBox(height: 20),
               itemBuilder: (context, index) {
                 final speaker = faculties[index];
-                return _FacultyProfile(
-                  speaker: speaker,
-                  episodes: videoProvider.videosForSpeaker(speaker.id),
+                return StaggeredEntrance(
+                  index: index,
+                  child: _FacultyProfile(
+                    speaker: speaker,
+                    episodes: videoProvider.videosForSpeaker(speaker.id),
+                  ),
                 );
               },
             ),
           );
         },
-      ),
-    );
-  }
-
-  bool _matches(SpeakerModel speaker, String query) {
-    final needle = query.toLowerCase();
-    return speaker.name.toLowerCase().contains(needle) ||
-        speaker.designation.toLowerCase().contains(needle);
-  }
-
-  Widget _message({
-    required IconData icon,
-    required String title,
-    String? subtitle,
-    Widget? action,
-  }) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 56, color: AppColors.textMuted),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: AppFonts.bold(color: AppColors.textPrimary, fontSize: 17),
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                subtitle,
-                textAlign: TextAlign.center,
-                style: AppFonts.regular(
-                  color: AppColors.textMuted,
-                  fontSize: 13.5,
-                  height: 1.4,
-                ),
-              ),
-            ],
-            if (action != null) ...[const SizedBox(height: 8), action],
-          ],
-        ),
       ),
     );
   }
@@ -183,18 +154,20 @@ class _FacultyProfile extends StatelessWidget {
   final SpeakerModel speaker;
   final List<VideoModel> episodes;
 
-  static const double _photoHeight = 320;
+  static const double _photoHeight = 220;
+
+  /// Tallest the portrait grows to when big system text needs more room for
+  /// the name drawn on it.
+  static const double _maxPhotoHeight = 320;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-        border: Border.all(color: AppColors.border),
-        boxShadow: AppTheme.cardShadow,
-      ),
-      clipBehavior: Clip.antiAlias,
+    final p = HomePalette.of(context);
+    return SurfaceCard(
+      padding: EdgeInsets.zero,
+      radius: 22,
+      color: p.card,
+      borderColor: p.cardBorder,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -208,7 +181,7 @@ class _FacultyProfile extends StatelessWidget {
                   Text(
                     speaker.designation,
                     style: AppFonts.medium(
-                      color: AppColors.textPrimary,
+                      color: p.text,
                       fontSize: 13.5,
                       height: 1.45,
                     ),
@@ -224,8 +197,10 @@ class _FacultyProfile extends StatelessWidget {
   }
 
   Widget _portrait(BuildContext context) {
+    final p = HomePalette.of(context);
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
     return SizedBox(
-      height: _photoHeight,
+      height: (_photoHeight * textScale).clamp(_photoHeight, _maxPhotoHeight),
       width: double.infinity,
       child: Stack(
         fit: StackFit.expand,
@@ -234,11 +209,11 @@ class _FacultyProfile extends StatelessWidget {
             CachedNetworkImage(
               imageUrl: speaker.avatarUrl!,
               fit: BoxFit.cover,
-              placeholder: (_, __) => Container(color: AppColors.surfaceAlt),
-              errorWidget: (_, __, ___) => _initials(),
+              placeholder: (_, __) => Container(color: p.brandSoft),
+              errorWidget: (_, __, ___) => _initials(p),
             )
           else
-            _initials(),
+            _initials(p),
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -257,8 +232,6 @@ class _FacultyProfile extends StatelessWidget {
               children: [
                 Text(
                   speaker.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                   style: AppFonts.bold(
                     color: AppColors.white,
                     fontSize: 22,
@@ -267,8 +240,8 @@ class _FacultyProfile extends StatelessWidget {
                 ),
                 if (episodes.isNotEmpty) ...[
                   const SizedBox(height: 6),
-                  Text(
-                    '${episodes.length} episode${episodes.length == 1 ? '' : 's'}',
+                  CountUpText(
+                    '${episodes.length} Episode${episodes.length == 1 ? '' : 's'}',
                     style: AppFonts.semiBold(
                       color: AppColors.white70,
                       fontSize: 12.5,
@@ -283,7 +256,7 @@ class _FacultyProfile extends StatelessWidget {
     );
   }
 
-  Widget _initials() {
+  Widget _initials(HomePalette p) {
     final initials = speaker.name
         .split(RegExp(r'\s+'))
         .where((part) => part.isNotEmpty)
@@ -293,20 +266,21 @@ class _FacultyProfile extends StatelessWidget {
         .join();
 
     return Container(
-      color: AppColors.primarySoft,
+      decoration: BoxDecoration(gradient: p.heroGradient),
       alignment: Alignment.center,
       child: Text(
         initials.isEmpty ? '?' : initials,
-        style: AppFonts.bold(color: AppColors.primary, fontSize: 44),
+        style: AppFonts.bold(color: AppColors.white, fontSize: 44),
       ),
     );
   }
 
   Widget _episodeSummary(BuildContext context) {
+    final p = HomePalette.of(context);
     if (episodes.isEmpty) {
       return Text(
         'No episodes published yet.',
-        style: AppFonts.regular(color: AppColors.textMuted, fontSize: 13.5),
+        style: AppFonts.regular(color: p.textMuted, fontSize: 13.5),
       );
     }
 
@@ -316,7 +290,7 @@ class _FacultyProfile extends StatelessWidget {
         Text(
           'EPISODES',
           style: AppFonts.bold(
-            color: AppColors.textMuted,
+            color: p.textMuted,
             fontSize: 11,
             letterSpacing: 0.8,
           ),
@@ -327,36 +301,38 @@ class _FacultyProfile extends StatelessWidget {
             .map(
               (episode) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-                  onTap: () => VideoReelsScreen.open(
-                    context,
-                    episodes,
-                    initialIndex: episodes.indexOf(episode),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.play_circle_outline,
-                          size: 20,
-                          color: AppColors.primary,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            episode.displayTitle,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppFonts.regular(
-                              color: AppColors.textPrimary,
-                              fontSize: 13.5,
-                              height: 1.35,
+                child: PressableScale(
+                  pressedScale: 0.98,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () => VideoReelsScreen.open(
+                      context,
+                      episodes,
+                      initialIndex: episodes.indexOf(episode),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Row(
+                        children: [
+                          SoftIconTile(
+                            icon: LucideIcons.play,
+                            tone: p.rose,
+                            size: 32,
+                            circle: true,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              episode.displayTitle,
+                              style: AppFonts.regular(
+                                color: p.text,
+                                fontSize: 13.5,
+                                height: 1.35,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -365,20 +341,23 @@ class _FacultyProfile extends StatelessWidget {
         const SizedBox(height: 6),
         SizedBox(
           width: double.infinity,
-          child: FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.onPrimary,
-              padding: const EdgeInsets.symmetric(vertical: 13),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          child: PressableScale(
+            haptic: true,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: p.brand,
+                foregroundColor: p.card,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                textStyle: AppFonts.bold(fontSize: 14),
               ),
-              textStyle: AppFonts.bold(fontSize: 14),
-            ),
-            onPressed: () => VideoReelsScreen.open(context, episodes),
-            child: Text(
-              'Watch all ${episodes.length} episode'
-              '${episodes.length == 1 ? '' : 's'}',
+              onPressed: () => VideoReelsScreen.open(context, episodes),
+              child: Text(
+                'Watch All ${episodes.length} Episode'
+                '${episodes.length == 1 ? '' : 's'}',
+              ),
             ),
           ),
         ),

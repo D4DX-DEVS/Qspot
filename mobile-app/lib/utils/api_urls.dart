@@ -3,7 +3,7 @@ class ApiUrls {
   //   flutter run --dart-define=API_BASE_URL=http://localhost:5001
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: "https://qspot-api-ldzmy.ondigitalocean.app",
+    defaultValue: "https://qspot-app-vcbgp.ondigitalocean.app",
   );
 
   // Collection endpoints

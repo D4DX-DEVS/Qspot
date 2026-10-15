@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 
 import 'api_client.dart';
+import '../screens/assignment/service/assignment_service.dart';
+import '../screens/grades/service/grades_service.dart';
+import '../utils/json_parsing.dart';
 
 class MasteryItem {
   const MasteryItem({
@@ -24,8 +27,8 @@ class MasteryItem {
     Map<String, dynamic> json, {
     required String idKey,
   }) {
-    final total = (json['total'] as num?)?.toInt() ?? 0;
-    final completed = (json['completed'] as num?)?.toInt() ?? 0;
+    final total = jsonInt(json['total']) ?? 0;
+    final completed = jsonInt(json['completed']) ?? 0;
     return MasteryItem(
       id: (json[idKey] ?? '').toString(),
       title: (json['title'] ?? json['name'] ?? 'Untitled').toString(),
@@ -43,6 +46,7 @@ class ProgressActivity {
     required this.totalQuestions,
     required this.percentage,
     this.createdAt,
+    this.detail,
   });
 
   final String kind;
@@ -52,7 +56,12 @@ class ProgressActivity {
   final num percentage;
   final DateTime? createdAt;
 
+  /// The line under the title, when the default "3/5 correct" does not fit
+  /// (an assignment is marked in points).
+  final String? detail;
+
   bool get isVideoQuiz => kind == 'video-quiz';
+  bool get isAssignment => kind == 'assignment';
 
   factory ProgressActivity.fromJson(
     Map<String, dynamic> json, {
@@ -61,9 +70,9 @@ class ProgressActivity {
     return ProgressActivity(
       kind: kind,
       title: (json['title'] ?? '').toString(),
-      score: (json['score'] as num?)?.toInt() ?? 0,
-      totalQuestions: (json['totalQuestions'] as num?)?.toInt() ?? 0,
-      percentage: (json['percentage'] as num?) ?? 0,
+      score: jsonInt(json['score']) ?? 0,
+      totalQuestions: jsonInt(json['totalQuestions']) ?? 0,
+      percentage: jsonDouble(json['percentage']) ?? 0,
       createdAt: DateTime.tryParse((json['createdAt'] ?? '').toString()),
     );
   }
@@ -86,10 +95,10 @@ class LearningStats {
 
   factory LearningStats.fromJson(Map<String, dynamic> json) {
     return LearningStats(
-      currentStreak: (json['currentStreak'] as num?)?.toInt() ?? 0,
-      longestStreak: (json['longestStreak'] as num?)?.toInt() ?? 0,
-      xp: (json['xp'] as num?)?.toInt() ?? 0,
-      level: ((json['level'] as num?)?.toInt() ?? 1).clamp(1, 999).toInt(),
+      currentStreak: jsonInt(json['currentStreak']) ?? 0,
+      longestStreak: jsonInt(json['longestStreak']) ?? 0,
+      xp: jsonInt(json['xp']) ?? 0,
+      level: (jsonInt(json['level']) ?? 1).clamp(1, 999).toInt(),
       lastActivityDate: DateTime.tryParse(
         '${json['lastActivityDate'] ?? ''}T00:00:00',
       ),
@@ -123,8 +132,9 @@ class LearningProgressData {
 
   factory LearningProgressData.fromJson(
     Map<String, dynamic> progress,
-    Map<String, dynamic>? statsJson,
-  ) {
+    Map<String, dynamic>? statsJson, {
+    List<ProgressActivity> assignmentActivities = const [],
+  }) {
     final videos = progress['videos'] is Map
         ? Map<String, dynamic>.from(progress['videos'] as Map)
         : <String, dynamic>{};
@@ -162,6 +172,7 @@ class LearningProgressData {
         [
           ...parseActivities(progress['quizAttempts'], 'quiz'),
           ...parseActivities(progress['videoQuizzes'], 'video-quiz'),
+          ...assignmentActivities,
         ]..sort((a, b) {
           final aDate = a.createdAt;
           final bDate = b.createdAt;
@@ -172,9 +183,9 @@ class LearningProgressData {
         });
 
     return LearningProgressData(
-      videosTotal: (videos['total'] as num?)?.toInt() ?? 0,
-      videosCompleted: (videos['completed'] as num?)?.toInt() ?? 0,
-      videosInProgress: (videos['inProgress'] as num?)?.toInt() ?? 0,
+      videosTotal: jsonInt(videos['total']) ?? 0,
+      videosCompleted: jsonInt(videos['completed']) ?? 0,
+      videosInProgress: jsonInt(videos['inProgress']) ?? 0,
       courses: parseMastery(progress['courses'], 'courseId'),
       subjects: parseMastery(progress['subjects'], 'subjectId'),
       activities: activities,
@@ -190,6 +201,7 @@ class LearningProgressService {
     final results = await Future.wait([
       ApiClient.get('/api/user/progress'),
       _fetchStats(),
+      _fetchAssignmentMarks(),
     ]);
     final progress = results[0];
     if (progress is! Map) {
@@ -199,7 +211,33 @@ class LearningProgressService {
     return LearningProgressData.fromJson(
       Map<String, dynamic>.from(progress),
       stats is Map ? Map<String, dynamic>.from(stats) : null,
+      assignmentActivities: results[2] as List<ProgressActivity>,
     );
+  }
+
+  /// Assignments a teacher has marked, shown with the quizzes in Recent
+  /// Activity. Left out when they cannot be loaded.
+  static Future<List<ProgressActivity>> _fetchAssignmentMarks() async {
+    try {
+      final marks = GradesService.fromAssignments(
+        await AssignmentService.fetchAll(),
+      );
+      return [
+        for (final mark in marks)
+          ProgressActivity(
+            kind: 'assignment',
+            title: mark.title,
+            score: mark.score.round(),
+            totalQuestions: mark.outOf.round(),
+            percentage: mark.percent,
+            createdAt: mark.date,
+            detail: '${mark.scoreLabel} points - ${mark.percentLabel}',
+          ),
+      ];
+    } catch (error) {
+      debugPrint('Assignment marks unavailable: $error');
+      return const [];
+    }
   }
 
   static Future<dynamic> _fetchStats() async {

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../themes/accent_tone.dart';
 import '../../themes/app_fonts.dart';
+import '../animation/pressable_scale.dart';
 
 /// Small soft pill with a label and an arrow, e.g. "Open assignments ->".
 class TintedPillLink extends StatelessWidget {
@@ -21,7 +23,7 @@ class TintedPillLink extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(20);
-    return Material(
+    final pill = Material(
       color: tone.soft,
       borderRadius: radius,
       child: InkWell(
@@ -32,16 +34,21 @@ class TintedPillLink extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                label,
-                style: AppFonts.semiBold(color: tone.color, fontSize: 12.5),
+              Flexible(
+                child: Text(
+                  label,
+                  style: AppFonts.semiBold(color: tone.color, fontSize: 12.5),
+                ),
               ),
               const SizedBox(width: 6),
-              Icon(Icons.arrow_forward_rounded, color: tone.color, size: 16),
+              Icon(LucideIcons.arrowRight, color: tone.color, size: 16),
             ],
           ),
         ),
       ),
     );
+    return onTap == null
+        ? pill
+        : PressableScale(pressedScale: 0.94, child: pill);
   }
 }

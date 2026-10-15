@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
+import '../model/registered_account.dart';
 import '../provider/auth_provider.dart';
+import '../provider/registration_form_provider.dart';
 import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
-import '../../../services/course_service.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/app_snack_bar.dart';
 import '../widgets/art/auth_art.dart';
 import '../widgets/art/bottom_waves_painter.dart';
@@ -12,6 +15,7 @@ import '../widgets/art/corner_wave_painter.dart';
 import '../widgets/art/mosque_skyline_painter.dart';
 import '../widgets/auth_back_button.dart';
 import '../widgets/auth_brand_mark.dart';
+import '../widgets/auth_dob_picker.dart';
 import '../widgets/auth_headline.dart';
 import '../widgets/auth_page_layout.dart';
 import '../widgets/auth_phone_field.dart';
@@ -22,6 +26,7 @@ import '../widgets/consent_card.dart';
 import '../widgets/course_picker_card.dart';
 import '../widgets/date_picker_field.dart';
 import '../widgets/gradient_pill_button.dart';
+import '../widgets/phone_verification_alert.dart';
 
 /// Create-account form: back button, logo, one bold heading, themed fields
 /// and a gradient pill that stays faded until the form is complete. Light or
@@ -39,72 +44,49 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final TextEditingController _consentNameController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  String? _classNumber;
-  DateTime? _dob;
-  bool _hasConsent = false;
-  String _consentBy = 'parent';
-  List<CourseModel> _courses = const [];
-  final Set<String> _selectedCourseIds = <String>{};
-  bool _coursesLoading = true;
+  final RegistrationFormProvider _form = RegistrationFormProvider();
 
   @override
   void initState() {
     super.initState();
-    _loadCourses();
-    for (final controller in [_phoneController, _nameController]) {
-      controller.addListener(_onFieldChanged);
-    }
+    _form.loadCourses();
+    _phoneController.addListener(_onPhoneChanged);
+    _nameController.addListener(_onNameChanged);
   }
 
-  Future<void> _loadCourses() async {
-    final courses = await CourseService.fetchActive();
-    if (!mounted) return;
-    setState(() {
-      _courses = courses;
-      _coursesLoading = false;
-    });
-  }
+  void _onPhoneChanged() => _form.setPhone(_phoneController.text);
 
-  void _onFieldChanged() => setState(() {});
+  void _onNameChanged() => _form.setName(_nameController.text);
 
   @override
   void dispose() {
-    for (final controller in [_phoneController, _nameController]) {
-      controller.removeListener(_onFieldChanged);
-      controller.dispose();
-    }
+    _phoneController.removeListener(_onPhoneChanged);
+    _nameController.removeListener(_onNameChanged);
+    _phoneController.dispose();
+    _nameController.dispose();
     _consentNameController.dispose();
+    _form.dispose();
     super.dispose();
   }
 
-  bool get _isComplete =>
-      _phoneController.text.trim().length == 10 &&
-      _nameController.text.trim().length >= 3 &&
-      _classNumber != null;
-
-  String _formatDob(DateTime date) {
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-    return '${date.year}-$month-$day';
-  }
-
   Future<void> _pickDob() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _dob ?? DateTime(now.year - 12, now.month, now.day),
-      firstDate: DateTime(now.year - 100),
-      lastDate: now,
-      // This context sits above the page's AuthThemeScope, so re-apply it.
-      builder: (context, child) => AuthThemeScope(child: child!),
-    );
+    final picked = await showAuthDobPicker(context, initial: _form.dob);
     if (picked != null && mounted) {
-      setState(() => _dob = picked);
+      _form.setDob(picked);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _form,
+      child: Consumer<RegistrationFormProvider>(
+        builder: (_, form, __) => _buildPage(form),
+      ),
+    );
+  }
+
+  Widget _buildPage(RegistrationFormProvider form) {
     return AuthThemeScope(
       child: AuthPageLayout(
         topArt: const AuthArt(painter: CornerWavePainter.new),
@@ -116,24 +98,30 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         ),
         bottomArtHeight: 120,
         children: [
-          Stack(
-            children: [
-              const AuthBrandMark(size: 116),
-              Positioned(
-                top: 0,
-                left: 0,
-                child: AuthBackButton(
-                  onPressed: () => Navigator.of(context).pop(),
+          StaggeredEntrance(
+            index: 0,
+            child: Stack(
+              children: [
+                const AuthBrandMark(size: 116),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  child: AuthBackButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const AuthHeadline(
-            title: 'Create your ',
-            accent: 'account',
-            subtitle:
-                'Your number signs you in, so there is no password to remember.',
-            fontSize: 28,
+          const StaggeredEntrance(
+            index: 1,
+            child: AuthHeadline(
+              title: 'Create Your ',
+              accent: 'Account',
+              subtitle:
+                  'Your number and date of birth sign you in, so there is no password to remember.',
+              fontSize: 28,
+            ),
           ),
           const SizedBox(height: 24),
           Form(
@@ -141,79 +129,97 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                AuthPhoneField(
-                  controller: _phoneController,
-                  hint: 'Phone number',
-                  showPhoneIcon: true,
+                StaggeredEntrance(
+                  index: 2,
+                  child: AuthPhoneField(
+                    controller: _phoneController,
+                    hint: 'Phone Number',
+                    showPhoneIcon: true,
+                  ),
                 ),
                 const SizedBox(height: 14),
-                AuthTextField(
-                  controller: _nameController,
-                  hint: 'Full name',
-                  icon: Icons.person_outline_rounded,
-                  textCapitalization: TextCapitalization.words,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your name';
-                    }
-                    if (value.trim().length < 3) {
-                      return 'Name must be at least 3 characters';
-                    }
-                    return null;
-                  },
+                StaggeredEntrance(
+                  index: 3,
+                  child: AuthTextField(
+                    controller: _nameController,
+                    hint: 'Full Name',
+                    icon: LucideIcons.userRound,
+                    textCapitalization: TextCapitalization.words,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter your name';
+                      }
+                      if (value.trim().length < 3) {
+                        return 'Name must be at least 3 characters';
+                      }
+                      return null;
+                    },
+                  ),
                 ),
                 const SizedBox(height: 14),
-                ClassDropdownField(
-                  value: _classNumber,
-                  onChanged: (value) => setState(() => _classNumber = value),
+                StaggeredEntrance(
+                  index: 4,
+                  child: ClassDropdownField(
+                    value: form.classNumber,
+                    onChanged: form.setClassNumber,
+                  ),
                 ),
                 const SizedBox(height: 14),
                 CoursePickerCard(
-                  courses: _courses,
-                  selectedIds: _selectedCourseIds,
-                  isLoading: _coursesLoading,
-                  onToggle: (id, selected) => setState(() {
-                    if (selected) {
-                      _selectedCourseIds.add(id);
-                    } else {
-                      _selectedCourseIds.remove(id);
-                    }
-                  }),
+                  courses: form.courses,
+                  selectedIds: form.selectedCourseIds,
+                  isLoading: form.coursesLoading,
+                  onToggle: form.toggleCourse,
                 ),
-                if (_coursesLoading || _courses.isNotEmpty)
+                if (form.coursesLoading || form.courses.isNotEmpty)
                   const SizedBox(height: 14),
-                DatePickerField(
-                  hint: 'Date of birth (optional)',
-                  valueText: _dob != null ? _formatDob(_dob!) : null,
-                  onTap: _pickDob,
+                StaggeredEntrance(
+                  index: 5,
+                  child: DatePickerField(
+                    hint: 'Date of Birth',
+                    valueText: form.dob != null
+                        ? form.formatDob(form.dob!)
+                        : null,
+                    onTap: _pickDob,
+                  ),
                 ),
                 const SizedBox(height: 14),
-                ConsentCard(
-                  value: _hasConsent,
-                  onChanged: (value) => setState(() => _hasConsent = value),
-                  consentBy: _consentBy,
-                  onConsentByChanged: (by) => setState(() => _consentBy = by),
-                  nameController: _consentNameController,
+                StaggeredEntrance(
+                  index: 6,
+                  child: ConsentCard(
+                    value: form.hasConsent,
+                    onChanged: form.setHasConsent,
+                    consentBy: form.consentBy,
+                    onConsentByChanged: form.setConsentBy,
+                    nameController: _consentNameController,
+                  ),
                 ),
                 const SizedBox(height: 24),
-                Consumer<AuthProvider>(
-                  builder: (context, authProvider, child) => GradientPillButton(
-                    label: 'Create account',
-                    isLoading: authProvider.isLoading,
-                    onPressed: _isComplete && !authProvider.isLoading
-                        ? _register
-                        : null,
+                StaggeredEntrance(
+                  index: 7,
+                  child: Consumer<AuthProvider>(
+                    builder: (context, authProvider, child) =>
+                        GradientPillButton(
+                          label: 'Create Account',
+                          isLoading: authProvider.isLoading,
+                          onPressed: form.isComplete && !authProvider.isLoading
+                              ? _register
+                              : null,
+                        ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                Builder(
-                  builder: (context) => Text(
-                    'We only use your number to sign you in.',
-                    textAlign: TextAlign.center,
-                    style: AppFonts.regular(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 12.5,
-                      height: 1.4,
+                StaggeredEntrance(
+                  index: 7,
+                  child: Builder(
+                    builder: (context) => Text(
+                      'We only use your number and date of birth to sign you in.',
+                      textAlign: TextAlign.center,
+                      style: AppFonts.regular(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 12.5,
+                        height: 1.4,
+                      ),
                     ),
                   ),
                 ),
@@ -239,19 +245,24 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       phone = phone.substring(2); // Remove country code if present
     }
 
+    // The last chance to fix a mistyped number: it is verified by OTP later.
+    final confirmed = await PhoneVerificationAlert.show(context, phone: phone);
+    if (!confirmed || !mounted) return;
+
+    final dob = _form.dob!;
     final result = await authProvider.register(
       phone: phone,
       name: _nameController.text.trim(),
-      classNumber: _classNumber!,
-      dob: _dob != null ? _formatDob(_dob!) : null,
-      consent: _hasConsent
+      classNumber: _form.classNumber!,
+      dob: _form.formatDob(dob),
+      consent: _form.hasConsent
           ? {
-              'by': _consentBy,
+              'by': _form.consentBy,
               if (_consentNameController.text.trim().isNotEmpty)
                 'name': _consentNameController.text.trim(),
             }
           : null,
-      courseIds: _selectedCourseIds.toList(),
+      courseIds: _form.selectedCourseIds.toList(),
     );
 
     if (!mounted) return;
@@ -259,13 +270,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     if (result['success']) {
       AppSnackBar.show(
         context,
-        message: 'Your account is ready! Sending your OTP now…',
+        message: 'Your account is ready! Signing you in…',
         color: AppColors.success,
       );
 
-      // Registration does not return a token - hand the phone number back
-      // to the login screen so it can request an OTP straight away.
-      Navigator.pop(context, phone);
+      // Registration does not return a token - hand the phone number and date
+      // of birth back to the login screen so it can sign the new account in.
+      final RegisteredAccount account = (phone: phone, dob: dob);
+      Navigator.pop(context, account);
     } else {
       AppSnackBar.show(
         context,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../themes/app_fonts.dart';
+import '../../../widgets/animation/animated_progress_bar.dart';
 
 /// Title with a "done/total" count above a rounded progress bar.
 class MasteryProgressRow extends StatelessWidget {
@@ -30,8 +31,6 @@ class MasteryProgressRow extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: AppFonts.semiBold(
                   color: scheme.onSurface,
                   fontSize: 13.5,
@@ -51,7 +50,7 @@ class MasteryProgressRow extends StatelessWidget {
         const SizedBox(height: 8),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
+          child: AnimatedProgressBar(
             value: percent.clamp(0.0, 1.0),
             minHeight: 6,
             backgroundColor: scheme.primaryContainer,

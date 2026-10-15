@@ -162,7 +162,7 @@ class AppColors {
   static const LinearGradient homeLightHeroGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF5C0A30), Color(0xFF86164A), Color(0xFFB0445E)],
+    colors: [Color(0xFF720B3A), Color(0xFFA9365B)],
   );
   static const LinearGradient homeDarkHeroGradient = LinearGradient(
     begin: Alignment.topLeft,
@@ -176,7 +176,7 @@ class AppColors {
   );
 
   /// Warm glow at the top of the Today header, behind the skyline.
-  static const Color homeLightSkyTop = Color(0xFFF4CFB8);
+  static const Color homeLightSkyTop = Color(0xFFFFFBF6);
   static const Color homeDarkSkyTop = Color(0xFF2A1522);
 
   static const Color homeLightAmber = Color(0xFFA8660F);
@@ -200,6 +200,26 @@ class AppColors {
   static const Color homeDarkMintSoft = Color(0xFF13261D);
   static const Color homeDarkSlate = Color(0xFF9DB4D6);
   static const Color homeDarkSlateSoft = Color(0xFF1A2131);
+
+  // ---------------------------------------------------------------------------
+  // Exam certificate artwork. Same in light and dark: it is a printed page,
+  // matching the admin panel's print layout.
+  // ---------------------------------------------------------------------------
+
+  static const Color certificatePaper = Color(0xFFF7F1EB);
+  static const Color certificateBrand = Color(0xFF701845);
+  static const Color certificateGold = Color(0xFFE0AE73);
+  static const Color certificateInk = Color(0xFF1C1220);
+  static const Color certificateName = Color(0xFF111827);
+  static const Color certificateBody = Color(0xFF4B4350);
+  static const Color certificateMuted = Color(0xFF5C5360);
+
+  /// Sheet fill, warm white to rose.
+  static const LinearGradient certificateGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFFFFAF6), Color(0xFFF8E9EE)],
+  );
 
   // ---------------------------------------------------------------------------
   // System

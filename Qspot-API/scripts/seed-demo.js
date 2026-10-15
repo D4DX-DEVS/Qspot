@@ -34,9 +34,13 @@ const AssignmentSubmission = require('../models/assignmentSubmission');
 
 const FORCE = process.argv.includes('--force');
 const PLACEHOLDER = (label, w = 640, h = 400) =>
-  `https://placehold.co/${w}x${h}/111827/e5e7eb?text=${encodeURIComponent(label)}`;
+  `https://placehold.co/${w}x${h}/111827/e5e7eb.png?text=${encodeURIComponent(label)}`;
 
 const days = (n) => new Date(Date.now() + n * 24 * 60 * 60 * 1000);
+
+// Sign-in is phone + date of birth, so every seeded account needs one.
+const DEMO_STUDENT_DOB = new Date('2010-01-01T00:00:00Z');
+const DEMO_FACULTY_DOB = new Date('1990-01-01T00:00:00Z');
 
 async function needSeeding(Model) {
   const count = await Model.estimatedDocumentCount();
@@ -160,10 +164,10 @@ async function main() {
   // ---------- schedules ----------
   if (await needSeeding(Schedule)) {
     await Schedule.create([
-      { class: 'Class 8', title: 'Tajweed Basics — Makharij', scheduleDate: days(2), faculty: speakers[0]._id },
-      { class: 'Class 9', title: 'Seerah: The Makkan Period', scheduleDate: days(3), faculty: speakers[1]._id },
-      { class: 'Class 10', title: 'Fiqh: Pillars of Salah', scheduleDate: days(5), faculty: speakers[2]._id },
-      { class: 'Class 8', title: 'Surah Al-Mulk — Word by Word', scheduleDate: days(7), faculty: speakers[3]._id }
+      { class: '8', title: 'Tajweed Basics — Makharij', scheduleDate: days(2), faculty: speakers[0]._id },
+      { class: '9', title: 'Seerah: The Makkan Period', scheduleDate: days(3), faculty: speakers[1]._id },
+      { class: '10', title: 'Fiqh: Pillars of Salah', scheduleDate: days(5), faculty: speakers[2]._id },
+      { class: '8', title: 'Surah Al-Mulk — Word by Word', scheduleDate: days(7), faculty: speakers[3]._id }
     ]);
     console.log('seeded schedules: 4');
   } else {
@@ -298,24 +302,24 @@ async function main() {
     const studiesCourseIds = courses[1] ? [courses[1]._id] : [];
     const allAndStudiesCourseIds = courses.slice(0, 2).map((item) => item._id);
     users = await User.create([
-      { name: 'Demo Student 1', phone: '0000000001', email: 'student1@example.com', class: 'Class 8', courseIds: quranCourseIds },
-      { name: 'Demo Student 2', phone: '0000000002', email: 'student2@example.com', class: 'Class 8', courseIds: allAndStudiesCourseIds },
-      { name: 'Demo Student 3', phone: '0000000003', email: 'student3@example.com', class: 'Class 9', courseIds: studiesCourseIds },
-      { name: 'Demo Student 4', phone: '0000000004', email: 'student4@example.com', class: 'Class 9', courseIds: allCourseIds },
-      { name: 'Demo Student 5', phone: '0000000005', email: 'student5@example.com', class: 'Class 10', courseIds: quranCourseIds },
-      { name: 'Demo Student 6', phone: '0000000006', email: 'student6@example.com', class: 'Class 10', courseIds: allCourseIds },
+      { name: 'Demo Student 1', phone: '0000000001', email: 'student1@example.com', class: '8', courseIds: quranCourseIds },
+      { name: 'Demo Student 2', phone: '0000000002', email: 'student2@example.com', class: '8', courseIds: allAndStudiesCourseIds },
+      { name: 'Demo Student 3', phone: '0000000003', email: 'student3@example.com', class: '9', courseIds: studiesCourseIds },
+      { name: 'Demo Student 4', phone: '0000000004', email: 'student4@example.com', class: '9', courseIds: allCourseIds },
+      { name: 'Demo Student 5', phone: '0000000005', email: 'student5@example.com', class: '10', courseIds: quranCourseIds },
+      { name: 'Demo Student 6', phone: '0000000006', email: 'student6@example.com', class: '10', courseIds: allCourseIds },
       // Appended at the end on purpose: the questions/attempts below reference
       // users[0..4] positionally, so the dev sign-in users must not shift them.
       // Keep the seeded test account aligned with TEST_LOGIN in .env.
-      { name: 'Test Student', phone: process.env.TEST_LOGIN || '9876543210', email: 'test@example.com', class: 'Class 8', courseIds: allAndStudiesCourseIds },
-      { name: 'Test Student 2', phone: '8888888888', email: 'test2@example.com', class: 'Class 9', courseIds: studiesCourseIds }
-    ]);
+      { name: 'Test Student', phone: process.env.TEST_LOGIN || '9876543210', email: 'test@example.com', class: '8', courseIds: allAndStudiesCourseIds },
+      { name: 'Test Student 2', phone: '8888888888', email: 'test2@example.com', class: '9', courseIds: studiesCourseIds }
+    ].map((student) => ({ ...student, dob: DEMO_STUDENT_DOB })));
     console.log(`seeded users: ${users.length}`);
   } else {
     users = await User.find().limit(8);
   }
 
-  // Faculty accounts use the same OTP login as students, but receive a
+  // Faculty accounts use the same phone + date-of-birth login as students, but receive a
   // faculty-scoped token and can manage questions assigned to their profile.
   if (speakers.length && (FORCE || !(await User.exists({ role: 'faculty' })))) {
     await User.deleteMany({ role: 'faculty' });
@@ -325,6 +329,7 @@ async function main() {
       email: `faculty${index + 1}@qspot.demo`,
       class: 'Faculty',
       role: 'faculty',
+      dob: DEMO_FACULTY_DOB,
       facultyProfile: speaker._id,
       courseIds: []
     })));
@@ -340,7 +345,7 @@ async function main() {
         instructions: 'Submit a short recording of your recitation and note one Tajweed rule you practised.',
         courseId: courses[0]?._id || null,
         subjectId: subjects[0]?._id || null,
-        class: 'Class 8',
+        class: '8',
         releaseAt: days(-4),
         dueAt: days(3),
         maxPoints: 20,
@@ -368,7 +373,7 @@ async function main() {
         instructions: 'Create ten vocabulary cards with the Arabic word, transliteration, and meaning.',
         courseId: courses[2]?._id || null,
         subjectId: subjects[7]?._id || null,
-        class: 'Class 9',
+        class: '9',
         releaseAt: days(1),
         dueAt: days(10),
         maxPoints: 30,
@@ -466,7 +471,7 @@ async function main() {
         overallTimeLimit: 600,
         perQuestionTimeLimit: 60,
         timerMode: 'both',
-        allowedClasses: ['Class 8', 'Class 9', 'Class 10'],
+        allowedClasses: ['8', '9', '10'],
         conditions: { requireCompletedVideo: false },
         optionsCount: 4
       },

@@ -359,12 +359,41 @@ const VideoQuestionsPage = () => {
     return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   };
 
+  const contentDirty = selectedVideo && (
+    learnText !== (selectedVideo.learnText || '') ||
+    learnPointsText !== (selectedVideo.learnPoints || []).join('\n') ||
+    JSON.stringify(downloads.map((item) => ({ title: item.title, url: item.url, key: item.key || '' }))) !==
+      JSON.stringify((selectedVideo.downloads || []).map((item) => ({ title: item.title || '', url: item.url || '', key: item.key || '' })))
+  );
+
   // Stage the picked files so each one can be titled before it is uploaded.
   const pickFiles = (event) => {
     const picked = Array.from(event.target.files || []);
     event.target.value = '';
     if (picked.length === 0) return;
 
+    if (pendingFiles.length + picked.length > 10) {
+      setError('Choose up to 10 files per upload. Upload these before adding more.');
+      return;
+    }
+    if (picked.some((file) => /\.(jpe?g|png|webp|gif)$/i.test(file.name) && file.size > 5 * 1024 * 1024)) {
+      setError('Images must be 5 MB or smaller. Resize the image and try again.');
+      return;
+    }
+    if (downloads.length + pendingFiles.length + picked.length > 20) {
+      setError('A lesson can have up to 20 learning materials. Remove a file before adding more.');
+      return;
+    }
+    if (picked.some((file) => file.size > 25 * 1024 * 1024)) {
+      setError('Each file must be 25 MB or smaller. Choose a smaller file and try again.');
+      return;
+    }
+    const allowed = /\.(pdf|txt|jpe?g|png|webp|gif)$/i;
+    if (picked.some((file) => !allowed.test(file.name))) {
+      setError('Choose PDF, TXT, JPEG, PNG, WEBP, or GIF files.');
+      return;
+    }
+    setError('');
     setUploadNote('');
     setPendingFiles((prev) => [
       ...prev,
@@ -382,7 +411,11 @@ const VideoQuestionsPage = () => {
   // server-side (CONTRACT.md), so the files are safe even if the admin
   // navigates away before pressing "Save episode content".
   const uploadPendingFiles = async () => {
-    if (!selectedVideo || pendingFiles.length === 0) return;
+    if (!selectedVideo || pendingFiles.length === 0 || uploading || savingContent) return;
+    if (contentDirty) {
+      setError('Save your episode content changes before uploading files.');
+      return;
+    }
 
     setUploading(true);
     setError('');
@@ -438,6 +471,9 @@ const VideoQuestionsPage = () => {
       const response = await apiClient.put(`/videos/${selectedVideo._id}/content`, payload);
       const updated = response.data.video;
       setSelectedVideo(updated);
+      setLearnText(updated.learnText || '');
+      setLearnPointsText((updated.learnPoints || []).join('\n'));
+      setDownloads((updated.downloads || []).map((item) => ({ title: item.title || '', url: item.url || '', key: item.key || '' })));
       setVideos((prev) => prev.map((v) => (v._id === updated._id ? updated : v)));
       setContentSaved(true);
     } catch (err) {
@@ -499,6 +535,7 @@ const VideoQuestionsPage = () => {
                     <button
                       key={video._id}
                       onClick={() => loadQuestions(video)}
+                      disabled={uploading || savingContent}
                       className={`w-full px-4 py-3 text-left transition ${
                         selected ? 'bg-white/10' : 'hover:bg-white/5'
                       }`}
@@ -550,9 +587,11 @@ const VideoQuestionsPage = () => {
                       "Downloads" tabs the student sees in the app. */}
                   <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-4">
                     <p className="text-xs uppercase tracking-wide text-slate-300/70">
-                      Learn — quick note
+                      Learn — text note
                     </p>
                     <textarea
+                      disabled={uploading || savingContent}
+                      maxLength={20000}
                       value={learnText}
                       onChange={(event) => setLearnText(event.target.value)}
                       rows={3}
@@ -565,6 +604,7 @@ const VideoQuestionsPage = () => {
                       <span className="normal-case tracking-normal text-white/40">(one per line)</span>
                     </p>
                     <textarea
+                      disabled={uploading || savingContent}
                       value={learnPointsText}
                       onChange={(event) => setLearnPointsText(event.target.value)}
                       rows={3}
@@ -572,18 +612,24 @@ const VideoQuestionsPage = () => {
                       className={`${inputClass} mt-2`}
                     />
 
-                    <p className="mt-4 text-xs uppercase tracking-wide text-slate-300/70">Downloads</p>
+                    <p className="mt-4 text-xs uppercase tracking-wide text-slate-300/70">Learning materials</p>
+                    <p className="mt-1 text-xs text-white/50">Students see these files in Learn and Downloads. Images have an inline preview; PDFs and TXT files open when tapped.</p>
                     <div className="mt-2 space-y-2">
                       {downloads.map((item, index) => (
                         <div key={index} className="flex items-center gap-2">
                           <input
                             value={item.title}
+                            disabled={uploading || savingContent}
+                            maxLength={160}
                             onChange={(event) => updateDownload(index, 'title', event.target.value)}
                             placeholder="Title"
                             className={`${inputClass} flex-1`}
                           />
                           <input
                             value={item.url}
+                            disabled={uploading || savingContent}
+                            readOnly={Boolean(item.key)}
+                            maxLength={2048}
                             onChange={(event) => updateDownload(index, 'url', event.target.value)}
                             placeholder="https://…"
                             className={`${inputClass} flex-1`}
@@ -593,6 +639,7 @@ const VideoQuestionsPage = () => {
                               setDownloads((prev) => prev.filter((_, i) => i !== index))
                             }
                             className="rounded-lg border border-white/15 p-2 text-white/70 transition hover:bg-white/10"
+                            disabled={uploading || savingContent}
                             aria-label="Remove download"
                           >
                             <FiTrash2 />
@@ -600,15 +647,9 @@ const VideoQuestionsPage = () => {
                         </div>
                       ))}
                     </div>
-                    <button
-                      onClick={() => setDownloads((prev) => [...prev, { title: '', url: '' }])}
-                      className="mt-3 inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs text-white/80 transition hover:bg-white/10"
-                    >
-                      <FiPlus /> Add download
-                    </button>
 
-                    {/* Upload handouts instead of pasting links: pick several
-                        files, give each a title, then upload them together. */}
+                    {/* Upload handouts: pick several files, give each a
+                        title, then upload them together. */}
                     <div className="mt-4 rounded-lg border border-dashed border-white/15 bg-white/[0.03] p-3">
                       <p className="text-xs uppercase tracking-wide text-slate-300/70">
                         Upload files
@@ -619,13 +660,14 @@ const VideoQuestionsPage = () => {
                           <input
                             type="file"
                             multiple
-                            accept=".pdf,application/pdf,image/png,image/jpeg,image/webp"
+                            accept=".pdf,.txt,application/pdf,text/plain,image/png,image/jpeg,image/webp,image/gif"
                             onChange={pickFiles}
                             className="hidden"
+                            disabled={uploading || savingContent}
                           />
                         </label>
                         <span className="text-[11px] text-white/40">
-                          PDF or image · up to 25 MB each · 10 at a time
+                          Images up to 5 MB; PDF/TXT up to 25 MB · 10 per upload · 20 per lesson
                         </span>
                       </div>
 
@@ -645,6 +687,8 @@ const VideoQuestionsPage = () => {
                               </span>
                               <input
                                 value={item.title}
+                                disabled={uploading || savingContent}
+                                maxLength={160}
                                 onChange={(event) => setPendingTitle(index, event.target.value)}
                                 placeholder="Title students see"
                                 className={`${inputClass} flex-1`}
@@ -657,6 +701,7 @@ const VideoQuestionsPage = () => {
                                 }
                                 className="rounded-lg border border-white/15 p-2 text-white/70 transition hover:bg-white/10"
                                 aria-label="Remove file"
+                                disabled={uploading || savingContent}
                               >
                                 <FiX />
                               </button>
@@ -665,7 +710,7 @@ const VideoQuestionsPage = () => {
 
                           <button
                             onClick={uploadPendingFiles}
-                            disabled={uploading}
+                            disabled={uploading || savingContent || contentDirty}
                             className="inline-flex items-center gap-2 rounded-lg bg-[#EFB078] px-3 py-2 text-xs font-semibold text-black transition hover:brightness-110 disabled:opacity-60"
                           >
                             <FiUploadCloud />
@@ -678,6 +723,9 @@ const VideoQuestionsPage = () => {
                         </div>
                       )}
 
+                      {contentDirty && pendingFiles.length > 0 && (
+                        <p className="mt-2 text-xs text-amber-200">Save episode content before uploading these files.</p>
+                      )}
                       {uploadNote && (
                         <p className="mt-2 text-[11px] text-emerald-300">{uploadNote}</p>
                       )}
@@ -686,7 +734,7 @@ const VideoQuestionsPage = () => {
                     <div className="mt-4 flex items-center gap-3">
                       <button
                         onClick={saveContent}
-                        disabled={savingContent}
+                        disabled={savingContent || uploading}
                         className="inline-flex items-center gap-2 rounded-xl bg-[#EFB078] px-4 py-2 text-sm font-semibold text-black transition hover:brightness-110 disabled:opacity-60"
                       >
                         <FiSave /> {savingContent ? 'Saving…' : 'Save episode content'}

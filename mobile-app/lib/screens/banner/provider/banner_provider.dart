@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../model/banner_model.dart';
 import '../../../utils/api_urls.dart';
+import '../../../utils/user_friendly_error.dart';
 
 enum BannerLoadingState { idle, loading, loaded, error }
 
@@ -29,7 +30,7 @@ class BannerProvider with ChangeNotifier {
       await fetchBanners();
       await _setLoadingState(BannerLoadingState.loaded);
     } catch (e) {
-      await _handleError('Failed to initialize banners: $e');
+      await _handleError('We couldn’t load banners. ${userFriendlyError(e)}');
     }
   }
 
@@ -82,7 +83,9 @@ class BannerProvider with ChangeNotifier {
       await fetchBanners();
       await _setLoadingState(BannerLoadingState.loaded);
     } catch (e) {
-      await _handleError('Failed to refresh banners: $e');
+      await _handleError(
+        'We couldn’t refresh banners. ${userFriendlyError(e)}',
+      );
     }
   }
 

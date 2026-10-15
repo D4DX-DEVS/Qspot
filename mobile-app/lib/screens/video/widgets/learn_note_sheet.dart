@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../themes/app_colors.dart';
-import '../../../themes/app_theme.dart';
-import '../../../themes/app_fonts.dart';
-import '../model/video_model.dart';
 import '../../../services/video_progress_service.dart';
+import '../../../themes/app_fonts.dart';
+import '../../../themes/home_palette.dart';
+import '../../../widgets/animation/pressable_scale.dart';
+import '../../../widgets/common/home_sheet_shell.dart';
+import '../../../widgets/common/soft_icon_tile.dart';
+import '../model/video_model.dart';
+import 'episode_close_button.dart';
+import 'learn_content_list.dart';
+import 'learn_note_empty.dart';
 
 /// The "Learn — quick note" bottom popup: a short note about the episode and
 /// its key points, both authored per video in the admin panel.
@@ -18,20 +24,17 @@ class LearnNoteSheet extends StatelessWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.background,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => LearnNoteSheet(video: video),
+      backgroundColor: Colors.transparent,
+      builder: (context) => HomeSheetShell(child: LearnNoteSheet(video: video)),
     );
   }
 
-  bool get _hasNote => video.learnText.trim().isNotEmpty;
-  bool get _hasPoints => video.learnPoints.isNotEmpty;
+  bool get _hasContent => video.hasLearnContent;
 
   @override
   Widget build(BuildContext context) {
-    final maxHeight = MediaQuery.of(context).size.height * 0.78;
+    final p = HomePalette.of(context);
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.78;
 
     return SafeArea(
       top: false,
@@ -47,56 +50,35 @@ class LearnNoteSheet extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: p.cardBorder,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 12, 0),
+              padding: const EdgeInsets.fromLTRB(20, 14, 16, 0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  SoftIconTile(
+                    icon: LucideIcons.lightbulb,
+                    tone: p.amber,
+                    size: 40,
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 26,
-                              height: 26,
-                              decoration: const BoxDecoration(
-                                color: AppColors.primarySoft,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.lightbulb_outline,
-                                size: 15,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Flexible(
-                              child: Text(
-                                'Learn — quick note',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppFonts.bold(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                          ],
+                        Text(
+                          'Learn — Quick Note',
+                          style: AppFonts.bold(color: p.text, fontSize: 16.5),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 3),
                         Text(
                           video.displayTitle,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                           style: AppFonts.regular(
-                            color: AppColors.textMuted,
+                            color: p.textMuted,
                             fontSize: 12.5,
                             height: 1.35,
                           ),
@@ -104,155 +86,45 @@ class LearnNoteSheet extends StatelessWidget {
                       ],
                     ),
                   ),
-                  InkWell(
-                    onTap: () => Navigator.of(context).pop(),
-                    customBorder: const CircleBorder(),
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: const BoxDecoration(
-                        color: AppColors.surfaceAlt,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.close,
-                        color: AppColors.textPrimary,
-                        size: 18,
-                      ),
-                    ),
-                  ),
+                  const SizedBox(width: 8),
+                  const EpisodeCloseButton(size: 38),
                 ],
               ),
             ),
             const SizedBox(height: 4),
             Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-                child: _hasNote || _hasPoints ? _content() : _empty(),
-              ),
+              child: _hasContent
+                  ? LearnContentList(
+                      video: video,
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                    )
+                  : const SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(20, 12, 20, 4),
+                      child: LearnNoteEmpty(),
+                    ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.onPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppTheme.radiusMedium,
-                      ),
+              child: PressableScale(
+                haptic: true,
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: p.brand,
+                      foregroundColor: p.card,
+                      shape: const StadiumBorder(),
+                      textStyle: AppFonts.bold(fontSize: 15),
                     ),
-                    textStyle: AppFonts.bold(fontSize: 15),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Got It'),
                   ),
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Got it'),
                 ),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _content() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (_hasNote)
-          Text(
-            video.learnText,
-            style: AppFonts.regular(
-              color: AppColors.textPrimary,
-              fontSize: 15,
-              height: 1.55,
-            ),
-          ),
-        if (_hasPoints) ...[
-          if (_hasNote) const SizedBox(height: 20),
-          Text(
-            'KEY POINTS',
-            style: AppFonts.bold(
-              color: AppColors.textMuted,
-              fontSize: 11.5,
-              letterSpacing: 0.8,
-            ),
-          ),
-          const SizedBox(height: 10),
-          ...video.learnPoints.map(
-            (point) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 22,
-                    height: 22,
-                    margin: const EdgeInsets.only(top: 1),
-                    decoration: const BoxDecoration(
-                      color: AppColors.primarySoft,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.check,
-                      size: 13,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      point,
-                      style: AppFonts.regular(
-                        color: AppColors.textPrimary,
-                        fontSize: 15,
-                        height: 1.45,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _empty() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceAlt,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-      ),
-      child: Column(
-        children: [
-          Icon(Icons.lightbulb_outline, color: AppColors.textMuted, size: 28),
-          SizedBox(height: 10),
-          Text(
-            'This episode\'s quick note isn\'t ready yet.',
-            textAlign: TextAlign.center,
-            style: AppFonts.semiBold(
-              color: AppColors.textPrimary,
-              fontSize: 14.5,
-            ),
-          ),
-          SizedBox(height: 6),
-          Text(
-            'The note written for this video will appear here.',
-            textAlign: TextAlign.center,
-            style: AppFonts.regular(
-              color: AppColors.textMuted,
-              fontSize: 12.5,
-              height: 1.4,
-            ),
-          ),
-        ],
       ),
     );
   }

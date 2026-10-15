@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../model/speaker_model.dart';
 import '../../../utils/api_urls.dart';
+import '../../../utils/user_friendly_error.dart';
 
 enum SpeakerLoadingState { idle, loading, loaded, error }
 
@@ -44,7 +45,7 @@ class SpeakerProvider with ChangeNotifier {
       await fetchSpeakers();
       await _setLoadingState(SpeakerLoadingState.loaded);
     } catch (e) {
-      await _handleError('Failed to initialize speakers: $e');
+      await _handleError('We couldn’t load speakers. ${userFriendlyError(e)}');
     }
   }
 
@@ -126,7 +127,7 @@ class SpeakerProvider with ChangeNotifier {
       }
     } catch (e) {
       debugPrint('👥 [SPEAKER BY ID] Error: $e');
-      throw Exception('Failed to fetch speaker: $e');
+      throw Exception(userFriendlyError(e));
     }
   }
 
@@ -173,7 +174,9 @@ class SpeakerProvider with ChangeNotifier {
       await fetchSpeakers();
       await _setLoadingState(SpeakerLoadingState.loaded);
     } catch (e) {
-      await _handleError('Failed to refresh speakers: $e');
+      await _handleError(
+        'We couldn’t refresh speakers. ${userFriendlyError(e)}',
+      );
     }
   }
 

@@ -87,5 +87,53 @@ void main() {
       expect(roundTripped.language, original.language);
       expect(roundTripped.token, original.token);
     });
+
+    test('parses and resolves a profile image URL', () {
+      final user = UserModel.fromJson({
+        'phone': '9876543210',
+        'profileImage': '/uploads/profile/student.jpg',
+      });
+
+      expect(user.profileImage, '/uploads/profile/student.jpg');
+      expect(user.profileImageUrl, endsWith('/uploads/profile/student.jpg'));
+      expect(user.toJson()['profileImage'], '/uploads/profile/student.jpg');
+    });
+  });
+
+  group('UserModel phone verification and date of birth', () {
+    test('an account the server does not flag reads as verified', () {
+      final user = UserModel.fromJson({'phone': '9876543210'});
+      expect(user.phoneVerified, isTrue);
+    });
+
+    test('phoneVerified false is kept, and survives a save and reload', () {
+      final user = UserModel.fromJson({
+        'phone': '9876543210',
+        'phoneVerified': false,
+      });
+      expect(user.phoneVerified, isFalse);
+      expect(user.toJson()['phoneVerified'], isFalse);
+      expect(UserModel.fromJson(user.toJson()).phoneVerified, isFalse);
+      expect(user.copyWith(phoneVerified: true).phoneVerified, isTrue);
+    });
+
+    test('hasDob is true only when a date of birth is saved', () {
+      expect(
+        UserModel.fromJson({
+          'phone': '9876543210',
+          'dob': '2010-05-03T00:00:00.000Z',
+        }).hasDob,
+        isTrue,
+      );
+      expect(UserModel.fromJson({'phone': '9876543210'}).hasDob, isFalse);
+      expect(
+        UserModel.fromJson({'phone': '9876543210', 'dob': null}).hasDob,
+        isFalse,
+      );
+      expect(
+        UserModel.fromJson({'phone': '9876543210', 'dob': '  '}).hasDob,
+        isFalse,
+      );
+    });
   });
 }

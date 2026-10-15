@@ -1,5 +1,42 @@
 const mongoose = require("mongoose");
 
+const certificateConfigSchema = new mongoose.Schema({
+    enabled: {
+        type: Boolean,
+        default: false
+    },
+    title: {
+        type: String,
+        trim: true,
+        default: 'Certificate of Achievement'
+    },
+    issuerName: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    signatoryName: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    description: {
+        type: String,
+        trim: true,
+        default: 'For successfully completing the examination.'
+    },
+    minimumPercentage: {
+        type: Number,
+        min: 0,
+        max: 100,
+        default: 0
+    },
+    eligibleClasses: {
+        type: [String],
+        default: []
+    }
+}, { _id: false });
+
 const quizConfigSchema = new mongoose.Schema({
     title: {
         type: String,
@@ -57,6 +94,10 @@ const quizConfigSchema = new mongoose.Schema({
     optionsCount: {
         type: Number,
         default: null
+    },
+    certificate: {
+        type: certificateConfigSchema,
+        default: () => ({})
     }
 }, {
     timestamps: true

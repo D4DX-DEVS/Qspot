@@ -9,6 +9,8 @@ import '../../../themes/auth_palette.dart';
 /// The bottom artwork sits at the screen bottom when the content is short
 /// and below the content when it is long, so it never covers a field.
 /// [bottomArtOverlap] lets the content run into the (empty) top of the art.
+/// [centerContent] centres short content vertically in the space above the
+/// art instead of pinning it to the top.
 class AuthPageLayout extends StatelessWidget {
   const AuthPageLayout({
     super.key,
@@ -18,6 +20,7 @@ class AuthPageLayout extends StatelessWidget {
     this.bottomArt,
     this.bottomArtHeight = 0,
     this.bottomArtOverlap = 0,
+    this.centerContent = false,
   });
 
   final List<Widget> children;
@@ -26,6 +29,7 @@ class AuthPageLayout extends StatelessWidget {
   final Widget? bottomArt;
   final double bottomArtHeight;
   final double bottomArtOverlap;
+  final bool centerContent;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +52,9 @@ class AuthPageLayout extends StatelessWidget {
                 child: ConstrainedBox(
                   constraints: BoxConstraints(minHeight: constraints.maxHeight),
                   child: Stack(
+                    alignment: centerContent
+                        ? Alignment.center
+                        : AlignmentDirectional.topStart,
                     children: [
                       if (bottomArt != null)
                         Positioned(

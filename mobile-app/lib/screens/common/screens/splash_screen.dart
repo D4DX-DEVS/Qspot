@@ -6,6 +6,7 @@ import '../../../themes/app_colors.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../themes/auth_palette.dart';
 import '../../auth/provider/auth_provider.dart';
+import '../../auth/screens/dob_required_screen.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../faculty/screens/faculty_home_screen.dart';
 import 'main_navigation_screen.dart';
@@ -83,7 +84,7 @@ class _SplashScreenState extends State<SplashScreen>
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     await authProvider.initialize();
 
-    await Future.delayed(const Duration(milliseconds: 30000));
+    await Future.delayed(const Duration(milliseconds: 3000));
 
     if (!mounted) return;
 
@@ -106,6 +107,9 @@ class _SplashScreenState extends State<SplashScreen>
             authProvider.isAuthenticated
             ? (authProvider.user?.role == 'faculty'
                   ? const FacultyHomeScreen()
+                  // Sign-in needs a date of birth: ask a student who has none.
+                  : authProvider.user?.hasDob == false
+                  ? const DobRequiredScreen()
                   : const MainNavigationScreen())
             : const LoginScreen(),
         transitionDuration: const Duration(milliseconds: 500),
@@ -190,12 +194,32 @@ class _SplashScreenState extends State<SplashScreen>
                         child: child,
                       );
                     },
-                    child: Text(
-                      'Developed by D4DX Innovations LLP',
-                      style: AppFonts.medium(
-                        color: isDark ? AppColors.white70 : palette.textMuted,
-                        fontSize: 12,
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Developed by',
+                          style: AppFonts.medium(
+                            color: isDark
+                                ? AppColors.white70
+                                : palette.textMuted,
+                            fontSize: 11,
+                          ),
+                        ),
+                        // White in dark mode — the blue mark is lost on the
+                        // burgundy.
+                        Image.asset(
+                          'assets/icons/D4DX _logo.png',
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.contain,
+                          color: isDark ? AppColors.white : null,
+                          colorBlendMode: BlendMode.srcIn,
+                          cacheHeight:
+                              (100 * MediaQuery.devicePixelRatioOf(context))
+                                  .round(),
+                        ),
+                      ],
                     ),
                   ),
                 ),

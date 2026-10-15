@@ -13,6 +13,10 @@ class AssignmentModel {
     this.allowedMimeTypes = const [],
     this.maxFileSizeBytes = 10 * 1024 * 1024,
     this.submissionFiles = const [],
+    this.courseId,
+    this.subjectId,
+    this.maxPoints = 100,
+    this.gradedAt,
   });
 
   final String id;
@@ -28,6 +32,28 @@ class AssignmentModel {
   final List<String> allowedMimeTypes;
   final int maxFileSizeBytes;
   final List<AssignmentFileModel> submissionFiles;
+
+  /// The course and chapter the teacher linked it to, when they did.
+  final String? courseId;
+  final String? subjectId;
+
+  /// What the assignment is marked out of.
+  final num maxPoints;
+
+  /// When the teacher marked it, once they have.
+  final DateTime? gradedAt;
+
+  /// The server sends a link either as an id or as the linked record.
+  static String? _linkId(dynamic value) {
+    final id = value is Map ? (value['_id'] ?? value['id']) : value;
+    final text = id?.toString() ?? '';
+    return text.isEmpty ? null : text;
+  }
+
+  static num _points(dynamic value) {
+    final points = num.tryParse('${value ?? ''}');
+    return points != null && points > 0 ? points : 100;
+  }
 
   static DateTime? _date(dynamic value) =>
       value == null ? null : DateTime.tryParse(value.toString());
@@ -55,24 +81,28 @@ class AssignmentModel {
       submittedAt: _date(json['submittedAt'] ?? submission['submittedAt']),
       feedback: (json['feedback'] ?? submission['feedback'] ?? '').toString(),
       grade: (json['grade'] ?? submission['grade'])?.toString(),
-      allowedMimeTypes: (json['allowedMimeTypes'] is List
-              ? json['allowedMimeTypes'] as List
-              : const [])
-          .map((value) => value.toString())
-          .toList(),
+      allowedMimeTypes:
+          (json['allowedMimeTypes'] is List
+                  ? json['allowedMimeTypes'] as List
+                  : const [])
+              .map((value) => value.toString())
+              .toList(),
       maxFileSizeBytes:
           int.tryParse((json['maxFileSizeBytes'] ?? '').toString()) ??
           10 * 1024 * 1024,
-      submissionFiles: (submission['files'] is List
-              ? submission['files'] as List
-              : const [])
-          .whereType<Map>()
-          .map(
-            (file) => AssignmentFileModel.fromJson(
-              Map<String, dynamic>.from(file),
-            ),
-          )
-          .toList(),
+      submissionFiles:
+          (submission['files'] is List ? submission['files'] as List : const [])
+              .whereType<Map>()
+              .map(
+                (file) => AssignmentFileModel.fromJson(
+                  Map<String, dynamic>.from(file),
+                ),
+              )
+              .toList(),
+      courseId: _linkId(json['courseId']),
+      subjectId: _linkId(json['subjectId']),
+      maxPoints: _points(json['maxPoints']),
+      gradedAt: _date(json['gradedAt'] ?? submission['gradedAt']),
     );
   }
 
@@ -85,6 +115,11 @@ class AssignmentModel {
         'complete',
         'completed',
       }.contains(status.toLowerCase());
+
+  /// The teacher's mark in points, or null until it has been marked.
+  num? get gradePoints => num.tryParse(grade ?? '');
+
+  bool get isGraded => gradePoints != null;
 
   bool get isOverdue =>
       !isSubmitted && dueAt != null && dueAt!.isBefore(DateTime.now());

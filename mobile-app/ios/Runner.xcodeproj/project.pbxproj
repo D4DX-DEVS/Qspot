@@ -198,6 +198,7 @@
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				59F7EF6CADC276DAE33BE9B8 /* [CP] Embed Pods Frameworks */,
+				A1F3C2D4E5B6079812345ABC /* Generate PDFium dSYM */,
 			);
 			buildRules = (
 			);
@@ -300,6 +301,22 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		A1F3C2D4E5B6079812345ABC /* Generate PDFium dSYM */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Generate PDFium dSYM";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# PDFium.framework (pdfium_flutter) ships without a dSYM; generate one on archive so App Store Connect upload has it.\nif [ \"$ACTION\" = \"install\" ]; then\n  FW=\"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/PDFium.framework/PDFium\"\n  if [ -f \"$FW\" ]; then\n    dsymutil \"$FW\" -o \"${DWARF_DSYM_FOLDER_PATH}/PDFium.framework.dSYM\" 2>/dev/null || true\n  fi\nfi\n";
 			showEnvVarsInLog = 0;
 		};
 		5C84B5701347064C767B762F /* [CP] Check Pods Manifest.lock */ = {

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../themes/app_theme.dart';
 import '../../../themes/home_palette.dart';
+import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/banner_headline.dart';
 import '../../../widgets/common/common_app_bar.dart';
 import '../../../widgets/common/gradient_card.dart';
@@ -22,14 +24,15 @@ class PracticeHubScreen extends StatelessWidget {
     return Scaffold(
       appBar: CommonAppBar(
         title: 'Practice',
+        isDrawerNeeded: true,
         actions: [
           IconButton(
-            tooltip: 'Practice history',
+            tooltip: 'Quiz history',
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const QuizListScreen()),
             ),
-            icon: const Icon(Icons.history_rounded),
+            icon: const Icon(LucideIcons.history),
           ),
           const SizedBox(width: 8),
         ],
@@ -42,52 +45,63 @@ class PracticeHubScreen extends StatelessWidget {
           32 + MediaQuery.paddingOf(context).bottom,
         ),
         children: [
-          GradientCard(
-            minHeight: 156,
-            artSize: const Size(150, 108),
-            art: AuthArt(
-              painter: (art) => MosqueSkylinePainter(art, showSkyline: false),
-            ),
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-            child: const BannerHeadline(
-              title: 'A calm place to try',
-              subtitle: 'Build confidence one small attempt at a time.',
-              titleSize: 22,
-              trailingWidth: 90,
+          StaggeredEntrance(
+            child: GradientCard(
+              minHeight: 156,
+              artSize: const Size(150, 108),
+              art: AuthArt(
+                painter: (art) => MosqueSkylinePainter(art, showSkyline: false),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+              child: const BannerHeadline(
+                title: 'Ready to Level Up?',
+                subtitle: 'Every try makes you sharper. Jump in!',
+                titleSize: 22,
+                trailingWidth: 90,
+              ),
             ),
           ),
           const SizedBox(height: 18),
-          PracticeActionCard(
-            icon: Icons.assignment_outlined,
-            tone: palette.amber,
-            title: 'Assignments',
-            body:
-                'See what is due, submit your work, and read teacher feedback.',
-            action: 'Open assignments',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AssignmentsScreen()),
+          StaggeredEntrance(
+            index: 1,
+            child: PracticeActionCard(
+              icon: LucideIcons.clipboardList,
+              tone: palette.amber,
+              title: 'Assignments',
+              body:
+                  'See what is due, open assignment history, and read teacher feedback.',
+              action: 'Open Assignments',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AssignmentsScreen()),
+              ),
             ),
           ),
           const SizedBox(height: 14),
-          PracticeActionCard(
-            icon: Icons.edit_note_rounded,
-            tone: palette.coral,
-            title: 'Quizzes and exams',
-            body:
-                'Take a short knowledge quiz or show your skills in a practical exam.',
-            action: 'Open practice',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const QuizListScreen()),
+          StaggeredEntrance(
+            index: 2,
+            child: PracticeActionCard(
+              icon: LucideIcons.pencilLine,
+              tone: palette.coral,
+              title: 'Quizzes and Exams',
+              body:
+                  'Take a short knowledge quiz or show your skills in a practical exam.',
+              action: 'Open Practice',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const QuizListScreen()),
+              ),
             ),
           ),
           const SizedBox(height: 18),
-          InfoNoteCard(
-            icon: Icons.lightbulb_outline_rounded,
-            tone: palette.amber,
-            message:
-                'Practice is not a score board. It is a safe place to notice what you know next.',
+          StaggeredEntrance(
+            index: 3,
+            child: InfoNoteCard(
+              icon: LucideIcons.lightbulb,
+              tone: palette.amber,
+              message:
+                  'No pressure here. Try, miss, try again. That is how you level up.',
+            ),
           ),
         ],
       ),
