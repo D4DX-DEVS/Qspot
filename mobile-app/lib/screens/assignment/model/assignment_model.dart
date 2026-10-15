@@ -121,6 +121,10 @@ class AssignmentModel {
 
   bool get isGraded => gradePoints != null;
 
+  /// The teacher has marked the work (a resubmission clears the mark).
+  bool get isReviewed =>
+      isGraded || const {'graded', 'reviewed'}.contains(status.toLowerCase());
+
   bool get isOverdue =>
       !isSubmitted && dueAt != null && dueAt!.isBefore(DateTime.now());
 }
