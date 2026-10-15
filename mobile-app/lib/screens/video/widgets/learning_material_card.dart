@@ -10,6 +10,8 @@ import '../../../widgets/common/surface_card.dart';
 import '../../pdf_viewer/screens/pdf_viewer_screen.dart';
 import '../model/video_model.dart';
 import 'material_thumbnail.dart';
+import '../../downloads/provider/downloads_provider.dart';
+import '../../downloads/screens/offline_file_screen.dart';
 
 /// Downloads attachment card with a small preview of the file.
 class LearningMaterialCard extends StatelessWidget {
@@ -18,6 +20,21 @@ class LearningMaterialCard extends StatelessWidget {
   final VideoDownload material;
 
   Future<void> _open(BuildContext context) async {
+    // Saved for offline: open the copy on the phone.
+    final saved = DownloadsProvider.active?.localPathFor(material.resolvedUrl);
+    if (saved != null) {
+      if (material.isPdf) {
+        await PdfViewerScreen.open(context, url: saved, title: material.title);
+      } else {
+        await OfflineFileScreen.open(
+          context,
+          path: saved,
+          title: material.title,
+          isImage: material.isImage,
+        );
+      }
+      return;
+    }
     try {
       final uri = Uri.parse(material.resolvedUrl);
       if (!const {'http', 'https'}.contains(uri.scheme) || uri.host.isEmpty) {

@@ -17,12 +17,18 @@ class MyAttemptSummary {
   final num percentage;
   final DateTime? createdAt;
 
+  /// Whether the correct answers can be shown yet, and when they will be.
+  final bool answersRevealed;
+  final DateTime? answersAvailableAt;
+
   MyAttemptSummary({
     required this.attemptId,
     required this.score,
     required this.totalQuestions,
     required this.percentage,
     required this.createdAt,
+    this.answersRevealed = false,
+    this.answersAvailableAt,
   });
 
   factory MyAttemptSummary.fromJson(Map<String, dynamic> json) {
@@ -32,6 +38,8 @@ class MyAttemptSummary {
       totalQuestions: jsonInt(json['totalQuestions']) ?? 0,
       percentage: jsonDouble(json['percentage']) ?? 0,
       createdAt: _parseDate(json['createdAt']),
+      answersRevealed: json['answersRevealed'] == true,
+      answersAvailableAt: _parseDate(json['answersAvailableAt']),
     );
   }
 }
@@ -219,7 +227,12 @@ class QuizAttemptResult {
   final num percentage;
   final int totalDuration;
   final DateTime? createdAt;
+
+  /// Per-question results with the correct answers. Empty until the exam has
+  /// closed for everyone ([answersRevealed]).
   final List<QuestionResult> results;
+  final bool answersRevealed;
+  final DateTime? answersAvailableAt;
 
   QuizAttemptResult({
     required this.attemptId,
@@ -232,9 +245,16 @@ class QuizAttemptResult {
     required this.totalDuration,
     required this.createdAt,
     required this.results,
+    this.answersRevealed = true,
+    this.answersAvailableAt,
   });
 
   factory QuizAttemptResult.fromJson(Map<String, dynamic> json) {
+    final results =
+        (json['results'] as List<dynamic>?)
+            ?.map((e) => QuestionResult.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        const <QuestionResult>[];
     return QuizAttemptResult(
       attemptId: json['attemptId']?.toString() ?? '',
       quizId: json['quizId']?.toString() ?? '',
@@ -245,11 +265,12 @@ class QuizAttemptResult {
       percentage: jsonDouble(json['percentage']) ?? 0,
       totalDuration: jsonInt(json['totalDuration']) ?? 0,
       createdAt: _parseDate(json['createdAt']),
-      results:
-          (json['results'] as List<dynamic>?)
-              ?.map((e) => QuestionResult.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
+      results: results,
+      // Older servers send no flag and always include the answers.
+      answersRevealed: json['answersRevealed'] is bool
+          ? json['answersRevealed'] as bool
+          : results.isNotEmpty,
+      answersAvailableAt: _parseDate(json['answersAvailableAt']),
     );
   }
 }

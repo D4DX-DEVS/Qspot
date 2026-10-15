@@ -15,6 +15,7 @@ import '../../../widgets/common/state_message_view.dart';
 import '../../../widgets/common/surface_card.dart';
 import '../../../widgets/common/soft_icon_tile.dart';
 import '../../common/widgets/home_theme_scope.dart';
+import '../service/notification_target_opener.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -276,7 +277,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  void _onNotificationTap(HomePalette p, NotificationModel notification) {
+  Future<void> _onNotificationTap(
+    HomePalette p,
+    NotificationModel notification,
+  ) async {
     // Mark read immediately so the unread badge (Home + this list) reflects
     // the tap right away (M21).
     Provider.of<NotificationProvider>(
@@ -285,6 +289,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     ).markAsRead(notification.id).then((_) {
       if (mounted) _updateFilteredNotifications();
     });
+
+    // A notification about a lesson, quiz, assignment or course opens it.
+    final target = notification.target;
+    if (target != null) {
+      final opened = await NotificationTargetOpener.open(
+        context,
+        target,
+        title: notification.title,
+      );
+      if (opened || !mounted) return;
+    }
 
     showModalBottomSheet<void>(
       context: context,

@@ -142,7 +142,7 @@ void main() {
     await _open(tester, respond: _serveAgenda);
 
     expect(find.text('Steps of wudu'), findsOneWidget);
-    expect(find.text('6:00 PM'), findsOneWidget);
+    expect(find.text('6:00 pm'), findsOneWidget);
     // Two assignments have a deadline: Steps of wudu and Final recitation.
     expect(find.text('Due'), findsNWidgets(2));
     expect(find.text('Q&A with the teacher'), findsOneWidget);
@@ -253,7 +253,7 @@ void main() {
     await tester.pump();
 
     expect(
-      find.text('This lesson opens on Fri 16 Oct at 6:00 AM.'),
+      find.text('This lesson opens on Fri 16 Oct at 6:00 am.'),
       findsOneWidget,
     );
   });

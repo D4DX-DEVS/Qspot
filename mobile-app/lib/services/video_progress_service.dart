@@ -165,6 +165,11 @@ class VideoQuestionResult {
 }
 
 /// Result of answering a video's questions, graded on the server.
+///
+/// Practice can be retaken while it is open; [score] and [percentage] are the
+/// best try, [latestScore] / [latestPercentage] the most recent one.
+/// [results] (with the correct answers) stays empty until the practice has
+/// closed ([answersRevealed]).
 class VideoQuizResult {
   final String attemptId;
   final String videoId;
@@ -174,6 +179,12 @@ class VideoQuizResult {
   final int percentage;
   final DateTime? createdAt;
   final List<VideoQuestionResult> results;
+  final int attemptCount;
+  final int? latestScore;
+  final int? latestPercentage;
+  final bool canRetake;
+  final bool answersRevealed;
+  final DateTime? answersAvailableAt;
 
   const VideoQuizResult({
     this.attemptId = '',
@@ -184,9 +195,28 @@ class VideoQuizResult {
     required this.percentage,
     this.createdAt,
     this.results = const [],
+    this.attemptCount = 1,
+    this.latestScore,
+    this.latestPercentage,
+    this.canRetake = false,
+    this.answersRevealed = false,
+    this.answersAvailableAt,
   });
 
   factory VideoQuizResult.fromJson(Map<String, dynamic> json) {
+    final results = json['results'] is List
+        ? (json['results'] as List)
+              .whereType<Map>()
+              .map(
+                (e) =>
+                    VideoQuestionResult.fromJson(Map<String, dynamic>.from(e)),
+              )
+              .toList()
+        : const <VideoQuestionResult>[];
+    final latest = json['latest'] is Map
+        ? Map<String, dynamic>.from(json['latest'] as Map)
+        : const <String, dynamic>{};
+    final availableAt = json['answersAvailableAt']?.toString();
     return VideoQuizResult(
       attemptId: (json['attemptId'] ?? '').toString(),
       videoId: (json['videoId'] ?? '').toString(),
@@ -197,16 +227,18 @@ class VideoQuizResult {
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString())
           : null,
-      results: json['results'] is List
-          ? (json['results'] as List)
-                .whereType<Map>()
-                .map(
-                  (e) => VideoQuestionResult.fromJson(
-                    Map<String, dynamic>.from(e),
-                  ),
-                )
-                .toList()
-          : const [],
+      results: results,
+      attemptCount: jsonInt(json['attemptCount']) ?? 1,
+      latestScore: jsonInt(latest['score']),
+      latestPercentage: jsonInt(latest['percentage']),
+      canRetake: json['canRetake'] == true,
+      // Older servers send no flag and always include the answers.
+      answersRevealed: json['answersRevealed'] is bool
+          ? json['answersRevealed'] as bool
+          : results.isNotEmpty,
+      answersAvailableAt: availableAt == null
+          ? null
+          : DateTime.tryParse(availableAt)?.toLocal(),
     );
   }
 }
@@ -373,11 +405,11 @@ class VideoProgressService {
     }
   }
 
-  /// Submit answers; the server grades them and returns the score.
+  /// Submit answers; the server grades them and returns the score of this
+  /// try and the best one. Practice can be repeated while it is open.
   ///
-  /// Throws [ApiException] on failure so the caller can distinguish
-  /// "watch the video first" (403), "already attempted" (409, carries the
-  /// prior [VideoQuizResult]) from a genuine error.
+  /// Throws [ApiException] on failure so the caller can tell "watch the
+  /// video first" or "practice has closed" (403) from a genuine error.
   static Future<VideoQuizResult> submit({
     required String videoId,
     required List<Map<String, String>> answers,

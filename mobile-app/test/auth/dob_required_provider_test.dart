@@ -7,6 +7,19 @@ UserModel _saved(String dob) =>
     UserModel(phone: '9876543210', name: 'Ayesha', dob: dob);
 
 void main() {
+  test('knows a teacher from the role', () {
+    Future<void> apply(UserModel _) async {}
+    expect(
+      DobRequiredProvider(applyUser: apply, role: 'faculty').isFaculty,
+      isTrue,
+    );
+    expect(
+      DobRequiredProvider(applyUser: apply, role: 'student').isFaculty,
+      isFalse,
+    );
+    expect(DobRequiredProvider(applyUser: apply).isFaculty, isFalse);
+  });
+
   test('cannot save before a date is picked', () async {
     var calls = 0;
     final provider = DobRequiredProvider(

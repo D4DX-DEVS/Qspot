@@ -116,25 +116,22 @@ void main() {
     expect(find.text('3'), findsOneWidget);
   });
 
-  testWidgets('only the lesson after the finished ones is locked from view', (
-    tester,
-  ) async {
+  testWidgets('no lesson card is locked', (tester) async {
     await _openChapter(tester);
 
-    // Lesson one is done and lesson two is next, so only lesson three is shut.
-    expect(find.byIcon(LucideIcons.lock), findsOneWidget);
+    // Lesson one is done and lesson two is not, yet lesson three is open too.
+    expect(find.byIcon(LucideIcons.lock), findsNothing);
   });
 
-  testWidgets('a locked lesson explains what to finish and does not open', (
+  testWidgets('a lesson opens before the ones ahead of it are finished', (
     tester,
   ) async {
     await _openChapter(tester);
 
     await tester.tap(find.text('Lesson three'));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    expect(find.text('Finish "Lesson two" first.'), findsOneWidget);
-    expect(find.text('LESSON 3 OF 3'), findsNothing);
+    expect(find.text('LESSON 3 OF 3'), findsOneWidget);
   });
 
   testWidgets('an open lesson opens its lesson page', (tester) async {
@@ -153,6 +150,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('LESSON 1 OF 3'), findsOneWidget);
-    expect(find.text('Watch again'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics && widget.properties.label == 'Watch again',
+      ),
+      findsOneWidget,
+    );
   });
 }

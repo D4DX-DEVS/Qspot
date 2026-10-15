@@ -48,6 +48,8 @@ dependencies:
   shared_preferences: ^2.2.3
   sqflite: ^2.3.0
   path: ^1.8.3
+  # Where lessons saved for offline are kept on the phone.
+  path_provider: ^2.1.5
 
   # Image Caching and Loading
   cached_network_image: ^3.3.1

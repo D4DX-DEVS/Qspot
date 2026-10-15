@@ -47,6 +47,7 @@ class CalendarDayCell extends StatelessWidget {
       selected: isSelected,
       label: spoken,
       excludeSemantics: true,
+      onTap: onTap,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),

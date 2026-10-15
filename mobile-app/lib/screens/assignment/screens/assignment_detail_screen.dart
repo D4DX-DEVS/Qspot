@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import 'package:qspot/screens/assignment/model/assignment_model.dart';
 import 'package:qspot/screens/assignment/provider/assignment_detail_provider.dart';
 import 'package:qspot/screens/assignment/service/assignment_service.dart';
+import 'package:qspot/screens/assignment/widgets/assignment_closed_dialog.dart';
+import 'package:qspot/screens/assignment/widgets/submitted_response_card.dart';
 import 'package:qspot/screens/auth/widgets/gradient_pill_button.dart';
 import 'package:qspot/screens/common/widgets/home_theme_scope.dart';
 import 'package:qspot/themes/app_colors.dart';
@@ -16,10 +18,12 @@ import 'package:qspot/themes/home_palette.dart';
 import 'package:qspot/widgets/animation/pressable_scale.dart';
 import 'package:qspot/widgets/animation/staggered_entrance.dart';
 import 'package:qspot/widgets/common/app_snack_bar.dart';
+import 'package:qspot/widgets/common/collapsible_section.dart';
 import 'package:qspot/widgets/common/common_app_bar.dart';
 import 'package:qspot/widgets/common/info_note_card.dart';
 import 'package:qspot/widgets/common/surface_card.dart';
 import 'package:qspot/widgets/common/tone_chip.dart';
+import '../widgets/rubric_scores_view.dart';
 
 class AssignmentDetailScreen extends StatefulWidget {
   const AssignmentDetailScreen({super.key, required this.assignment});
@@ -41,6 +45,9 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
       text: widget.assignment.submissionText,
     );
     _detail = AssignmentDetailProvider(widget.assignment);
+    _detail.assignment.then((assignment) {
+      if (mounted && assignment.isClosed) AssignmentClosedDialog.show(context);
+    });
   }
 
   @override
@@ -51,6 +58,11 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
   }
 
   Future<void> _submit(AssignmentModel assignment) async {
+    if (assignment.isClosed) {
+      _detail.markClosed();
+      AssignmentClosedDialog.show(context);
+      return;
+    }
     final text = _submissionController.text.trim();
     if (text.isEmpty && _detail.attachments.isEmpty) {
       AppSnackBar.show(
@@ -76,6 +88,13 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
       Navigator.pop(context, true);
     } catch (error) {
       if (!mounted) return;
+      if (error is ApiException &&
+          error.body is Map &&
+          error.body['code'] == 'assignment_closed') {
+        _detail.markClosed();
+        AssignmentClosedDialog.show(context);
+        return;
+      }
       AppSnackBar.show(
         context,
         message: error is ApiException
@@ -258,27 +277,31 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
             if (assignment.feedback.isNotEmpty || assignment.grade != null) ...[
               StaggeredEntrance(
                 index: 4,
+                child: _SectionLabel('Teacher Feedback', palette: p),
+              ),
+              const SizedBox(height: AppTheme.paddingSmall),
+              StaggeredEntrance(
+                index: 4,
                 child: SurfaceCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Teacher Feedback',
-                        style: AppFonts.bold(color: p.text, fontSize: 15),
-                      ),
-                      if (assignment.feedback.isNotEmpty) ...[
-                        const SizedBox(height: 6),
+                      if (assignment.feedback.isNotEmpty)
                         Text(
                           assignment.feedback,
                           style: AppFonts.regular(color: p.text, height: 1.5),
                         ),
-                      ],
-                      if (assignment.grade != null) ...[
+                      if (assignment.feedback.isNotEmpty &&
+                          assignment.grade != null)
                         const SizedBox(height: 10),
+                      if (assignment.grade != null)
                         ToneChip(
                           label: 'Score: ${assignment.grade}',
                           tone: p.mint,
                         ),
+                      if (assignment.rubricScores.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        RubricScoresView(scores: assignment.rubricScores),
                       ],
                     ],
                   ),
@@ -299,36 +322,47 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                           ? 'Your teacher has reviewed your work.'
                           : 'Your work has been sent to your teacher.',
                     ),
-                    if (assignment.submissionFiles.isNotEmpty) ...[
+                    if (assignment.submissionText.isNotEmpty ||
+                        assignment.submissionFiles.isNotEmpty) ...[
                       const SizedBox(height: AppTheme.sectionGap),
-                      _SectionLabel('Attachments', palette: p),
-                      ...assignment.submissionFiles.map(
-                        (file) => ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: Icon(
-                            file.mimeType.startsWith('audio')
-                                ? LucideIcons.music
-                                : LucideIcons.image,
-                            color: p.brand,
-                          ),
-                          title: Text(
-                            file.name,
-                            style: AppFonts.medium(color: p.text),
-                          ),
-                          subtitle: Text(
-                            file.mimeType,
-                            style: AppFonts.regular(
-                              color: p.textMuted,
-                              fontSize: 12,
-                            ),
-                          ),
+                      CollapsibleSection(
+                        title: 'Your Response',
+                        expanded: detail.responseOpen,
+                        onToggle: detail.toggleResponse,
+                        child: SubmittedResponseCard(
+                          text: assignment.submissionText,
+                          files: assignment.submissionFiles,
                         ),
                       ),
                     ],
                   ],
                 ),
               )
+            else if (detail.isClosed(assignment))
+              StaggeredEntrance(
+                index: 5,
+                child: InfoNoteCard(
+                  icon: LucideIcons.timerOff,
+                  tone: p.coral,
+                  message:
+                      'The time for this assignment is over. You can no '
+                      'longer submit your answer.',
+                ),
+              )
             else ...[
+              if (assignment.isReturned) ...[
+                StaggeredEntrance(
+                  index: 5,
+                  child: InfoNoteCard(
+                    icon: LucideIcons.rotateCcw,
+                    tone: p.amber,
+                    message:
+                        'Your teacher asked for changes. Read the feedback, '
+                        'then send your work again.',
+                  ),
+                ),
+                const SizedBox(height: AppTheme.sectionGap),
+              ],
               StaggeredEntrance(
                 index: 5,
                 child: _SectionLabel('Your Answer', palette: p),
@@ -539,12 +573,16 @@ class _DetailMeta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = HomePalette.of(context);
-    final tone = assignment.isSubmitted
+    final tone = assignment.isReturned
+        ? p.amber
+        : assignment.isSubmitted
         ? p.mint
         : assignment.isOverdue
         ? p.coral
         : p.rose;
-    final status = assignment.isReviewed
+    final status = assignment.isReturned
+        ? 'Changes Asked'
+        : assignment.isReviewed
         ? 'Reviewed'
         : assignment.isSubmitted
         ? 'Submitted'

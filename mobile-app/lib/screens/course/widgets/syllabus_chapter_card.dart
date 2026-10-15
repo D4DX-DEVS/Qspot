@@ -4,7 +4,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../themes/home_palette.dart';
 import '../../../widgets/common/surface_card.dart';
-import '../../../widgets/common/tone_chip.dart';
 import '../../subject/widgets/chapter_status_chip.dart';
 import '../model/syllabus_chapter.dart';
 import '../model/syllabus_lesson.dart';
@@ -66,50 +65,36 @@ class SyllabusChapterCard extends StatelessWidget {
       button: true,
       expanded: expanded,
       excludeSemantics: true,
+      onTap: onToggle,
       label:
           'Chapter ${chapter.number}, ${chapter.title}, '
           '${progress.completed} of ${progress.total} lessons complete',
       child: InkWell(
         onTap: onToggle,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
+        child: Container(
+          color: expanded ? palette.brandSoft : null,
+          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
           child: Row(
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          'Chapter ${chapter.number}',
-                          style: AppFonts.semiBold(
-                            color: palette.brand,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        if (chapter.isLocked)
-                          ToneChip(label: 'Locked', tone: palette.slate)
-                        else
-                          ChapterStatusChip(status: progress.status),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
                     Text(
-                      chapter.title,
+                      'Chapter ${chapter.number} · ${chapter.title}',
                       style: AppFonts.bold(
                         color: palette.text,
-                        fontSize: 15,
+                        fontSize: 14,
                         height: 1.3,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       progress.total == 0
-                          ? 'No Lessons Yet'
-                          : '${progress.completed}/${progress.total} Lessons',
-                      style: AppFonts.semiBold(
+                          ? 'No lessons yet'
+                          : '${progress.completed} of ${progress.total} '
+                                'lesson${progress.total == 1 ? '' : 's'}',
+                      style: AppFonts.regular(
                         color: palette.textMuted,
                         fontSize: 12,
                       ),
@@ -117,9 +102,12 @@ class SyllabusChapterCard extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
+              ChapterStatusChip(status: progress.status),
+              const SizedBox(width: 4),
               Icon(
                 expanded ? LucideIcons.chevronUp : LucideIcons.chevronDown,
-                size: 20,
+                size: 18,
                 color: palette.textMuted,
               ),
             ],

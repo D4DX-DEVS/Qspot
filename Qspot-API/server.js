@@ -14,6 +14,8 @@ const rateLimit = require('express-rate-limit');
 const { loginIpLimiter, loginPhoneLimiter } = require('./middlewares/loginLimiter');
 const multer = require('multer');
 const path = require('path');
+const { reportError } = require('./services/errorReporter');
+const { startNotificationJobs } = require('./services/notificationJobs');
 
 const app = express();
 
@@ -124,6 +126,8 @@ const { publicRouter: navigationRoutes, adminRouter: adminNavigationRoutes } = r
 // intended router first.
 app.use('/api/admin/assignments', assignmentRoutes.adminRouter);
 app.use('/api/admin/analytics', analyticsRoutes);
+app.use('/api/admin/gradebook', require('./routes/gradebook'));
+app.use('/api/user/notifications', require('./routes/userNotifications'));
 app.use('/api/admin', adminRoutes);
 app.use('/api/faculty', facultyRoutes);
 app.use('/api/banner', bannerRoutes);
@@ -165,7 +169,7 @@ app.use((err, req, res, next) => {
     if (err && err.type === 'entity.parse.failed') {
         return res.status(400).json({ message: 'Invalid JSON body' });
     }
-    console.error('Unhandled error:', err);
+    reportError(err, { label: 'Unhandled error:', method: req.method, path: req.path });
     res.status(500).json({ message: 'Internal server error' });
 });
 
@@ -200,6 +204,8 @@ const connectDB = async () => {
             ...poolOptions
         });
         console.log("Connected to MongoDB");
+        // Scheduled notifications (quiz closing soon, assignment due, ...).
+        startNotificationJobs();
     } catch (error) {
         console.error("MongoDB connection error:", error.message);
         console.log("Retrying connection in 5 seconds...");
@@ -233,5 +239,14 @@ const shutdown = (signal) => {
 };
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
+
+// An error nothing caught still stops the process, as Node does by default
+// (the platform restarts it), but is reported first.
+const reportAndExit = (label) => (error) => {
+    reportError(error, { label });
+    setTimeout(() => process.exit(1), 500).unref();
+};
+process.on('uncaughtException', reportAndExit('Uncaught exception:'));
+process.on('unhandledRejection', reportAndExit('Unhandled promise rejection:'));
 
 module.exports = app;

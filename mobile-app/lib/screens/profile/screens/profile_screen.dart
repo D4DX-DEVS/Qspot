@@ -28,6 +28,7 @@ import '../../settings/screens/settings_screen.dart';
 import '../../subject/provider/subject_provider.dart';
 import '../../video/provider/video_provider.dart';
 import '../../../services/course_service.dart';
+import '../../downloads/screens/downloads_screen.dart';
 
 /// The signed-in learner's identity and personal destinations.
 class ProfileScreen extends StatefulWidget {
@@ -490,6 +491,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: 'Bookmarks',
         subtitle: 'Episodes you saved for later',
         onTap: () => open(const BookmarksScreen()),
+      ),
+      NavListCard(
+        icon: LucideIcons.download,
+        tone: tone,
+        circleIcon: true,
+        title: 'Downloads',
+        subtitle: 'Lessons saved to watch without internet',
+        onTap: () => open(const DownloadsScreen()),
       ),
       NavListCard(
         icon: LucideIcons.settings,

@@ -1,1 +1,21 @@
 @import "tailwindcss";
+
+@layer base {
+  /* Dark-only panel: draw native controls (date pickers, selects, file
+     buttons, scrollbars) in dark mode so their icons stay visible. */
+  html {
+    color-scheme: dark;
+    background-color: #000;
+  }
+
+  /* Long unbroken words (names, titles, answers) wrap instead of running
+     out of their card. Tables keep break-word so they scroll sideways
+     rather than splitting every word. */
+  body {
+    overflow-wrap: anywhere;
+  }
+
+  table {
+    overflow-wrap: break-word;
+  }
+}

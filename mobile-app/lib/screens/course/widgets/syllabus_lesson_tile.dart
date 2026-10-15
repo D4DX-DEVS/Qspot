@@ -29,6 +29,7 @@ class SyllabusLessonTile extends StatelessWidget {
     return Semantics(
       button: true,
       excludeSemantics: true,
+      onTap: onTap,
       label: '${lesson.number}. ${lesson.title}. $chip',
       child: InkWell(
         onTap: onTap,
@@ -78,8 +79,7 @@ class SyllabusLessonTile extends StatelessWidget {
           'Done',
         ),
         LessonStatus.inProgress => (LucideIcons.play, palette.rose, 'Resume'),
-        LessonStatus.upNext => (LucideIcons.play, palette.amber, 'Start'),
-        LessonStatus.locked => (LucideIcons.lock, palette.slate, 'Locked'),
+        LessonStatus.notStarted => (LucideIcons.play, palette.amber, 'Start'),
         LessonStatus.upcoming => (LucideIcons.clock, palette.slate, 'Soon'),
       };
 

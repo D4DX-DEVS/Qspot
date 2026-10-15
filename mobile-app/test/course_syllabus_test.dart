@@ -47,29 +47,32 @@ List<LessonStatus> _statuses(CourseSyllabus syllabus) => [
 ];
 
 void main() {
-  group('lock rule', () {
+  group('no lock', () {
     final lessons = {
       's1': [_lesson('a', 's1'), _lesson('b', 's1'), _lesson('c', 's1')],
     };
 
-    test('only the first lesson is open to begin with', () {
+    test('every released lesson is open to begin with', () {
       final syllabus = _build(lessons);
 
       expect(_statuses(syllabus), [
-        LessonStatus.upNext,
-        LessonStatus.locked,
-        LessonStatus.locked,
+        LessonStatus.notStarted,
+        LessonStatus.notStarted,
+        LessonStatus.notStarted,
       ]);
+      expect(syllabus.lessons.every((l) => l.isOpenable), isTrue);
+      expect(syllabus.lessons.every((l) => l.blockedMessage == null), isTrue);
     });
 
-    test('finishing a lesson opens the next one', () {
-      final syllabus = _build(lessons, progress: {'a': _done('a')});
+    test('a lesson can be finished without the ones before it', () {
+      final syllabus = _build(lessons, progress: {'c': _done('c')});
 
       expect(_statuses(syllabus), [
+        LessonStatus.notStarted,
+        LessonStatus.notStarted,
         LessonStatus.completed,
-        LessonStatus.upNext,
-        LessonStatus.locked,
       ]);
+      expect(syllabus.lessons.every((l) => l.isOpenable), isTrue);
     });
 
     test('a lesson being watched is where the learner left off', () {
@@ -81,30 +84,20 @@ void main() {
       expect(_statuses(syllabus), [
         LessonStatus.completed,
         LessonStatus.inProgress,
-        LessonStatus.locked,
+        LessonStatus.notStarted,
       ]);
       expect(syllabus.next?.id, 'b');
     });
 
-    test('a locked lesson says what to finish first', () {
-      final syllabus = _build(lessons);
+    test(
+      'carrying on means the first lesson in order that is not finished',
+      () {
+        // Lesson c was started first, but a still comes before it.
+        final syllabus = _build(lessons, progress: {'c': _begun('c')});
 
-      expect(
-        syllabus.lessons.elementAt(2).lockHint,
-        'Finish "Lesson a" first.',
-      );
-    });
-
-    test('skipping ahead does not open the lessons in between', () {
-      final syllabus = _build(lessons, progress: {'c': _done('c')});
-
-      // Lesson c was finished earlier, so it stays open, but b is still shut.
-      expect(_statuses(syllabus), [
-        LessonStatus.upNext,
-        LessonStatus.locked,
-        LessonStatus.completed,
-      ]);
-    });
+        expect(syllabus.next?.id, 'a');
+      },
+    );
 
     test('everything finished leaves nothing to carry on with', () {
       final syllabus = _build(
@@ -116,27 +109,19 @@ void main() {
       expect(syllabus.lessons.every((l) => l.isOpenable), isTrue);
     });
 
-    test('the lock carries across chapters', () {
+    test('carrying on crosses into the next chapter', () {
       final twoChapters = {
         's1': [_lesson('a', 's1')],
         's2': [_lesson('b', 's2'), _lesson('c', 's2')],
       };
 
-      final started = _build(twoChapters);
-      expect(started.chapters[1].isLocked, isTrue);
-
       final firstDone = _build(twoChapters, progress: {'a': _done('a')});
-      expect(firstDone.chapters[1].isLocked, isFalse);
-      expect(_statuses(firstDone), [
-        LessonStatus.completed,
-        LessonStatus.upNext,
-        LessonStatus.locked,
-      ]);
+
       expect(firstDone.next?.chapterNumber, 2);
       expect(firstDone.next?.number, 1);
     });
 
-    test('a lesson that opens later blocks the ones after it', () {
+    test('a lesson that opens later is the only one that stays closed', () {
       final syllabus = _build(
         {
           's1': [
@@ -151,9 +136,10 @@ void main() {
       expect(_statuses(syllabus), [
         LessonStatus.completed,
         LessonStatus.upcoming,
-        LessonStatus.locked,
+        LessonStatus.notStarted,
       ]);
-      expect(syllabus.next, isNull);
+      // The lesson after the one that is not out yet is still open.
+      expect(syllabus.next?.id, 'c');
     });
   });
 
@@ -194,14 +180,14 @@ void main() {
       expect(counts.started, 1);
     });
 
-    test('a chapter with no lessons is empty, not locked', () {
+    test('a chapter with no lessons is empty', () {
       final syllabus = _build({'s1': const []});
 
       expect(syllabus.isEmpty, isTrue);
-      expect(syllabus.chapters.single.isLocked, isFalse);
+      expect(syllabus.chapters.single.lessons, isEmpty);
     });
 
-    test('only open lessons can be played, and a closed one says why', () {
+    test('only released lessons can be played, and a closed one says why', () {
       final syllabus = _build({
         's1': [
           _lesson('a', 's1'),
@@ -211,9 +197,9 @@ void main() {
       });
 
       final lessons = syllabus.lessons.toList();
-      expect(lessons.map((l) => l.isOpenable), [true, false, false]);
+      expect(lessons.map((l) => l.isOpenable), [true, true, false]);
       expect(lessons[0].blockedMessage, isNull);
-      expect(lessons[1].blockedMessage, 'Finish "Lesson a" first.');
+      expect(lessons[1].blockedMessage, isNull);
       expect(lessons[2].blockedMessage, 'This lesson has not opened yet.');
     });
   });
@@ -263,8 +249,8 @@ void main() {
 
       expect(syllabus.chapters.map((c) => c.id), ['s1', 's2']);
       expect(syllabus.lessonFor('z'), isNull);
-      // Lesson b is locked behind lesson a, as on the Course page.
-      expect(syllabus.lessonFor('b')?.isLocked, isTrue);
+      // Lesson b is numbered as on the Course page.
+      expect(syllabus.lessonFor('b')?.chapterNumber, 2);
     });
 
     test('a chapter with no course stands alone', () {

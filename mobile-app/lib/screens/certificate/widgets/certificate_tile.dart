@@ -27,6 +27,7 @@ class CertificateTile extends StatelessWidget {
     return Semantics(
       button: true,
       excludeSemantics: true,
+      onTap: onTap,
       label:
           '${certificate.examTitle}. ${certificate.title}. '
           '${issued.isEmpty ? '' : 'Issued $issued.'}',

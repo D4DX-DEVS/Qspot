@@ -62,7 +62,7 @@ class LessonNavBar extends StatelessWidget {
                   Expanded(
                     flex: 2,
                     child: OutlinedButton(
-                      style: _outlined(palette),
+                      style: _outlined(palette, palette.brand, palette.brand),
                       onPressed: hasPrevious ? onPrevious : null,
                       child: const FittedBox(
                         fit: BoxFit.scaleDown,
@@ -74,7 +74,11 @@ class LessonNavBar extends StatelessWidget {
                   Expanded(
                     flex: 2,
                     child: OutlinedButton(
-                      style: _outlined(palette),
+                      style: _outlined(
+                        palette,
+                        palette.text,
+                        palette.cardBorder,
+                      ),
                       onPressed: onLessons,
                       child: const FittedBox(
                         fit: BoxFit.scaleDown,
@@ -115,12 +119,13 @@ class LessonNavBar extends StatelessWidget {
     );
   }
 
-  ButtonStyle _outlined(HomePalette palette) => OutlinedButton.styleFrom(
-    foregroundColor: palette.brand,
-    minimumSize: const Size(0, 48),
-    padding: const EdgeInsets.symmetric(horizontal: 8),
-    textStyle: AppFonts.semiBold(fontSize: 13),
-    side: BorderSide(color: palette.cardBorder),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-  );
+  ButtonStyle _outlined(HomePalette palette, Color text, Color border) =>
+      OutlinedButton.styleFrom(
+        foregroundColor: text,
+        minimumSize: const Size(0, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        textStyle: AppFonts.semiBold(fontSize: 13),
+        side: BorderSide(color: border, width: 1.5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      );
 }

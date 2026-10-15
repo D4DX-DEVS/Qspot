@@ -9,7 +9,7 @@ import '../../../widgets/common/section_header.dart';
 import '../model/today_item_text.dart';
 import '../model/today_section.dart';
 
-/// One block of the learner's work on Today: overdue, to do or coming up.
+/// One block of the learner's work on Today: ending soon, to do or coming up.
 /// Shows the first few [items] as tappable cards, each with its own status
 /// line, and an optional "See All" link.
 class TodayTaskSection extends StatelessWidget {
@@ -64,8 +64,8 @@ class TodayTaskSection extends StatelessWidget {
     AccentTone tone,
     DateTime now,
   ) {
-    // Anything past due stands out, whichever block it sits in.
-    final cardTone = item.status == 'overdue' ? palette.coral : tone;
+    // Anything ending within the hour stands out, whichever block it sits in.
+    final cardTone = item.isEndingSoon(now) ? palette.coral : tone;
     return NavListCard(
       icon: _iconFor(item.kind),
       tone: cardTone,
@@ -80,7 +80,7 @@ class TodayTaskSection extends StatelessWidget {
     TodaySection.attention => (
       '🚨',
       'Needs Your Attention',
-      'Past Due. Sort These Out First!',
+      'Ending Within the Hour. Finish These First!',
     ),
     TodaySection.todo => ('📝', 'Your To-Do List', null),
     _ => ('⏰', 'Coming Up', null),

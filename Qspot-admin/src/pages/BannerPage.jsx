@@ -124,7 +124,7 @@ const BannerPage = () => {
     <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="banner" onNavigate={navigate} />
       
-      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
+      <div className="flex-1 min-w-0 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-4">
           {/* Header Section */}
           <div className="mb-8">
@@ -163,11 +163,11 @@ const BannerPage = () => {
                 </div>
               ) : (
                 <>
-                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     {currentBanners.map((banner) => (
                       <article
                         key={banner._id}
-                        className="group relative flex flex-col gap-3 rounded-2xl border border-white/12 bg-gradient-to-br from-[#120714]/85 via-[#1c0b1c]/70 to-[#0e050d]/85 p-4 shadow-[0_18px_46px_-26px_rgba(112,24,69,0.55)] transition-all duration-200 hover:-translate-y-1 hover:border-[#701845]/45 hover:shadow-[0_26px_60px_-28px_rgba(112,24,69,0.65)]"
+                        className="group relative flex min-w-0 flex-col gap-3 rounded-2xl border border-white/12 bg-gradient-to-br from-[#120714]/85 via-[#1c0b1c]/70 to-[#0e050d]/85 p-4 shadow-[0_18px_46px_-26px_rgba(112,24,69,0.55)] transition-all duration-200 hover:-translate-y-1 hover:border-[#701845]/45 hover:shadow-[0_26px_60px_-28px_rgba(112,24,69,0.65)]"
                       >
                         <div className="relative h-32 overflow-hidden rounded-xl border border-white/10 bg-black/40">
                           <img
@@ -185,7 +185,7 @@ const BannerPage = () => {
                           </h3>
                           <div className="rounded-xl border border-white/10 bg-white/5 p-2 text-[11px] text-white/75">
                             <span className="font-medium text-white/85">Image URL</span>
-                            <p className="mt-1 truncate text-white/65">{banner.image}</p>
+                            <p className="mt-1 truncate text-white/65" title={banner.image}>{banner.image}</p>
                           </div>
                           <div className="mt-auto flex items-center justify-between text-[11px] text-white/60">
                             <span className="inline-flex items-center gap-1">

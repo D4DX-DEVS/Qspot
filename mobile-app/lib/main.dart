@@ -14,13 +14,28 @@ import 'package:qspot/screens/video/provider/video_provider.dart';
 import 'package:qspot/routes/app_routes.dart';
 import 'package:qspot/services/api_client.dart';
 import 'package:qspot/services/common/storage_service.dart';
+import 'package:qspot/services/telemetry/telemetry.dart';
 
 import 'screens/quiz/provider/quiz_provider.dart';
 
 import 'themes/app_theme.dart';
+import 'package:qspot/services/push/push.dart';
+import 'package:qspot/screens/notification/service/notification_target_opener.dart';
+import 'package:qspot/screens/downloads/provider/downloads_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Crash reports and usage events (sends nothing until a service is chosen).
+  await Telemetry.install();
+
+  // A tap on a push opens the lesson, quiz, assignment or course it is about.
+  Push.listen((target, title) {
+    final context = navigatorKey.currentContext;
+    if (context != null) {
+      NotificationTargetOpener.open(context, target, title: title);
+    }
+  });
 
   // Initialize storage service
   await StorageService.init();
@@ -47,6 +62,9 @@ class QSpotApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => BannerProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => QuizProvider()),
+        ChangeNotifierProvider(
+          create: (_) => DownloadsProvider()..ensureLoaded(),
+        ),
       ],
       child: MaterialApp(
         navigatorKey: navigatorKey,

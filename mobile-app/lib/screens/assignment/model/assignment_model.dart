@@ -1,3 +1,5 @@
+import 'rubric_score.dart';
+
 class AssignmentModel {
   const AssignmentModel({
     required this.id,
@@ -17,6 +19,7 @@ class AssignmentModel {
     this.subjectId,
     this.maxPoints = 100,
     this.gradedAt,
+    this.rubricScores = const [],
   });
 
   final String id;
@@ -42,6 +45,10 @@ class AssignmentModel {
 
   /// When the teacher marked it, once they have.
   final DateTime? gradedAt;
+
+  /// The score for each part when the work was marked by parts; empty when
+  /// it was given one mark.
+  final List<RubricScore> rubricScores;
 
   /// The server sends a link either as an id or as the linked record.
   static String? _linkId(dynamic value) {
@@ -81,6 +88,9 @@ class AssignmentModel {
       submittedAt: _date(json['submittedAt'] ?? submission['submittedAt']),
       feedback: (json['feedback'] ?? submission['feedback'] ?? '').toString(),
       grade: (json['grade'] ?? submission['grade'])?.toString(),
+      rubricScores: RubricScore.listFrom(
+        json['rubricScores'] ?? submission['rubricScores'],
+      ),
       allowedMimeTypes:
           (json['allowedMimeTypes'] is List
                   ? json['allowedMimeTypes'] as List
@@ -106,15 +116,19 @@ class AssignmentModel {
     );
   }
 
+  /// The teacher sent the work back for changes: it is to do again.
+  bool get isReturned => status.toLowerCase() == 'returned';
+
   bool get isSubmitted =>
-      submittedAt != null ||
-      const {
-        'submitted',
-        'graded',
-        'reviewed',
-        'complete',
-        'completed',
-      }.contains(status.toLowerCase());
+      !isReturned &&
+      (submittedAt != null ||
+          const {
+            'submitted',
+            'graded',
+            'reviewed',
+            'complete',
+            'completed',
+          }.contains(status.toLowerCase()));
 
   /// The teacher's mark in points, or null until it has been marked.
   num? get gradePoints => num.tryParse(grade ?? '');
@@ -127,6 +141,10 @@ class AssignmentModel {
 
   bool get isOverdue =>
       !isSubmitted && dueAt != null && dueAt!.isBefore(DateTime.now());
+
+  /// The deadline has passed, so the work can no longer be sent. Work the
+  /// teacher sent back for changes can still be sent again.
+  bool get isClosed => isOverdue && !isReturned;
 }
 
 class AssignmentFileModel {

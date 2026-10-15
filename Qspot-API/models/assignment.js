@@ -14,6 +14,18 @@ const assignmentSchema = new mongoose.Schema({
     allowedMimeTypes: { type: [String], default: [] },
     maxFileSizeBytes: { type: Number, default: 10 * 1024 * 1024, min: 1, max: 100 * 1024 * 1024 },
     isPublished: { type: Boolean, default: false },
+    // Marking by parts. When enabled, maxPoints is the sum of the parts.
+    rubric: {
+        enabled: { type: Boolean, default: false },
+        criteria: {
+            type: [{
+                _id: false,
+                label: { type: String, required: true, trim: true, maxlength: 80 },
+                maxPoints: { type: Number, required: true, min: 1, max: 1000 }
+            }],
+            default: []
+        }
+    },
     createdBy: { type: String, default: '' },
     facultyProfile: { type: mongoose.Schema.Types.ObjectId, ref: 'speaker', default: null }
 }, { timestamps: true });

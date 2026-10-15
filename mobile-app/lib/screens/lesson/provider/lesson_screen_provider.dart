@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
 
 import '../../../services/course_service.dart';
 import '../../../services/video_progress_service.dart';
@@ -103,10 +104,13 @@ class LessonScreenProvider extends ChangeNotifier {
   String get chapterTitle => chapter?.title ?? video.subjectName ?? '';
 
   /// "Madd Rules · 11 Oct 2026".
-  String get subtitle => [
-    chapterTitle,
-    video.formattedDate,
-  ].where((part) => part.isNotEmpty).join(' · ');
+  String get subtitle {
+    final date = video.date;
+    return [
+      chapterTitle,
+      if (date != null) DateFormat('d MMM yyyy').format(date.toLocal()),
+    ].where((part) => part.isNotEmpty).join(' · ');
+  }
 
   bool get isCompleted => _watch?.completed == true;
   double get watchedFraction => _watch?.percent ?? 0;
@@ -114,13 +118,23 @@ class LessonScreenProvider extends ChangeNotifier {
   /// Where the learner stands, or null when the course is not known.
   LessonStatus? get status => lesson?.status;
 
-  /// The lesson may be played now: open in its course, or not part of one
-  /// and already released.
+  /// The lesson may be played now: released, in its course or not.
   bool get canPlay => lesson?.isOpenable ?? !video.isUpcoming;
 
   String? get playBlockedMessage =>
       lesson?.blockedMessage ??
       (video.isUpcoming ? 'This lesson has not opened yet.' : null);
+
+  /// How far the learner has watched, e.g. "6:20".
+  String get positionText => _clock(_watch?.positionSeconds ?? 0);
+
+  /// The lesson's length, e.g. "14:00", or null when it is not known.
+  String? get durationText {
+    final seconds = video.durationSeconds > 0
+        ? video.durationSeconds
+        : (_watch?.durationSeconds ?? 0);
+    return seconds > 0 ? _clock(seconds) : null;
+  }
 
   String get playLabel {
     if (!canPlay) return playBlockedMessage ?? 'Not open yet';
@@ -141,9 +155,7 @@ class LessonScreenProvider extends ChangeNotifier {
   String? get nextHint {
     final following = next;
     if (following == null || following.isOpenable) return null;
-    return following.status == LessonStatus.upcoming
-        ? 'The next lesson has not opened yet.'
-        : 'Finish this lesson to unlock the next one.';
+    return 'The next lesson has not opened yet.';
   }
 
   void selectTab(LessonTab tab) {
@@ -160,7 +172,7 @@ class LessonScreenProvider extends ChangeNotifier {
     return changed ? isSaved : null;
   }
 
-  /// Reloads the learner's watch state, so a finished lesson unlocks the next.
+  /// Reloads the learner's watch state, so a finished lesson opens Practice.
   Future<void> refreshProgress() => _refreshProgress();
 
   void _rebuild() {

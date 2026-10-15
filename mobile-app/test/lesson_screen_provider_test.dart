@@ -131,17 +131,17 @@ void main() {
       final provider = _provider(_Source(), _video('a'));
 
       expect(provider.canPlay, isTrue);
-      expect(provider.status, LessonStatus.upNext);
+      expect(provider.status, LessonStatus.notStarted);
       expect(provider.playLabel, 'Watch lesson');
     });
 
-    test('a locked lesson cannot be played and says why', () {
+    test('a later lesson can be played before the ones ahead of it', () {
       final provider = _provider(_Source(), _video('c'));
 
-      expect(provider.status, LessonStatus.locked);
-      expect(provider.canPlay, isFalse);
-      expect(provider.playBlockedMessage, 'Finish "Lesson a" first.');
-      expect(provider.playLabel, 'Finish "Lesson a" first.');
+      expect(provider.status, LessonStatus.notStarted);
+      expect(provider.canPlay, isTrue);
+      expect(provider.playBlockedMessage, isNull);
+      expect(provider.playLabel, 'Watch lesson');
     });
 
     test('a lesson that has not been released cannot be played', () {
@@ -172,20 +172,80 @@ void main() {
 
       expect(_provider(source, _video('a')).playLabel, 'Watch again');
     });
+
+    test('the picture shows the time reached and the length', () {
+      final source = _Source()
+        ..progress = {
+          'a': const VideoProgressStatus(
+            videoId: 'a',
+            positionSeconds: 380,
+            durationSeconds: 840,
+          ),
+        };
+
+      final provider = _provider(source, _video('a'));
+
+      expect(provider.positionText, '6:20');
+      // The progress row knows the length when the lesson itself does not.
+      expect(provider.durationText, '14:00');
+    });
+
+    test(
+      'a lesson not started yet reads from 0:00, and an unknown length is left out',
+      () {
+        final provider = _provider(_Source(), _video('a'));
+
+        expect(provider.positionText, '0:00');
+        expect(provider.durationText, isNull);
+      },
+    );
+
+    test('the lesson length from its own record is used first', () {
+      final video = VideoModel(
+        id: 'z',
+        caption: '',
+        video: 'x',
+        title: 'Lesson z',
+        subjectId: 's1',
+        durationSeconds: 125,
+      );
+
+      expect(_provider(_Source(), video).durationText, '2:05');
+    });
+
+    test('the heading line gives the chapter and the full date', () {
+      final video = _video('a').copyWith(date: DateTime(2026, 10, 11, 9));
+
+      expect(_provider(_Source(), video).subtitle, 'Letters · 11 Oct 2026');
+    });
   });
 
   group('the next lesson', () {
-    test('stays shut, with a note, until this lesson is finished', () {
-      final source = _Source();
-      final provider = _provider(source, _video('a'));
-
-      expect(provider.canOpenNext, isFalse);
-      expect(provider.nextHint, 'Finish this lesson to unlock the next one.');
-
-      source.finish('a');
+    test('is open before this lesson is finished', () {
+      final provider = _provider(_Source(), _video('a'));
 
       expect(provider.canOpenNext, isTrue);
       expect(provider.nextHint, isNull);
+    });
+
+    test('stays shut, with a note, until it is released', () {
+      final soon = _lesson('soon', 's1', upcoming: true);
+      final provider = LessonScreenProvider(
+        video: _video('a'),
+        inputsChanged: _Source(),
+        readInputs: () => (
+          subjects: [SubjectModel(id: 's1', subject: 'letters', order: 1)],
+          courses: const <CourseModel>[],
+          lessonsFor: (_) => [_video('a'), soon],
+          progress: const <String, VideoProgressStatus>{},
+        ),
+        readSaved: () => false,
+        toggleSavedState: () async => false,
+      );
+
+      expect(provider.next?.id, 'soon');
+      expect(provider.canOpenNext, isFalse);
+      expect(provider.nextHint, 'The next lesson has not opened yet.');
     });
 
     test('has no note on the last lesson', () {
@@ -221,13 +281,12 @@ void main() {
   test('progress changes move the page on', () {
     final source = _Source();
     final provider = _provider(source, _video('c'));
-    expect(provider.canPlay, isFalse);
+    expect(provider.status, LessonStatus.notStarted);
 
-    source.finish('a');
-    source.finish('b');
+    source.finish('c');
 
-    expect(provider.canPlay, isTrue);
-    expect(provider.status, LessonStatus.upNext);
+    expect(provider.status, LessonStatus.completed);
+    expect(provider.playLabel, 'Watch again');
   });
 
   test('choosing a tab changes it once', () {

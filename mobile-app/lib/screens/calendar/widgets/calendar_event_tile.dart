@@ -24,12 +24,15 @@ class CalendarEventTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = HomePalette.of(context);
     final when = event.when;
-    final time = when == null ? 'Anytime' : DateFormat('h:mm a').format(when);
+    final time = when == null
+        ? 'Anytime'
+        : DateFormat('h:mm a').format(when).toLowerCase();
     final tone = event.isOverdue ? palette.coral : event.kind.tone(palette);
     return Semantics(
       button: true,
       label: '${event.title}. ${event.detail}. ${event.action}, $time.',
       excludeSemantics: true,
+      onTap: onTap,
       child: SurfaceCard(
         radius: 14,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
 
 import '../../../themes/accent_tone.dart';
 import '../../../themes/app_theme.dart';
@@ -7,11 +8,13 @@ import '../../../themes/app_fonts.dart';
 import '../../../themes/home_palette.dart';
 import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/common_app_bar.dart';
+import '../../../widgets/common/filter_chip_bar.dart';
 import '../../../widgets/common/state_message_view.dart';
 import '../../../widgets/common/surface_card.dart';
 import '../../../widgets/common/tone_chip.dart';
 import '../../common/widgets/home_theme_scope.dart';
 import '../model/quiz_model.dart';
+import '../provider/quiz_review_filter_provider.dart';
 
 /// Per-question review, rendered strictly from server-graded
 /// [QuestionResult]s — no client-side correctness computation.
@@ -28,11 +31,18 @@ class QuizReviewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Burgundy home theme; the page reads colours from the context inside it.
-    return HomeThemeScope(child: Builder(builder: _buildPage));
+    return HomeThemeScope(
+      child: ChangeNotifierProvider(
+        create: (_) => QuizReviewFilterProvider(results),
+        child: Builder(builder: _buildPage),
+      ),
+    );
   }
 
   Widget _buildPage(BuildContext context) {
     final p = HomePalette.of(context);
+    final filter = context.watch<QuizReviewFilterProvider>();
+    final shown = filter.visible;
     return Scaffold(
       appBar: const CommonAppBar(title: 'Questions & Answers'),
       body: results.isEmpty
@@ -49,26 +59,37 @@ class QuizReviewScreen extends StatelessWidget {
                 AppTheme.contentInset,
                 28 + MediaQuery.paddingOf(context).bottom,
               ),
-              itemCount: results.length + 1,
+              itemCount: shown.length + 1,
               itemBuilder: (context, index) {
                 if (index == 0) {
                   return Padding(
                     padding: const EdgeInsets.only(
                       bottom: AppTheme.paddingMedium,
                     ),
-                    child: Text(
-                      'Detailed analysis of each question',
-                      style: AppFonts.regular(color: p.textMuted, fontSize: 14),
-                    ),
+                    child: filter.showsFilter
+                        ? FilterChipBar<ReviewFilter>(
+                            options: ReviewFilter.values,
+                            selected: filter.filter,
+                            onSelected: filter.select,
+                            labelFor: filter.labelFor,
+                          )
+                        : Text(
+                            'Detailed analysis of each question',
+                            style: AppFonts.regular(
+                              color: p.textMuted,
+                              fontSize: 14,
+                            ),
+                          ),
                   );
                 }
+                final (number, result) = shown[index - 1];
                 return StaggeredEntrance(
                   index: index - 1,
                   child: Padding(
                     padding: const EdgeInsets.only(
                       bottom: AppTheme.paddingMedium,
                     ),
-                    child: _buildQuestionCard(p, results[index - 1], index),
+                    child: _buildQuestionCard(p, result, number),
                   ),
                 );
               },

@@ -20,13 +20,22 @@ const MINUTE = 60 * 1000;
 let server;
 let models;
 let jwt;
-const created = { users: [], quizzes: [] };
+const created = { users: [], quizzes: [], videos: [], assignments: [], notifications: [] };
 
 const call = async (route, token, body) => {
     const res = await fetch(BASE + route, {
         method: body ? 'POST' : 'GET',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: body ? JSON.stringify(body) : undefined
+    });
+    return { status: res.status, body: await res.json().catch(() => null) };
+};
+
+const put = async (route, token, body) => {
+    const res = await fetch(BASE + route, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body)
     });
     return { status: res.status, body: await res.json().catch(() => null) };
 };
@@ -57,6 +66,24 @@ const quiz = async ({ questions = 2, ...fields } = {}) => {
 const answers = (questions, pick = 0, duration = 5) =>
     questions.map((q) => ({ questionId: q._id, attemptedAnswer: pick, duration }));
 
+// A watched lesson with two practice questions whose right answer is option 0.
+const practiceLesson = async (userId, fields = {}) => {
+    const mongoose = require('mongoose');
+    const video = await models.Video.create({
+        title: 'Integration Lesson', video: 'https://example.com/v.mp4', subject: new mongoose.Types.ObjectId(),
+        practiceEnabled: true, practiceEndDate: new Date(Date.now() + 60 * MINUTE), ...fields
+    });
+    created.videos.push(video._id);
+    const items = await models.VideoQuestion.insertMany(Array.from({ length: 2 }, (_, i) => ({
+        videoId: video._id, type: 'Multiple Choice', question_en: `P${i}`, question_ml: `P${i}`,
+        options_en: '["A","B","C"]', options_ml: '["A","B","C"]', correct_answer: 'A', difficulty: 'easy'
+    })));
+    await models.VideoProgress.create({ userId, videoId: video._id, completed: true, completedAt: new Date() });
+    return { video, items };
+};
+
+const practiceAnswers = (items, pick) => items.map((q) => ({ questionId: q._id, attemptedAnswer: String(pick) }));
+
 describe('quiz routes', { skip }, () => {
     before(async () => {
         const mongoose = require('mongoose');
@@ -66,11 +93,19 @@ describe('quiz routes', { skip }, () => {
             QuizConfig: require('../models/quizConfig'),
             QuizQuestion: require('../models/quizQuestions'),
             QuizSession: require('../models/quizSession'),
-            Quiz: require('../models/quiz')
+            Quiz: require('../models/quiz'),
+            Video: require('../models/videos'),
+            VideoQuestion: require('../models/videoQuestions'),
+            VideoProgress: require('../models/videoProgress'),
+            VideoQuizAttempt: require('../models/videoQuizAttempt'),
+            Assignment: require('../models/assignment'),
+            AssignmentSubmission: require('../models/assignmentSubmission'),
+            Notification: require('../models/notification'),
+            UserNotification: require('../models/userNotification')
         };
         await mongoose.connect(URI);
         server = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], {
-            env: { ...process.env, MONGODB_URI: URI, JWT_SECRET: SECRET, PORT: String(PORT), QUIZ_SUBMIT_GRACE_MINUTES: '5' },
+            env: { ...process.env, MONGODB_URI: URI, JWT_SECRET: SECRET, PORT: String(PORT), QUIZ_SUBMIT_GRACE_MINUTES: '5', NOTIFICATION_JOBS_SECONDS: '0' },
             stdio: ['ignore', 'pipe', 'pipe']
         });
         await new Promise((resolve, reject) => {
@@ -82,7 +117,15 @@ describe('quiz routes', { skip }, () => {
     });
 
     after(async () => {
-        const { Quiz, QuizSession, QuizQuestion, QuizConfig, User } = models;
+        const { Quiz, QuizSession, QuizQuestion, QuizConfig, User, Video, VideoQuestion, VideoProgress, VideoQuizAttempt } = models;
+        await models.UserNotification.deleteMany({ userId: { $in: created.users } });
+        await models.Notification.deleteMany({ _id: { $in: created.notifications } });
+        await models.AssignmentSubmission.deleteMany({ assignmentId: { $in: created.assignments } });
+        await models.Assignment.deleteMany({ _id: { $in: created.assignments } });
+        await VideoQuizAttempt.deleteMany({ videoId: { $in: created.videos } });
+        await VideoProgress.deleteMany({ videoId: { $in: created.videos } });
+        await VideoQuestion.deleteMany({ videoId: { $in: created.videos } });
+        await Video.deleteMany({ _id: { $in: created.videos } });
         await Quiz.deleteMany({ quizId: { $in: created.quizzes } });
         await QuizSession.deleteMany({ quizId: { $in: created.quizzes } });
         await QuizQuestion.deleteMany({ quizId: { $in: created.quizzes } });
@@ -180,6 +223,257 @@ describe('quiz routes', { skip }, () => {
         assert.equal((await send(noSession)).body.code, 'NO_SESSION');
     });
 
+    it('correct answers stay hidden until the exam has closed for everyone', async () => {
+        const { token } = await student();
+        const { config, items } = await quiz();
+        await call(`/api/user-quizzes/${config._id}/questions`, token);
+        const { status, body } = await call('/api/quizzes/attempt', token, { quizId: config._id, answers: answers(items) });
+        assert.equal(status, 201);
+        assert.equal(body.attempt.score, 2);
+        assert.equal(body.attempt.answersRevealed, false);
+        assert.deepEqual(body.attempt.results, []);
+        assert.equal(new Date(body.attempt.answersAvailableAt).getTime(), config.endDate.getTime() + 5 * MINUTE);
+
+        const list = await call('/api/user-quizzes', token);
+        const mine = list.body.find((q) => String(q._id) === String(config._id));
+        assert.equal(mine.myAttempt.answersRevealed, false);
+
+        await models.QuizConfig.updateOne({ _id: config._id }, { endDate: new Date(Date.now() - 10 * MINUTE) });
+        const later = await call(`/api/user/quiz-attempts/${body.attempt.attemptId}`, token);
+        assert.equal(later.body.answersRevealed, true);
+        assert.equal(later.body.results.length, 2);
+        assert.equal(later.body.results[0].correctAnswer, 0);
+    });
+
+    it('practice can be retaken and keeps the best try', async () => {
+        const { user, token } = await student();
+        const { video, items } = await practiceLesson(user._id);
+        const send = (pick) => call('/api/user/video-quiz', token, { videoId: video._id, answers: practiceAnswers(items, pick) });
+
+        const wrong = await send(1);
+        assert.equal(wrong.status, 201);
+        assert.equal(wrong.body.attempt.score, 0);
+        const right = await send(0);
+        assert.equal(right.body.improved, true);
+        assert.equal(right.body.attempt.score, 2);
+        const worse = await send(2);
+        assert.equal(worse.body.improved, false);
+        assert.equal(worse.body.attempt.score, 2);
+        assert.equal(worse.body.attempt.latest.score, 0);
+        assert.equal(worse.body.attempt.attemptCount, 3);
+        assert.equal(worse.body.attempt.canRetake, true);
+        assert.deepEqual(worse.body.attempt.results, []);
+        assert.equal(await models.VideoQuizAttempt.countDocuments({ videoId: video._id }), 1);
+    });
+
+    it('practice answers show after the practice end date, and never without one', async () => {
+        const { user, token } = await student();
+        const { video, items } = await practiceLesson(user._id);
+        await call('/api/user/video-quiz', token, { videoId: video._id, answers: practiceAnswers(items, 0) });
+        await models.Video.updateOne({ _id: video._id }, { practiceEndDate: new Date(Date.now() - MINUTE) });
+        const ended = await call(`/api/user/video-quiz?videoId=${video._id}`, token);
+        assert.equal(ended.body.answersRevealed, true);
+        assert.equal(ended.body.canRetake, false);
+        assert.equal(ended.body.results.length, 2);
+        const late = await call('/api/user/video-quiz', token, { videoId: video._id, answers: practiceAnswers(items, 0) });
+        assert.equal(late.status, 403);
+
+        const other = await student();
+        const open = await practiceLesson(other.user._id, { practiceEndDate: null });
+        await call('/api/user/video-quiz', other.token, { videoId: open.video._id, answers: practiceAnswers(open.items, 0) });
+        const noEnd = await call(`/api/user/video-quiz?videoId=${open.video._id}`, other.token);
+        assert.equal(noEnd.body.answersRevealed, false);
+        assert.equal(noEnd.body.answersAvailableAt, null);
+        assert.deepEqual(noEnd.body.results, []);
+    });
+
+    it('the gradebook shows marks, and marking from the queue updates it', async () => {
+        const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+        const cls = `gb-${Date.now()}`;
+        const { user, token } = await student({ class: cls });
+        const other = await student({ class: cls });
+        const { config, items } = await quiz({ allowedClasses: [cls] });
+        await call(`/api/user-quizzes/${config._id}/questions`, token);
+        await call('/api/quizzes/attempt', token, { quizId: config._id, answers: answers(items) });
+        const assignment = await models.Assignment.create({ title: 'Recitation', maxPoints: 10, class: cls, isPublished: true });
+        created.assignments.push(assignment._id);
+        const sent = await call(`/api/user/assignments/${assignment._id}/submissions`, token, { text: 'Recited twice.' });
+        assert.equal(sent.status, 201);
+
+        assert.equal((await call(`/api/admin/gradebook?class=${cls}`, token)).status, 403);
+        const book = await call(`/api/admin/gradebook?class=${cls}`, admin);
+        assert.equal(book.status, 200);
+        assert.equal(book.body.rows.length, 2);
+        const mine = book.body.rows.find((r) => r.learner.id === String(user._id));
+        assert.equal(mine.cells[`exam:${config._id}`].percent, 100);
+        assert.equal(mine.cells[`assignment:${assignment._id}`].status, 'needs_mark');
+        const theirs = book.body.rows.find((r) => r.learner.id === String(other.user._id));
+        assert.equal(theirs.cells[`assignment:${assignment._id}`].status, 'pending');
+        assert.equal(book.body.needsMarking, 1);
+
+        const queue = await call(`/api/admin/gradebook/queue?class=${cls}`, admin);
+        assert.equal(queue.body.total, 1);
+        const item = queue.body.items[0];
+        assert.equal(item.text, 'Recited twice.');
+        assert.equal(item.learner.id, String(user._id));
+        const detail = await call(`/api/admin/gradebook/submissions/${item.id}`, admin);
+        assert.equal(detail.body.assignment.maxPoints, 10);
+
+        const marked = await put(`/api/admin/assignments/${assignment._id}/submissions/${item.id}`, admin, { grade: 7, feedback: 'Good', status: 'graded' });
+        assert.equal(marked.status, 200);
+        const after = await call(`/api/admin/gradebook?class=${cls}`, admin);
+        const cell = after.body.rows.find((r) => r.learner.id === String(user._id)).cells[`assignment:${assignment._id}`];
+        assert.deepEqual([cell.status, cell.value, cell.percent], ['graded', 7, 70]);
+        assert.equal((await call(`/api/admin/gradebook/queue?class=${cls}`, admin)).body.total, 0);
+        const classes = await call('/api/admin/gradebook/classes', admin);
+        assert.ok(classes.body.includes(cls));
+    });
+
+    it('marking work puts a notification in the learner inbox that opens the assignment', async () => {
+        const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+        const cls = `nt-${Date.now()}`;
+        const { token } = await student({ class: cls });
+        const assignment = await models.Assignment.create({ title: 'Recitation', maxPoints: 10, class: cls, isPublished: true });
+        created.assignments.push(assignment._id);
+        const sent = await call(`/api/user/assignments/${assignment._id}/submissions`, token, { text: 'Recited.' });
+        const submissionId = sent.body.submission.id;
+
+        await put(`/api/admin/assignments/${assignment._id}/submissions/${submissionId}`, admin, { feedback: 'Hold the madd longer', status: 'returned' });
+        await put(`/api/admin/assignments/${assignment._id}/submissions/${submissionId}`, admin, { grade: 8, feedback: 'Better', status: 'graded' });
+
+        const inbox = await call('/api/user/notifications', token);
+        assert.equal(inbox.status, 200);
+        assert.equal(inbox.body.unreadCount, 2);
+        const [marked, returned] = inbox.body.items;
+        assert.equal(marked.kind, 'assignment_marked');
+        assert.match(marked.description, /8\/10/);
+        assert.deepEqual(marked.target, { kind: 'assignment', id: String(assignment._id) });
+        assert.equal(returned.kind, 'assignment_returned');
+
+        const read = await call(`/api/user/notifications/${marked._id}/read`, token, {});
+        assert.equal(read.body.read, true);
+        assert.equal((await call('/api/user/notifications', token)).body.unreadCount, 1);
+        await call('/api/user/notifications/read-all', token, {});
+        assert.equal((await call('/api/user/notifications', token)).body.unreadCount, 0);
+    });
+
+    it('an assignment past its deadline takes no new work, only work sent back for changes', async () => {
+        const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+        const cls = `dl-${Date.now()}`;
+        const { token } = await student({ class: cls });
+        const assignment = await models.Assignment.create({ title: 'Recitation', maxPoints: 10, class: cls, isPublished: true, dueAt: new Date(Date.now() + MINUTE) });
+        created.assignments.push(assignment._id);
+        const sent = await call(`/api/user/assignments/${assignment._id}/submissions`, token, { text: 'On time.' });
+        assert.equal(sent.status, 201);
+
+        await models.Assignment.updateOne({ _id: assignment._id }, { dueAt: new Date(Date.now() - MINUTE) });
+        const again = await call(`/api/user/assignments/${assignment._id}/submissions`, token, { text: 'Changed my mind.' });
+        assert.equal(again.status, 403);
+        assert.equal(again.body.code, 'assignment_closed');
+
+        await put(`/api/admin/assignments/${assignment._id}/submissions/${sent.body.submission.id}`, admin, { feedback: 'Redo', status: 'returned' });
+        const redone = await call(`/api/user/assignments/${assignment._id}/submissions`, token, { text: 'Redone.' });
+        assert.equal(redone.status, 201);
+        assert.equal(redone.body.submission.status, 'late');
+
+        const other = await student({ class: cls });
+        const missed = await call(`/api/user/assignments/${assignment._id}/submissions`, other.token, { text: 'Too late.' });
+        assert.equal(missed.status, 403);
+    });
+
+    it('scheduled jobs remind learners who have not sat a closing quiz, once', async () => {
+        const { runNotificationJobs } = require('../services/notificationJobs');
+        const cls = `job-${Date.now()}`;
+        const waiting = await student({ class: cls });
+        const done = await student({ class: cls });
+        const { config, items } = await quiz({ allowedClasses: [cls], endDate: new Date(Date.now() + 30 * MINUTE) });
+        await call(`/api/user-quizzes/${config._id}/questions`, done.token);
+        await call('/api/quizzes/attempt', done.token, { quizId: config._id, answers: answers(items) });
+
+        await runNotificationJobs(new Date());
+        await runNotificationJobs(new Date());
+
+        // Only this quiz: quizzes from other tests are open to every class.
+        const kinds = async (u) => (await models.UserNotification.find({ userId: u.user._id, 'target.id': String(config._id) }).lean())
+            .map((n) => n.kind).sort();
+        assert.deepEqual(await kinds(waiting), ['quiz_closing', 'quiz_open']);
+        assert.deepEqual(await kinds(done), []);
+        const closing = await models.UserNotification.findOne({ userId: waiting.user._id, kind: 'quiz_closing', 'target.id': String(config._id) }).lean();
+        assert.deepEqual(closing.target, { kind: 'quiz', id: String(config._id) });
+    });
+
+    it('announcements go to their audience at their send time', async () => {
+        const { runNotificationJobs } = require('../services/notificationJobs');
+        const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+        const cls = `ann-${Date.now()}`;
+        const inClass = await student({ class: cls });
+        const other = await student({ class: `${cls}-other` });
+        const later = new Date(Date.now() + 2 * 60 * MINUTE);
+        const made = await call('/api/notifications', admin, {
+            title: 'Class trip', description: 'Bring your Mushaf.',
+            audience: { kind: 'class', value: cls }, target: { kind: 'none' }, sendAt: later.toISOString()
+        });
+        assert.equal(made.status, 201);
+        created.notifications.push(made.body.notification._id);
+        const bad = await call('/api/notifications', admin, { title: 'x', description: 'y', audience: { kind: 'course', value: 'nope' } });
+        assert.equal(bad.status, 400);
+
+        await runNotificationJobs(new Date());
+        assert.equal((await call('/api/user/notifications', inClass.token)).body.items.filter((n) => n.title === 'Class trip').length, 0);
+        await runNotificationJobs(new Date(later.getTime() + MINUTE));
+        const mine = (await call('/api/user/notifications', inClass.token)).body.items.filter((n) => n.title === 'Class trip');
+        assert.equal(mine.length, 1);
+        assert.equal(mine[0].kind, 'announcement');
+        assert.equal((await call('/api/user/notifications', other.token)).body.items.filter((n) => n.title === 'Class trip').length, 0);
+
+        const publicList = await call('/api/notifications');
+        assert.equal(publicList.body.some((n) => n.title === 'Class trip'), false);
+        const adminList = await call('/api/notifications', admin);
+        assert.equal(adminList.body.find((n) => n.title === 'Class trip').recipientCount, 1);
+    });
+
+    it('a phone registers for push, at most five per learner', async () => {
+        const { user, token } = await student();
+        for (let i = 0; i < 7; i += 1) {
+            const res = await put('/api/user/notifications/push-token', token, { token: `tok-${i}`, platform: 'android' });
+            assert.equal(res.status, 200);
+        }
+        const saved = await models.User.findById(user._id).select('+pushTokens').lean();
+        assert.deepEqual(saved.pushTokens.map((t) => t.token), ['tok-2', 'tok-3', 'tok-4', 'tok-5', 'tok-6']);
+    });
+
+    it('an assignment marked by parts adds up the parts, and can switch back to one mark', async () => {
+        const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+        const cls = `rb-${Date.now()}`;
+        const { token } = await student({ class: cls });
+        const made = await call('/api/admin/assignments', admin, {
+            title: 'Recitation', class: cls, isPublished: true, maxPoints: 50,
+            rubric: { enabled: true, criteria: [{ label: 'Makharij', maxPoints: 4 }, { label: 'Madd length', maxPoints: 4 }, { label: 'Fluency', maxPoints: 2 }] }
+        });
+        assert.equal(made.status, 201);
+        const assignmentId = made.body.assignment._id;
+        created.assignments.push(assignmentId);
+        assert.equal(made.body.assignment.maxPoints, 10);
+
+        const sent = await call(`/api/user/assignments/${assignmentId}/submissions`, token, { text: 'Recited.' });
+        const route = `/api/admin/assignments/${assignmentId}/submissions/${sent.body.submission.id}`;
+        assert.equal((await put(route, admin, { grade: 7, status: 'graded' })).status, 400);
+        const marked = await put(route, admin, { rubricScores: [3, 2, 2], feedback: 'Hold the madd longer', status: 'graded' });
+        assert.equal(marked.status, 200);
+        assert.equal(marked.body.submission.grade, 7);
+
+        const mine = await call(`/api/user/assignments/${assignmentId}`, token);
+        assert.deepEqual(mine.body.submission.rubricScores.map((r) => r.points), [3, 2, 2]);
+        assert.equal(mine.body.rubric.enabled, true);
+
+        const off = await put(`/api/admin/assignments/${assignmentId}`, admin, { rubric: { enabled: false, criteria: made.body.assignment.rubric.criteria }, maxPoints: 10 });
+        assert.equal(off.status, 200);
+        assert.equal(off.body.assignment.rubric.criteria.length, 3);
+        const single = await put(route, admin, { grade: 9, status: 'graded' });
+        assert.equal(single.body.submission.grade, 9);
+        assert.deepEqual(single.body.submission.rubricScores, []);
+    });
+
     it('a sign-in close to running out is renewed for 30 days', async () => {
         const { user } = await student();
         const nearlyExpired = jwt.sign({ userId: user._id.toString(), role: 'student' }, SECRET, { expiresIn: '2h' });
@@ -200,5 +494,60 @@ describe('quiz routes', { skip }, () => {
         const { user, token } = await student();
         await models.User.collection.updateOne({ _id: user._id }, { $unset: { role: '' } });
         assert.equal((await call('/api/user/me', token)).status, 200);
+    });
+
+    it('a teacher with no date of birth saves one once, then signs in with it', async () => {
+        const mongoose = require('mongoose');
+        const phone = `9${String(Math.floor(Math.random() * 1e9)).padStart(9, '0')}`;
+        const { user } = await student({ phone, role: 'faculty', facultyProfile: new mongoose.Types.ObjectId() });
+        const token = jwt.sign({ userId: user._id.toString(), phone, role: 'faculty' }, SECRET);
+
+        const blocked = await call('/api/user/login', null, { phone, dob: '1985-04-12' });
+        assert.equal(blocked.status, 409);
+        assert.equal(blocked.body.code, 'DOB_MISSING');
+
+        assert.equal((await put('/api/faculty/me/dob', token, { dob: '1985-13-01' })).status, 400);
+        const saved = await put('/api/faculty/me/dob', token, { dob: '1985-04-12' });
+        assert.equal(saved.status, 200);
+        assert.equal(saved.body.user.role, 'faculty');
+        assert.ok(String(saved.body.user.dob).startsWith('1985-04-12'));
+        assert.equal((await put('/api/faculty/me/dob', token, { dob: '1985-04-12' })).status, 200, 'same date again is fine');
+        assert.equal((await put('/api/faculty/me/dob', token, { dob: '1990-01-01' })).status, 409, 'never changed afterwards');
+
+        const signedIn = await call('/api/user/login', null, { phone, dob: '1985-04-12' });
+        assert.equal(signedIn.status, 200);
+        assert.equal(jwt.decode(signedIn.body.token).role, 'faculty');
+
+        const learner = await student();
+        assert.equal((await put('/api/faculty/me/dob', learner.token, { dob: '2010-01-01' })).status, 403);
+    });
+
+    it('the admin adds a missing date of birth and can correct it', async () => {
+        const phone = `8${String(Math.floor(Math.random() * 1e9)).padStart(9, '0')}`;
+        const { user } = await student({ phone });
+        const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+        const route = `/api/admin/users/${user._id}`;
+        const fields = { name: 'Integration', phone, class: '8' };
+        const login = (dob) => call('/api/user/login', null, { phone, dob });
+
+        assert.equal((await login('2010-05-03')).body.code, 'DOB_MISSING');
+        assert.equal((await put(route, admin, { ...fields, dob: '2010-02-31' })).status, 400);
+        assert.equal((await put(route, admin, { ...fields, dob: '2999-01-01' })).status, 400);
+
+        const added = await put(route, admin, { ...fields, dob: '2010-05-03' });
+        assert.equal(added.status, 200);
+        assert.ok(String(added.body.user.dob).startsWith('2010-05-03'));
+        assert.equal((await login('2010-05-03')).status, 200);
+
+        const kept = await put(route, admin, { ...fields, class: '9', dob: '' });
+        assert.equal(kept.status, 200);
+        assert.ok(String(kept.body.user.dob).startsWith('2010-05-03'), 'an empty date keeps the saved one');
+
+        assert.equal((await put(route, admin, { ...fields, dob: '2010-06-04' })).status, 200);
+        assert.equal((await login('2010-06-04')).status, 200);
+        assert.equal((await login('2010-05-03')).status, 404, 'the old date no longer signs in');
+
+        const { token } = await student();
+        assert.equal((await put(route, token, { ...fields, dob: '2011-01-01' })).status, 403, 'admins only');
     });
 });

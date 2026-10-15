@@ -38,11 +38,11 @@ const LearningAnalyticsPage = () => {
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="analytics" onNavigate={navigate} />
-      <main className="flex-1 p-4 pb-28 md:ml-64 md:p-8 md:pb-8">
+      <main className="min-w-0 flex-1 p-4 pb-28 md:ml-64 md:p-8 md:pb-8">
         <PageHeader eyebrow="TEACHER VIEW" title="Learning analytics" description="See who started, finished, read notes, needs practice, or has submitted work." actions={<button type="button" onClick={load} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm font-semibold text-white/80"><FiRefreshCw /> Refresh</button>} />
         <div className="mb-5 flex flex-col gap-3 sm:flex-row">
           <label className="relative flex-1"><FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35" /><input value={classFilter} onChange={(event) => setClassFilter(event.target.value)} placeholder="Filter by class" className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-9 pr-4 text-sm text-white placeholder-white/35 outline-none" /></label>
-          <select value={videoId} onChange={(event) => setVideoId(event.target.value)} className="rounded-xl border border-white/10 bg-[#160b17] px-3 py-3 text-sm text-white outline-none sm:min-w-72"><option value="">All lessons</option>{data?.videos?.map((video) => <option key={video._id} value={video._id}>{video.title}</option>)}</select>
+          <select value={videoId} onChange={(event) => setVideoId(event.target.value)} className="w-full rounded-xl border border-white/10 bg-[#160b17] px-3 py-3 text-sm text-white outline-none sm:w-72 sm:shrink-0"><option value="">All lessons</option>{data?.videos?.map((video) => <option key={video._id} value={video._id}>{video.title}</option>)}</select>
         </div>
         {loading ? <Spinner /> : error ? <ErrorState message={error} onRetry={load} /> : !data ? <EmptyState icon={FiActivity} title="No analytics yet" /> : <>
           <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-7">{[['Learners', data.totals.learners], ['Started', data.totals.started], ['Completed', data.totals.completed], ['Notes read', data.totals.notesRead], ['Practice ready', data.totals.practiceReady], ['Submissions', data.totals.submittedAssignments], ['Overdue', data.totals.overdueAssignments]].map(([label, value]) => <div className={card} key={label}><p className="text-[10px] uppercase tracking-[0.18em] text-white/45">{label}</p><p className="mt-1 text-2xl font-semibold text-white">{value}</p></div>)}</div>

@@ -11,6 +11,7 @@ import '../screens/schedule/provider/schedule_provider.dart';
 import '../screens/schedule/service/alarm_service.dart';
 import '../screens/video/provider/video_provider.dart';
 import '../widgets/common/logout_confirm_dialog.dart';
+import '../screens/downloads/provider/downloads_provider.dart';
 
 /// Asks before logging out. With quiz answers on this phone that never reached
 /// the server, it warns that logging out deletes them; otherwise it asks the
@@ -49,6 +50,10 @@ Future<void> performLogout(BuildContext context) async {
     context,
     listen: false,
   );
+  final downloadsProvider = Provider.of<DownloadsProvider?>(
+    context,
+    listen: false,
+  );
   final navigator = Navigator.of(context);
 
   videoProvider.clear();
@@ -60,6 +65,8 @@ Future<void> performLogout(BuildContext context) async {
   await notificationProvider.clear();
   scheduleProvider.clear();
   await AlarmService().cancelAllReminders();
+  // Saved lessons belong to this learner (shared family phones).
+  await downloadsProvider?.removeAll();
 
   await authProvider.logout();
 

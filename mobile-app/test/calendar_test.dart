@@ -167,7 +167,7 @@ void main() {
 
       expect(
         lesson.notOpenMessage,
-        'This lesson opens on Fri 16 Oct at 6:00 AM.',
+        'This lesson opens on Fri 16 Oct at 6:00 am.',
       );
       expect(undated.notOpenMessage, 'This lesson is not open yet.');
     });
@@ -181,7 +181,7 @@ void main() {
     test('leaves out work already handed in', () {
       final agenda = CalendarAgenda.fromOverview(
         _overview([
-          for (final status in ['submitted', 'late', 'graded', 'returned'])
+          for (final status in ['submitted', 'late', 'graded'])
             _item(
               'assignment',
               status,

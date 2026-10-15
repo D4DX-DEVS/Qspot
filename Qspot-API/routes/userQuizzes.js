@@ -6,6 +6,7 @@ const QuizSession = require('../models/quizSession');
 const Quiz = require('../models/quiz');
 const { isAccessible, completedVideoCheck } = require('../services/quizAccess');
 const { authenticateUser } = require('../middlewares/auth');
+const { examAnswersAt, answersRevealed } = require('../services/answerReveal');
 
 const router = express.Router();
 
@@ -71,7 +72,10 @@ const shapeQuiz = (quiz, questionCount, myAttempt, user) => ({
               score: myAttempt.score,
               totalQuestions: myAttempt.totalQuestions,
               percentage: myAttempt.percentage,
-              createdAt: myAttempt.createdAt
+              createdAt: myAttempt.createdAt,
+              // The app offers "Review answers" once these are visible.
+              answersRevealed: answersRevealed(examAnswersAt(quiz)),
+              answersAvailableAt: examAnswersAt(quiz)
           }
         : null
 });

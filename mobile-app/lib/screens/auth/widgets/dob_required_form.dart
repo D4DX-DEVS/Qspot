@@ -5,13 +5,14 @@ import '../provider/dob_required_provider.dart';
 import '../../../themes/app_colors.dart';
 import '../../../widgets/common/app_snack_bar.dart';
 import '../../common/screens/main_navigation_screen.dart';
+import '../../faculty/screens/faculty_home_screen.dart';
 import 'auth_dob_picker.dart';
 import 'date_picker_field.dart';
 import 'gradient_pill_button.dart';
 
 /// The date picker and "Save and Continue" button of the add-your-date-of-birth
 /// screen. Needs a [DobRequiredProvider] above it. Once the date is saved it
-/// opens the app's main screen.
+/// opens the app's main screen, or the faculty screen for a teacher.
 class DobRequiredForm extends StatelessWidget {
   const DobRequiredForm({super.key});
 
@@ -47,7 +48,11 @@ class DobRequiredForm extends StatelessWidget {
     if (!context.mounted) return;
     if (saved) {
       navigator.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+        MaterialPageRoute(
+          builder: (_) => form.isFaculty
+              ? const FacultyHomeScreen()
+              : const MainNavigationScreen(),
+        ),
         (route) => false,
       );
     } else {

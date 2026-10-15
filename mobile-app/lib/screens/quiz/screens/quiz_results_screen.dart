@@ -15,7 +15,10 @@ import '../../../widgets/common/gradient_card.dart';
 import '../../../widgets/common/surface_card.dart';
 import '../../certificate/widgets/view_certificate_button.dart';
 import '../../common/widgets/home_theme_scope.dart';
+import '../model/answers_availability.dart';
 import '../model/quiz_model.dart';
+import '../widgets/answers_hidden_note.dart';
+import '../widgets/quiz_review_loader_button.dart';
 import 'quiz_review_screen.dart';
 
 /// Shows a quiz outcome. Renders strictly from server-provided fields —
@@ -40,6 +43,13 @@ class QuizResultsScreen extends StatelessWidget {
   /// been issued for this quiz.
   final String? quizId;
 
+  /// Correct answers are held back until the exam closes for everyone. When
+  /// they are out but [results] is empty (opened from the quiz list), the
+  /// attempt is loaded by [attemptId] for the review.
+  final bool answersRevealed;
+  final DateTime? answersAvailableAt;
+  final String? attemptId;
+
   const QuizResultsScreen({
     super.key,
     required this.title,
@@ -51,6 +61,9 @@ class QuizResultsScreen extends StatelessWidget {
     this.language = 'en',
     this.onDone,
     this.quizId,
+    this.answersRevealed = true,
+    this.answersAvailableAt,
+    this.attemptId,
   });
 
   factory QuizResultsScreen.fromAttempt(
@@ -71,8 +84,16 @@ class QuizResultsScreen extends StatelessWidget {
       language: attempt.language == 'Malayalam' ? 'ml' : 'en',
       onDone: onDone,
       quizId: attempt.quizId,
+      answersRevealed: attempt.answersRevealed,
+      answersAvailableAt: attempt.answersAvailableAt,
+      attemptId: attempt.attemptId,
     );
   }
+
+  /// Whether anything about the answers shows under the scores: the review,
+  /// a button that loads it, or when the answers will show.
+  bool get _showsAnswersRow =>
+      results.isNotEmpty || !answersRevealed || attemptId != null;
 
   int get _correctCount =>
       results.isNotEmpty ? results.where((r) => r.isCorrect).length : score;
@@ -112,12 +133,28 @@ class QuizResultsScreen extends StatelessWidget {
                 const SizedBox(height: AppTheme.sectionGap),
                 _statRow(context, p),
                 const SizedBox(height: AppTheme.sectionGap),
-                if (results.isNotEmpty) _reviewButton(context, p),
+                if (results.isNotEmpty)
+                  _reviewButton(context, p)
+                else if (!answersRevealed)
+                  StaggeredEntrance(
+                    index: 4,
+                    child: AnswersHiddenNote(
+                      availability: AnswersAvailability(
+                        revealed: false,
+                        availableAt: answersAvailableAt,
+                      ),
+                    ),
+                  )
+                else if (attemptId != null)
+                  StaggeredEntrance(
+                    index: 4,
+                    child: QuizReviewLoaderButton(attemptId: attemptId!),
+                  ),
                 if (quizId != null)
                   ViewCertificateButton(
                     quizId: quizId!,
                     padding: EdgeInsets.only(
-                      top: results.isNotEmpty ? AppTheme.paddingMedium : 0,
+                      top: _showsAnswersRow ? AppTheme.paddingMedium : 0,
                     ),
                   ),
                 const SizedBox(height: AppTheme.paddingLarge),

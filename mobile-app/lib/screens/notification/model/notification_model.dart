@@ -1,3 +1,5 @@
+import 'notification_target.dart';
+
 class NotificationModel {
   final String id;
   final String title;
@@ -5,12 +7,21 @@ class NotificationModel {
   final DateTime? createdAt;
   final bool isRead;
 
+  /// `announcement`, or what happened (`assignment_marked`, `quiz_closing`,
+  /// `lesson_released`, ...).
+  final String kind;
+
+  /// The screen a tap opens; null shows the message only.
+  final NotificationTarget? target;
+
   NotificationModel({
     required this.id,
     required this.title,
     required this.description,
     this.createdAt,
     this.isRead = false,
+    this.kind = 'announcement',
+    this.target,
   });
 
   // Factory constructor for JSON deserialization
@@ -35,7 +46,10 @@ class NotificationModel {
           json['decription']?.toString() ??
           '', // Handle both spellings
       createdAt: parsedDate,
-      isRead: false, // Default to unread
+      // The inbox keeps read state per account; the older public list has none.
+      isRead: json['read'] == true,
+      kind: json['kind']?.toString() ?? 'announcement',
+      target: NotificationTarget.fromJson(json['target']),
     );
   }
 
@@ -123,6 +137,8 @@ class NotificationModel {
       description: description ?? this.description,
       createdAt: createdAt ?? this.createdAt,
       isRead: isRead ?? this.isRead,
+      kind: kind,
+      target: target,
     );
   }
 

@@ -6,6 +6,8 @@ const VideoProgress = require('../models/videoProgress');
 const Video = require('../models/videos');
 const { authenticateUser } = require('../middlewares/auth');
 const { recordLearningEvent } = require('../services/learningEvents');
+const { practiceAnswersAt, answersRevealed, revealFields } = require('../services/answerReveal');
+const { practiceOpen, retakeUpdate } = require('../services/practiceRetake');
 
 const router = express.Router();
 
@@ -31,11 +33,13 @@ const correctIndex = (question, optionsEn) => {
     return Number.isInteger(numeric) && numeric >= 0 && numeric < optionsEn.length ? numeric : -1;
 };
 
-const buildResult = async (attempt) => {
+// Per-question results for the stored (best) try. They include the correct
+// answers, so they are only built once revealed.
+const buildResults = async (attempt) => {
     const questions = await VideoQuestion.find({ _id: { $in: attempt.answers.map((a) => a.questionId) } });
     const byId = new Map(questions.map((q) => [String(q._id), q]));
 
-    const results = attempt.answers.map((ans) => {
+    return attempt.answers.map((ans) => {
         const q = byId.get(String(ans.questionId));
         const optionsEn = readOptions(q?.options_en);
         const optionsMl = readOptions(q?.options_ml);
@@ -53,7 +57,13 @@ const buildResult = async (attempt) => {
             isCorrect: Boolean(ans.isCorrect)
         };
     });
+};
 
+// What the app receives. score/percentage are the best try; `latest` is the
+// most recent one (the try just submitted, after a POST).
+const shapePractice = async (attempt, video, now = new Date()) => {
+    const availableAt = practiceAnswersAt(video);
+    const revealed = answersRevealed(availableAt, now);
     return {
         attemptId: attempt._id,
         videoId: attempt.videoId,
@@ -62,11 +72,21 @@ const buildResult = async (attempt) => {
         totalQuestions: attempt.totalQuestions,
         percentage: attempt.percentage,
         createdAt: attempt.createdAt,
-        results
+        attemptCount: Number(attempt.attemptCount) || 1,
+        latest: {
+            score: attempt.lastScore ?? attempt.score,
+            totalQuestions: attempt.totalQuestions,
+            percentage: attempt.lastPercentage ?? attempt.percentage,
+            submittedAt: attempt.lastAttemptAt || attempt.createdAt
+        },
+        canRetake: practiceOpen(video, now),
+        ...revealFields(availableAt, revealed ? await buildResults(attempt) : [], now)
     };
 };
 
-// GET /api/user/video-quiz?videoId=<id> - this user's result for that video
+const PRACTICE_FIELDS = 'practiceEnabled practiceStartDate practiceEndDate';
+
+// GET /api/user/video-quiz?videoId=<id> - this user's best practice result
 router.get('/', authenticateUser, async (req, res) => {
     try {
         const { videoId } = req.query;
@@ -75,7 +95,8 @@ router.get('/', authenticateUser, async (req, res) => {
         }
         const attempt = await VideoQuizAttempt.findOne({ userId: req.user.id, videoId });
         if (!attempt) return res.json(null);
-        return res.json(await buildResult(attempt));
+        const video = await Video.findById(videoId).select(PRACTICE_FIELDS);
+        return res.json(await shapePractice(attempt, video));
     } catch (error) {
         console.error('Error fetching video quiz attempt:', error);
         return res.status(500).json({ message: 'Internal server error' });
@@ -84,6 +105,7 @@ router.get('/', authenticateUser, async (req, res) => {
 
 // POST /api/user/video-quiz - submit answers for the questions on one video.
 // body: { videoId, language, answers: [{ questionId, attemptedAnswer }] }
+// Can be repeated while practice is open; the best try is kept.
 router.post('/', authenticateUser, async (req, res) => {
     try {
         const { videoId, language, answers } = req.body || {};
@@ -95,16 +117,11 @@ router.post('/', authenticateUser, async (req, res) => {
             return res.status(400).json({ message: 'answers must be a non-empty array' });
         }
 
-        const video = await Video.findById(videoId).select('practiceEnabled practiceStartDate practiceEndDate');
+        const video = await Video.findById(videoId).select(PRACTICE_FIELDS);
         if (!video) return res.status(404).json({ message: 'Video not found' });
         const now = new Date();
-        if (video.practiceEnabled === false || (video.practiceStartDate && now < video.practiceStartDate) || (video.practiceEndDate && now > video.practiceEndDate)) {
+        if (!practiceOpen(video, now)) {
             return res.status(403).json({ message: 'Practice is not active right now' });
-        }
-
-        const existing = await VideoQuizAttempt.findOne({ userId: req.user.id, videoId });
-        if (existing) {
-            return res.status(409).json({ message: 'Already attempted', attempt: await buildResult(existing) });
         }
 
         const progress = await VideoProgress.findOne({ userId: req.user.id, videoId });
@@ -148,30 +165,47 @@ router.post('/', authenticateUser, async (req, res) => {
             });
         }
 
-        const percentage = Math.round((score / questions.length) * 100);
+        const thisTry = {
+            answers: graded,
+            score,
+            totalQuestions: questions.length,
+            percentage: Math.round((score / questions.length) * 100),
+            language: language === 'Malayalam' ? 'Malayalam' : 'English'
+        };
+
+        const saveRetake = async (existing) => {
+            const { improved, set } = retakeUpdate(existing, thisTry, now);
+            const saved = await VideoQuizAttempt.findOneAndUpdate({ _id: existing._id }, { $set: set }, { new: true });
+            return { saved, improved };
+        };
 
         let attempt;
-        try {
-            attempt = await VideoQuizAttempt.create({
-                userId: req.user.id,
-                videoId,
-                language: language === 'Malayalam' ? 'Malayalam' : 'English',
-                answers: graded,
-                score,
-                totalQuestions: questions.length,
-                percentage
-            });
-        } catch (error) {
-            if (error && error.code === 11000) {
-                const already = await VideoQuizAttempt.findOne({ userId: req.user.id, videoId });
-                return res.status(409).json({ message: 'Already attempted', attempt: await buildResult(already) });
+        let improved = true;
+        const existing = await VideoQuizAttempt.findOne({ userId: req.user.id, videoId });
+        if (existing) {
+            ({ saved: attempt, improved } = await saveRetake(existing));
+        } else {
+            try {
+                attempt = await VideoQuizAttempt.create({
+                    userId: req.user.id,
+                    videoId,
+                    ...thisTry,
+                    attemptCount: 1,
+                    lastScore: thisTry.score,
+                    lastPercentage: thisTry.percentage,
+                    lastAttemptAt: now
+                });
+            } catch (error) {
+                if (!error || error.code !== 11000) throw error;
+                // Another request created the row first: count this as a retake.
+                const raced = await VideoQuizAttempt.findOne({ userId: req.user.id, videoId });
+                ({ saved: attempt, improved } = await saveRetake(raced));
             }
-            throw error;
         }
 
-        await recordLearningEvent({ userId: req.user.id, type: 'video_question_completed', sourceType: 'video', sourceId: videoId, occurredAt: attempt.createdAt });
+        await recordLearningEvent({ userId: req.user.id, type: 'video_question_completed', sourceType: 'video', sourceId: videoId, occurredAt: now });
 
-        return res.status(201).json({ message: 'Quiz submitted', attempt: await buildResult(attempt) });
+        return res.status(201).json({ message: 'Practice submitted', improved, attempt: await shapePractice(attempt, video, now) });
     } catch (error) {
         console.error('Error submitting video quiz:', error);
         return res.status(500).json({ message: 'Internal server error' });
