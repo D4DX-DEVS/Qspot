@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:qspot/screens/bookmark/provider/bookmark_provider.dart';
 import 'package:qspot/screens/lesson/screens/lesson_screen.dart';
@@ -113,6 +114,11 @@ Future<void> _openLesson(
   await tester.pumpAndSettle();
 }
 
+/// A widget that gives screen readers this label.
+Finder _labelled(String label) => find.byWidgetPredicate(
+  (widget) => widget is Semantics && widget.properties.label == label,
+);
+
 void main() {
   testWidgets('shows where the lesson sits and what to do with it', (
     tester,
@@ -123,36 +129,34 @@ void main() {
     expect(find.text('Lesson two'), findsOneWidget);
     expect(find.text('Tajweed · Chapter 1'), findsOneWidget);
     expect(find.text('Letters'), findsWidgets);
-    expect(find.text('Watch lesson'), findsOneWidget);
-    expect(find.text('Not Started'), findsOneWidget);
+    // The picture says what tapping it does, for screen readers.
+    expect(_labelled('Watch lesson'), findsOneWidget);
+    // Along its bottom: time reached, a bar, and the length.
+    expect(find.text('0:00'), findsOneWidget);
+    expect(find.text('10:00'), findsOneWidget);
     expect(find.text('Learn'), findsOneWidget);
     expect(find.text('Downloads'), findsOneWidget);
     expect(find.text('Practice'), findsOneWidget);
   });
 
-  testWidgets('the next lesson stays shut, with a note, until this is done', (
-    tester,
-  ) async {
+  testWidgets('the next lesson opens before this one is done', (tester) async {
     await _openLesson(tester, 'v2');
 
-    expect(
-      find.text('Finish this lesson to unlock the next one.'),
-      findsOneWidget,
-    );
-    final next = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Next'),
-    );
-    expect(next.onPressed, isNull);
     final previous = tester.widget<OutlinedButton>(
       find.widgetWithText(OutlinedButton, 'Previous'),
     );
     expect(previous.onPressed, isNotNull);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Next'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('LESSON 3 OF 3'), findsOneWidget);
   });
 
   testWidgets('a finished lesson opens the next one', (tester) async {
     await _openLesson(tester, 'v2', done: const ['v1', 'v2']);
 
-    expect(find.text('Watch again'), findsOneWidget);
+    expect(_labelled('Watch again'), findsOneWidget);
     await tester.tap(find.widgetWithText(FilledButton, 'Next'));
     await tester.pumpAndSettle();
 
@@ -169,25 +173,20 @@ void main() {
     expect(find.text('LESSON 1 OF 3'), findsOneWidget);
   });
 
-  testWidgets('a locked lesson cannot be played and explains why', (
+  testWidgets('a lesson ahead of unfinished ones can be played', (
     tester,
   ) async {
+    // Lesson two is not finished, yet lesson three is open.
     await _openLesson(tester, 'v3');
 
-    expect(find.text('Finish "Lesson two" first.'), findsOneWidget);
-    expect(find.text('Locked'), findsWidgets);
-
-    await tester.tap(find.text('Finish "Lesson two" first.'));
-    await tester.pump();
-
-    // Once on the card and once in the message.
-    expect(find.text('Finish "Lesson two" first.'), findsNWidgets(2));
+    expect(_labelled('Watch lesson'), findsOneWidget);
+    expect(find.byIcon(LucideIcons.lock), findsNothing);
   });
 
-  testWidgets('the lesson list shows every lesson and keeps locked ones shut', (
+  testWidgets('the lesson list shows every lesson and opens any of them', (
     tester,
   ) async {
-    await _openLesson(tester, 'v2');
+    await _openLesson(tester, 'v1');
 
     await tester.tap(find.widgetWithText(OutlinedButton, 'Lessons'));
     await tester.pumpAndSettle();
@@ -199,8 +198,7 @@ void main() {
     await tester.tap(find.text('3. Lesson three'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Finish "Lesson two" first.'), findsOneWidget);
-    expect(find.text('LESSON 2 OF 3'), findsOneWidget);
+    expect(find.text('LESSON 3 OF 3'), findsOneWidget);
   });
 
   testWidgets('the lesson list jumps to a lesson that is open', (tester) async {

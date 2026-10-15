@@ -6,11 +6,8 @@ enum LessonStatus {
   /// Started, not finished. This is where the learner left off.
   inProgress,
 
-  /// Not started and open: the first lesson not yet finished.
-  upNext,
-
-  /// Closed until every lesson before it in the course is finished.
-  locked,
+  /// Open and not started yet.
+  notStarted,
 
   /// Not released yet.
   upcoming,

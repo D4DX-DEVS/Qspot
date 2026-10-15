@@ -8,6 +8,7 @@ import '../screens/quiz/model/quiz_progress_record.dart';
 import 'api_client.dart';
 import 'quiz_offline_store.dart';
 import 'quiz_reminder_service.dart';
+import 'telemetry/telemetry.dart';
 
 /// Sends a student's answers to the server and decides what happens to the
 /// copy kept on the device.
@@ -74,6 +75,7 @@ class QuizSubmissionService {
         data['attempt'] as Map<String, dynamic>,
       );
       await _forget(userId, record.quizId);
+      Telemetry.event('exam_submitted', {'quiz_id': record.quizId});
       return attempt;
     } on ApiException catch (e) {
       final saved = e.status == 409 && e.body is Map

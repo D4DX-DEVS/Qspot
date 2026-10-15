@@ -111,6 +111,9 @@ class _QuizListScreenState extends State<QuizListScreen> {
           results: const [],
           onDone: () => Navigator.pop(routeContext),
           quizId: quiz.id,
+          answersRevealed: attempt.answersRevealed,
+          answersAvailableAt: attempt.answersAvailableAt,
+          attemptId: attempt.attemptId.isEmpty ? null : attempt.attemptId,
         ),
       ),
     );

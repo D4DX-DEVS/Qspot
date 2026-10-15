@@ -10,6 +10,7 @@ import 'package:qspot/screens/banner/provider/banner_provider.dart';
 import 'package:qspot/screens/bookmark/provider/bookmark_provider.dart';
 import 'package:qspot/screens/common/screens/main_navigation_screen.dart';
 import 'package:qspot/screens/notification/provider/notification_provider.dart';
+import 'package:qspot/screens/profile/screens/profile_screen.dart';
 import 'package:qspot/screens/quiz/provider/quiz_provider.dart';
 import 'package:qspot/screens/schedule/provider/schedule_provider.dart';
 import 'package:qspot/screens/speaker/provider/speaker_provider.dart';
@@ -120,6 +121,28 @@ void main() {
     expect(find.text('Recent Activity'), findsOneWidget);
     expect(
       find.text('Your completed lessons and assessments will appear here.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the Today avatar opens the Me tab, with its menu', (
+    tester,
+  ) async {
+    await pumpNav(tester);
+    int selectedIndex() =>
+        tester.widget<FloatingNavBar>(find.byType(FloatingNavBar)).currentIndex;
+
+    await tester.tap(find.bySemanticsLabel('Open Profile'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(selectedIndex(), 4);
+    expect(find.byTooltip('Back'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(ProfileScreen),
+        matching: find.byTooltip('Menu'),
+      ),
       findsOneWidget,
     );
   });

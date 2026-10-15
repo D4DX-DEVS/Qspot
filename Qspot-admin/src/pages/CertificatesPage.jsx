@@ -137,7 +137,7 @@ const CertificatesPage = () => {
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="certificates" onNavigate={navigate} />
-      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
+      <div className="flex-1 min-w-0 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-6 md:p-8 flex flex-col gap-6">
           <PageHeader
             title="Certificates"
@@ -188,7 +188,7 @@ const CertificatesPage = () => {
               {mode === 'selected' && (
                 <section className={`${cardClass} p-5`}>
                   <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><FiUsers className="text-[#EFB078]" /><h2 className="text-lg font-semibold text-white">Select students</h2></div><span className="text-xs text-white/50">{selectedIds.size} selected</span></div>
-                  <div className="mt-4 grid gap-2 md:grid-cols-2">
+                  <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-2">
                     {selectableAttempts.map((attempt) => <label key={attempt.attemptId} className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3 hover:border-[#EFB078]/40"><input type="checkbox" checked={selectedIds.has(String(attempt.userId))} onChange={() => toggleStudent(attempt.userId)} className="h-4 w-4 accent-[#EFB078]" /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-white">{attempt.name || 'Unknown'}</span><span className="text-xs text-white/50">Class {attempt.class || '—'} · {attempt.percentage}%</span></span>{issuedUserIds.has(String(attempt.userId)) && <FiCheck className="text-emerald-300" />}</label>)}
                   </div>
                 </section>

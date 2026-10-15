@@ -142,7 +142,7 @@ const SchedulesPage = () => {
     <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="schedules" onNavigate={navigate} />
 
-      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
+      <div className="flex-1 min-w-0 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-4">
           <div className="mb-4">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -268,7 +268,7 @@ const SchedulesPage = () => {
                 />
               ) : (
                 <>
-                  <div className="grid gap-y-2 gap-x-3 justify-items-center sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="grid grid-cols-1 gap-y-2 gap-x-3 justify-items-center sm:grid-cols-2 xl:grid-cols-4">
                     {currentSchedules.map((schedule) => {
                       const scheduleDate = schedule.scheduleDate ? new Date(schedule.scheduleDate) : null;
                       const createdDate = schedule.createdAt ? new Date(schedule.createdAt) : null;

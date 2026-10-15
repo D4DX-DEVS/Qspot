@@ -22,6 +22,8 @@ const { learnerSubjects } = require('../services/learnerScope');
 const { parseUpcomingLimit } = require('../services/upcomingLimit');
 const { buildProgressSummary } = require('../services/progressSummary');
 const { parseDob, sameDob } = require('../services/dob');
+const { examAnswersAt, revealFields } = require('../services/answerReveal');
+const { publicUser } = require('../services/publicUser');
 const {
   profileUpload,
   CDN_ENABLED,
@@ -123,21 +125,6 @@ const normalizePhone = (raw) => {
 };
 
 const maskPhone = (phone) => phone.replace(/.(?=.{4})/g, '*');
-
-const publicUser = (user) => ({
-  id: user._id,
-  name: user.name,
-  phone: user.phone,
-  class: user.class,
-  courseIds: (user.courseIds || []).map((id) => String(id)),
-  email: user.email || '',
-  profileImage: user.profileImage || '',
-  role: user.role || 'student',
-  dob: user.dob || null,
-  phoneVerified: user.phoneVerified !== false,
-  consent: user.consent && user.consent.by ? user.consent : null,
-  language: user.language || 'en'
-});
 
 const signUserToken = (user) => jwt.sign(
   { userId: user._id, phone: user.phone, role: user.role || 'student' },
@@ -709,7 +696,8 @@ router.get('/today', authenticateUser, async (req, res) => {
     const quizRemaining = Math.max(0, quizConfigs.length - quizCompleted);
     const assignmentSubmitted = assignments.filter((assignment) => {
       const status = assignmentSubmissionByAssignment.get(String(assignment._id))?.status;
-      return status === 'submitted' || status === 'late' || status === 'graded' || status === 'returned';
+      // 'returned' means the teacher asked for changes: still to do.
+      return status === 'submitted' || status === 'late' || status === 'graded';
     }).length;
     const assignmentOverdue = assignments.filter((assignment) => {
       const dueAt = asDate(assignment.dueAt);
@@ -937,7 +925,7 @@ router.get('/quiz-attempts/:id', authenticateUser, async (req, res) => {
       return res.status(400).json({ message: 'Invalid attempt id' });
     }
 
-    const attempt = await Quiz.findOne({ _id: id, userId: req.user.id }).populate('quizId', 'title');
+    const attempt = await Quiz.findOne({ _id: id, userId: req.user.id }).populate('quizId', 'title endDate');
     if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
 
     const QuizQuestion = require('../models/quizQuestions');
@@ -972,7 +960,8 @@ router.get('/quiz-attempts/:id', authenticateUser, async (req, res) => {
       percentage: attempt.percentage,
       totalDuration: attempt.totalDuration,
       createdAt: attempt.createdAt,
-      results
+      // Correct answers only once the exam has closed for everyone.
+      ...revealFields(examAnswersAt(attempt.quizId), results)
     });
   } catch (error) {
     console.error('Error fetching quiz attempt:', error);

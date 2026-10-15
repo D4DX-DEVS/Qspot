@@ -46,7 +46,7 @@ const QuizAttemptDetailPage = () => {
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-black text-white">
       <Sidebar currentPage="quizAttempts" onNavigate={navigate} />
-      <main className="w-full bg-transparent px-3 py-5 pb-28 sm:px-4 md:ml-64 md:pb-5">
+      <main className="w-full min-w-0 bg-transparent px-3 py-5 pb-28 sm:px-4 md:ml-64 md:pb-5">
         <header className="bg-transparent backdrop-blur-sm shadow-lg rounded-xl border border-white/5">
           <div className="max-w-4xl mx-auto px-3 sm:px-4">
             <div className="flex flex-wrap items-center justify-between gap-3 py-3">

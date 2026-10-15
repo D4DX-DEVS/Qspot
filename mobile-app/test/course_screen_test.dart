@@ -121,6 +121,14 @@ Future<void> _openCourse(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// The tabs scroll sideways, so bring one into view before tapping it.
+Future<void> _openTab(WidgetTester tester, String label) async {
+  await tester.ensureVisible(find.text(label));
+  await tester.pump();
+  await tester.tap(find.text(label));
+  await tester.pump();
+}
+
 void main() {
   testWidgets('shows progress, the syllabus and the next lesson to start', (
     tester,
@@ -128,41 +136,36 @@ void main() {
     await _openCourse(tester);
 
     expect(find.text('Tajweed'), findsOneWidget);
-    expect(find.text('1 of 3 lessons'), findsOneWidget);
+    // Once in the summary card and once on the chapter's heading.
+    expect(find.text('1 of 3 lessons'), findsNWidgets(2));
     expect(find.text('Assignments 0 of 1'), findsOneWidget);
-    expect(find.text('Chapter 1'), findsOneWidget);
-    expect(find.text('Letters'), findsOneWidget);
+    expect(find.text('Chapter 1 · Letters'), findsOneWidget);
     expect(find.text('1. Lesson one'), findsOneWidget);
     expect(find.text('2. Lesson two'), findsOneWidget);
     expect(find.text('3. Lesson three'), findsOneWidget);
-    expect(find.text('Locked'), findsOneWidget);
-    expect(find.text('Start'), findsOneWidget);
+    // Lessons two and three are both open, in any order.
+    expect(find.text('Locked'), findsNothing);
+    expect(find.text('Start'), findsNWidgets(2));
     expect(find.text('Start · Chapter 1, Lesson 2'), findsOneWidget);
   });
 
-  testWidgets('a locked lesson explains what to finish first', (tester) async {
+  testWidgets('the Assignments tab lists the course assignments', (
+    tester,
+  ) async {
     await _openCourse(tester);
+    // Assignments are not under the lessons any more.
+    expect(find.text('Recite aloud'), findsNothing);
 
-    await tester.tap(find.text('3. Lesson three'));
-    await tester.pump();
+    await _openTab(tester, 'Assignments');
 
-    expect(find.text('Finish "Lesson two" first.'), findsOneWidget);
-  });
-
-  testWidgets('lists the course assignments under the lessons', (tester) async {
-    await _openCourse(tester);
-
-    await tester.scrollUntilVisible(find.text('Recite aloud'), 200);
-
-    expect(find.text('Assignments'), findsOneWidget);
     expect(find.text('Recite aloud'), findsOneWidget);
+    expect(find.text('1. Lesson one'), findsNothing);
   });
 
   testWidgets('the About tab shows what the teacher wrote', (tester) async {
     await _openCourse(tester);
 
-    await tester.tap(find.text('About'));
-    await tester.pump();
+    await _openTab(tester, 'About');
 
     expect(find.text('Learn to recite with care.'), findsOneWidget);
     expect(find.text('Know the rules of madd'), findsOneWidget);
@@ -172,8 +175,7 @@ void main() {
   testWidgets('the Grades tab lists this course\'s marks only', (tester) async {
     await _openCourse(tester);
 
-    await tester.tap(find.text('Grades'));
-    await tester.pump();
+    await _openTab(tester, 'Grades');
 
     expect(find.text('4/5'), findsOneWidget);
     expect(find.text('Lesson one'), findsOneWidget);

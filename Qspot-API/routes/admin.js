@@ -10,6 +10,7 @@ const VideoProgress = require('../models/videoProgress');
 const VideoQuizAttempt = require('../models/videoQuizAttempt');
 const Video = require('../models/videos');
 const { authenticateAdmin } = require('../middlewares/auth');
+const { parseDob } = require('../services/dob');
 const router = express.Router();
 
 // Admin login route
@@ -155,10 +156,21 @@ router.get('/users/:id/activity', authenticateAdmin, async (req, res) => {
 // PUT /api/admin/users/:id - Update user (admin only)
 router.put('/users/:id', authenticateAdmin, async (req, res) => {
     try {
-        const { name, phone, email, class: userClass } = req.body || {};
+        const { name, phone, email, class: userClass, dob } = req.body || {};
 
         if (!name || !phone || !userClass) {
             return res.status(400).json({ message: 'Name, phone, and class are required' });
+        }
+
+        // The date of birth is how the account signs in. Learners and teachers
+        // can't change it themselves, so the admin adds it for an account that
+        // has none or corrects a wrong one. Left empty, the saved date stays.
+        let dobValue = null;
+        if (dob !== undefined && dob !== null && String(dob).trim() !== '') {
+            dobValue = parseDob(dob);
+            if (!dobValue) {
+                return res.status(400).json({ message: 'Date of birth must be a real date (YYYY-MM-DD), not in the future' });
+            }
         }
 
         const user = await User.findById(req.params.id);
@@ -173,9 +185,11 @@ router.put('/users/:id', authenticateAdmin, async (req, res) => {
             }
         }
 
+        const update = { name, phone, email: email || '', class: userClass };
+        if (dobValue) update.dob = dobValue;
         const updatedUser = await User.findByIdAndUpdate(
             req.params.id,
-            { name, phone, email: email || '', class: userClass },
+            update,
             { new: true, runValidators: true }
         );
 

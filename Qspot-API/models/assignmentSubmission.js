@@ -16,6 +16,17 @@ const assignmentSubmissionSchema = new mongoose.Schema({
     metadata: { type: mongoose.Schema.Types.Mixed, default: {} },
     status: { type: String, enum: ['submitted', 'late', 'graded', 'returned'], default: 'submitted' },
     grade: { type: Number, min: 0, default: null },
+    // The score for each part when the assignment is marked by parts; grade
+    // is their sum. Empty when marked with one number.
+    rubricScores: {
+        type: [{
+            _id: false,
+            label: { type: String, required: true },
+            maxPoints: { type: Number, required: true },
+            points: { type: Number, required: true, min: 0 }
+        }],
+        default: []
+    },
     feedback: { type: String, default: '', maxlength: 10000 },
     submittedAt: { type: Date, default: Date.now },
     gradedAt: { type: Date, default: null },

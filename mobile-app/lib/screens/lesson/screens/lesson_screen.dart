@@ -25,10 +25,12 @@ import '../widgets/lesson_player_card.dart';
 import '../widgets/lesson_practice_panel.dart';
 import '../widgets/lesson_tab_bar.dart';
 import '../widgets/lesson_title_block.dart';
+import '../../../services/telemetry/telemetry.dart';
+import '../../downloads/widgets/lesson_offline_button.dart';
 
 /// One lesson: where it sits in its course, a button to play it, its notes,
 /// downloads and practice, and buttons to move to the lesson before or after.
-/// A lesson that is still locked cannot be played.
+/// A lesson that has not been released yet cannot be played.
 class LessonScreen extends StatelessWidget {
   const LessonScreen({super.key, required this.video});
 
@@ -37,12 +39,15 @@ class LessonScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => LessonScreenProvider.forApp(
-        video: video,
-        videos: context.read<VideoProvider>(),
-        subjects: context.read<SubjectProvider>(),
-        bookmarks: context.read<BookmarkProvider>(),
-      ),
+      create: (context) {
+        Telemetry.event('lesson_opened', {'video_id': video.id});
+        return LessonScreenProvider.forApp(
+          video: video,
+          videos: context.read<VideoProvider>(),
+          subjects: context.read<SubjectProvider>(),
+          bookmarks: context.read<BookmarkProvider>(),
+        );
+      },
       child: Consumer<LessonScreenProvider>(
         builder: (context, state, _) => _buildPage(context, state),
       ),
@@ -65,35 +70,43 @@ class LessonScreen extends StatelessWidget {
         ],
       ),
       body: ListView(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          8,
-          16,
-          24 + MediaQuery.paddingOf(context).bottom,
+        padding: EdgeInsets.only(
+          bottom: 24 + MediaQuery.paddingOf(context).bottom,
         ),
         children: [
           LessonPlayerCard(
             thumbnailUrl: video.thumbnailUrl,
             label: state.playLabel,
             fraction: state.watchedFraction,
+            positionText: state.positionText,
+            durationText: state.durationText,
             enabled: state.canPlay,
             onTap: () => _play(context, state),
           ),
-          const SizedBox(height: 16),
-          LessonTitleBlock(
-            title: video.displayTitle,
-            subtitle: state.subtitle,
-            positionLabel: state.positionLabel,
-            status: state.status,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LessonTitleBlock(
+                  title: video.displayTitle,
+                  subtitle: state.subtitle,
+                  positionLabel: state.positionLabel,
+                ),
+                const SizedBox(height: 12),
+                LessonOfflineButton(video: video),
+                const SizedBox(height: 14),
+                LessonTabBar(
+                  selected: state.tab,
+                  onSelected: state.selectTab,
+                  practiceLocked:
+                      !state.practiceUnlocked && state.questionCount > 0,
+                ),
+                const SizedBox(height: 16),
+                _panel(context, state),
+              ],
+            ),
           ),
-          const SizedBox(height: 18),
-          LessonTabBar(
-            selected: state.tab,
-            onSelected: state.selectTab,
-            practiceLocked: !state.practiceUnlocked && state.questionCount > 0,
-          ),
-          const SizedBox(height: 16),
-          _panel(context, state),
         ],
       ),
       bottomNavigationBar: LessonNavBar(
@@ -151,7 +164,7 @@ class LessonScreen extends StatelessWidget {
       context,
       MaterialPageRoute(builder: (_) => VideoPlayerScreen(video: video)),
     );
-    // A lesson finished in the player unlocks the next one.
+    // A lesson finished in the player shows as done and opens Practice.
     await state.refreshProgress();
   }
 

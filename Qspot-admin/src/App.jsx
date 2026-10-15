@@ -13,6 +13,8 @@ import QuizzesPage from './pages/QuizzesPage';
 import QuizPage from './pages/QuizPage';
 import QuizAttemptsPage from './pages/QuizAttemptsPage';
 import QuizAttemptDetailPage from './pages/QuizAttemptDetailPage';
+import GradebookPage from './pages/GradebookPage';
+import MarkWorkPage from './pages/MarkWorkPage';
 import VideoQuestionsPage from './pages/VideoQuestionsPage';
 import ChapterGuidePage from './pages/ChapterGuidePage';
 import CoursesPage from './pages/CoursesPage';
@@ -144,6 +146,8 @@ function App() {
               }
             />
             <Route path="/admin/analytics" element={<RequireAuth><LearningAnalyticsPage /></RequireAuth>} />
+            <Route path="/admin/gradebook" element={<RequireAuth><GradebookPage /></RequireAuth>} />
+            <Route path="/admin/mark-work" element={<RequireAuth><MarkWorkPage /></RequireAuth>} />
             <Route path="/admin/navigation" element={<RequireAuth><NavigationPage /></RequireAuth>} />
             <Route
               path="/admin/schedules"

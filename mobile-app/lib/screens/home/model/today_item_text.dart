@@ -2,10 +2,25 @@ import '../../../services/today_service.dart';
 
 /// Short status line for a Today item, e.g. "Due Tomorrow".
 extension TodayItemText on TodayLearningItem {
+  /// How long before its deadline open work needs attention.
+  static const endingSoonWindow = Duration(hours: 1);
+
+  /// The deadline is still ahead, but less than an hour away.
+  bool isEndingSoon(DateTime now) {
+    final due = dueAt;
+    return status != 'overdue' &&
+        due != null &&
+        due.isAfter(now) &&
+        !due.isAfter(now.add(endingSoonWindow));
+  }
+
   String metaText(DateTime now) {
     if (status == 'overdue') return 'Past Due - Handle Now';
     final release = releaseAt;
     final due = dueAt;
+    if (isEndingSoon(now)) {
+      return 'Ends in ${(due!.difference(now).inSeconds / 60).ceil()} Min';
+    }
     // A quiz that has not opened yet is not "due" yet.
     if (kind == 'quiz' && status == 'upcoming' && release != null) {
       return 'Starts ${_day(release, now)}';

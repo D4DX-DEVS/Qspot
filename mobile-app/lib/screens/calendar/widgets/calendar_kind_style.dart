@@ -6,7 +6,7 @@ import '../model/calendar_event_kind.dart';
 extension CalendarKindStyle on CalendarEventKind {
   AccentTone tone(HomePalette palette) => switch (this) {
     CalendarEventKind.assignment => palette.amber,
-    CalendarEventKind.quiz => palette.rose,
+    CalendarEventKind.quiz => palette.coral,
     CalendarEventKind.liveClass => palette.teal,
     CalendarEventKind.lesson => palette.mint,
   };

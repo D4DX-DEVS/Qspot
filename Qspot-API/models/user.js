@@ -65,6 +65,18 @@ const userSchema = new mongoose.Schema({
         type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'video' }],
         default: []
     },
+    // Phones that can receive push notifications (filled once a push service
+    // is connected; see services/pushSender.js).
+    pushTokens: {
+        type: [{
+            _id: false,
+            token: { type: String, required: true, maxlength: 4096 },
+            platform: { type: String, enum: ['android', 'ios', 'web', 'other'], default: 'other' },
+            updatedAt: { type: Date, default: Date.now }
+        }],
+        default: [],
+        select: false
+    },
     seenGuides: {
         type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'subject' }],
         default: []

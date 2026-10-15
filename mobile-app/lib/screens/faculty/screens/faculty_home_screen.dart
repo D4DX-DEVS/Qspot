@@ -8,6 +8,9 @@ import 'package:qspot/themes/app_colors.dart';
 import 'package:qspot/widgets/animation/pressable_scale.dart';
 import 'package:qspot/widgets/animation/staggered_entrance.dart';
 import 'package:qspot/widgets/common/app_snack_bar.dart';
+import '../../assignment/model/rubric_score.dart';
+import '../model/rubric_spec.dart';
+import '../widgets/rubric_grade_dialog.dart';
 
 class FacultyHomeScreen extends StatefulWidget {
   const FacultyHomeScreen({super.key});
@@ -245,6 +248,22 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
     Map<String, dynamic> assignment,
     BuildContext sheetContext,
   ) async {
+    // Marked by parts: a score for each part instead of one number.
+    final rubric = RubricSpec.fromJson(assignment['rubric']);
+    if (rubric.isOn) {
+      final marked = await RubricGradeDialog.show(
+        context,
+        rubric: rubric,
+        initialScores: RubricScore.listFrom(submission['rubricScores']),
+        feedback: submission['feedback']?.toString() ?? '',
+      );
+      if (marked == null || !sheetContext.mounted) return;
+      await _saveGrade(submission, sheetContext, {
+        'rubricScores': marked.points,
+        'feedback': marked.feedback,
+      });
+      return;
+    }
     final grade = TextEditingController(
       text: submission['grade']?.toString() ?? '',
     );
@@ -325,10 +344,22 @@ class _FacultyHomeScreenState extends State<FacultyHomeScreen> {
     final feedbackValue = feedback.text.trim();
     grade.dispose();
     feedback.dispose();
+    if (!sheetContext.mounted) return;
+    await _saveGrade(submission, sheetContext, {
+      'grade': gradeValue,
+      'feedback': feedbackValue,
+    });
+  }
+
+  Future<void> _saveGrade(
+    Map<String, dynamic> submission,
+    BuildContext sheetContext,
+    Map<String, dynamic> body,
+  ) async {
     try {
       await ApiClient.put(
         '/api/faculty/submissions/${submission['_id']}/grade',
-        body: {'grade': gradeValue, 'feedback': feedbackValue},
+        body: body,
       );
       if (mounted && sheetContext.mounted) {
         Navigator.of(sheetContext).pop();

@@ -9,6 +9,8 @@ import usePageTitle from '../hooks/usePageTitle';
 import useBodyScrollLock from '../hooks/useBodyScrollLock';
 import apiClient from '../api/client';
 import brandIcon from '../assets/Icon.png';
+import AnnouncementOptions from '../components/notifications/AnnouncementOptions';
+import { announcementOptionsFrom, announcementSummary, emptyAnnouncementOptions } from '../utils/announcement';
 
 const NotificationsPage = () => {
   usePageTitle('Notifications');
@@ -78,7 +80,7 @@ const NotificationsPage = () => {
     <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="notifications" onNavigate={navigate} />
       
-      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
+      <div className="flex-1 min-w-0 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-6">
           <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -102,7 +104,7 @@ const NotificationsPage = () => {
               <p className="text-gray-400">No notifications found</p>
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {notifications.map((notification) => (
                 <article
                   key={notification._id}
@@ -116,6 +118,7 @@ const NotificationsPage = () => {
                       <p className="text-sm text-white/70 line-clamp-3">
                         {notification.description}
                       </p>
+                      <p className="text-[11px] text-[#f3c5a0]/70">{announcementSummary(notification)}</p>
                     </div>
                     <div className="flex gap-1.5">
                       <button
@@ -195,7 +198,8 @@ const NotificationsPage = () => {
 const CreateNotificationModal = ({ onClose, onSave }) => {
   const [formData, setFormData] = useState({
     title: '',
-    description: ''
+    description: '',
+    ...emptyAnnouncementOptions()
   });
   const [loading, setLoading] = useState(false);
 
@@ -260,6 +264,7 @@ const CreateNotificationModal = ({ onClose, onSave }) => {
                 required
               />
             </div>
+            <AnnouncementOptions value={formData} onChange={(options) => setFormData({ ...formData, ...options })} />
             <div className="flex items-center justify-end gap-2.5 pt-3">
               <button
                 type="button"
@@ -287,7 +292,8 @@ const CreateNotificationModal = ({ onClose, onSave }) => {
 const EditNotificationModal = ({ notification, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     title: notification.title || '',
-    description: notification.description || ''
+    description: notification.description || '',
+    ...announcementOptionsFrom(notification)
   });
   const [loading, setLoading] = useState(false);
 
@@ -352,6 +358,7 @@ const EditNotificationModal = ({ notification, onClose, onSave }) => {
                 required
               />
             </div>
+            <AnnouncementOptions value={formData} sent={Boolean(notification.dispatchedAt)} onChange={(options) => setFormData({ ...formData, ...options })} />
             <div className="flex items-center justify-end gap-2.5 pt-3">
               <button
                 type="button"

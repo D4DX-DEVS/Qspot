@@ -43,7 +43,7 @@ class CalendarEvent {
     final opensAt = when;
     if (opensAt == null) return 'This lesson is not open yet.';
     return 'This lesson opens on ${DateFormat('EEE d MMM').format(opensAt)} '
-        'at ${DateFormat('h:mm a').format(opensAt)}.';
+        'at ${DateFormat('h:mm a').format(opensAt).toLowerCase()}.';
   }
 
   /// The entry for a Today item, or null for a kind the Calendar does not

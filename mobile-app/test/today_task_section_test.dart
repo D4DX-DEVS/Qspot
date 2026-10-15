@@ -5,14 +5,18 @@ import 'package:qspot/screens/home/widgets/today_focus_stat_tile.dart';
 import 'package:qspot/screens/home/widgets/today_task_section.dart';
 import 'package:qspot/services/today_service.dart';
 
-TodayLearningItem _item(String id, String kind, String status) =>
-    TodayLearningItem(
-      kind: kind,
-      id: id,
-      title: 'Title $id',
-      status: status,
-      dueAt: DateTime.now().add(const Duration(days: 1)),
-    );
+TodayLearningItem _item(
+  String id,
+  String kind,
+  String status, {
+  Duration dueIn = const Duration(days: 1),
+}) => TodayLearningItem(
+  kind: kind,
+  id: id,
+  title: 'Title $id',
+  status: status,
+  dueAt: DateTime.now().add(dueIn),
+);
 
 Future<void> _pump(
   WidgetTester tester,
@@ -47,7 +51,14 @@ void main() {
             tester,
             TodayTaskSection(
               section: TodaySection.attention,
-              items: [_item('1', 'assignment', 'overdue')],
+              items: [
+                _item(
+                  '1',
+                  'assignment',
+                  'upcoming',
+                  dueIn: const Duration(minutes: 30),
+                ),
+              ],
               onItemTap: (_) {},
               onSeeAll: () {},
             ),
@@ -57,7 +68,7 @@ void main() {
           );
           expect(tester.takeException(), isNull);
           expect(find.text('Needs Your Attention'), findsOneWidget);
-          expect(find.text('Past Due - Handle Now'), findsOneWidget);
+          expect(find.textContaining('Ends in'), findsOneWidget);
         });
       }
     }
@@ -85,19 +96,27 @@ void main() {
       expect(find.text('See All'), findsNothing);
     });
 
-    testWidgets('an overdue item stays flagged inside another block', (
-      tester,
-    ) async {
-      await _pump(
-        tester,
-        TodayTaskSection(
-          section: TodaySection.todo,
-          items: [_item('1', 'assignment', 'overdue')],
-          onItemTap: (_) {},
-        ),
-      );
-      expect(find.text('Past Due - Handle Now'), findsOneWidget);
-    });
+    testWidgets(
+      'an item ending within the hour stays flagged inside another block',
+      (tester) async {
+        await _pump(
+          tester,
+          TodayTaskSection(
+            section: TodaySection.todo,
+            items: [
+              _item(
+                '1',
+                'assignment',
+                'upcoming',
+                dueIn: const Duration(minutes: 20),
+              ),
+            ],
+            onItemTap: (_) {},
+          ),
+        );
+        expect(find.textContaining('Ends in'), findsOneWidget);
+      },
+    );
 
     testWidgets('taps report the item and See All', (tester) async {
       TodayLearningItem? tapped;
@@ -135,7 +154,7 @@ void main() {
 
   group('TodayFocusStatTile', () {
     for (final (section, label) in [
-      (TodaySection.attention, 'Overdue'),
+      (TodaySection.attention, 'Ending Soon'),
       (TodaySection.todo, 'To Do'),
       (TodaySection.comingUp, 'Coming Up'),
     ]) {

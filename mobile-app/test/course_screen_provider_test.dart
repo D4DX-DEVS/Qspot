@@ -208,12 +208,12 @@ void main() {
       expect(provider.isLoadingAssignments, isFalse);
     });
 
-    test('without any, the summary explains the lock instead', () async {
+    test('without any, the summary says there are none yet', () async {
       final provider = _provider(_Source());
 
       await provider.load();
 
-      expect(provider.summaryDetail, 'Lessons open one after another');
+      expect(provider.summaryDetail, 'No assignments yet');
     });
 
     test('a failed load leaves the syllabus usable', () async {

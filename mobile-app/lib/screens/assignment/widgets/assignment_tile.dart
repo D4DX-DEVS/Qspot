@@ -25,12 +25,16 @@ class AssignmentTile extends StatelessWidget {
     final p = HomePalette.of(context);
     final overdue = assignment.isOverdue;
     final submitted = assignment.isSubmitted;
-    final tone = submitted
+    final tone = assignment.isReturned
+        ? p.amber
+        : submitted
         ? p.mint
         : overdue
         ? p.coral
         : p.rose;
-    final label = submitted
+    final label = assignment.isReturned
+        ? 'Changes Asked'
+        : submitted
         ? assignment.status.toLowerCase() == 'graded'
               ? 'Reviewed'
               : 'Submitted'

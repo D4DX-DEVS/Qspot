@@ -10,6 +10,7 @@ import EmptyState from '../components/ui/EmptyState';
 import Pagination from '../components/ui/Pagination';
 import usePageTitle from '../hooks/usePageTitle';
 import apiClient from '../api/client';
+import { dobHint, dobInputLimits, dobInputValue } from '../utils/dob';
 import brandIcon from '../assets/Icon.png';
 
 const ITEMS_PER_PAGE = 10;
@@ -94,7 +95,7 @@ const AdminDashboard = () => {
     <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="users" onNavigate={handleNavigate} />
 
-      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
+      <div className="flex-1 min-w-0 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-4 sm:p-6">
           <PageHeader
             title="Users"
@@ -162,15 +163,25 @@ const AdminDashboard = () => {
                               onClick={() => navigate(`/admin/users/${user._id}`)}
                             >
                               <div className="flex items-center">
-                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#701845]/80 to-[#EFB078]/70 border border-white/20 flex items-center justify-center shadow-[0_4px_12px_rgba(112,24,69,0.3)]">
+                                <div className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-[#701845]/80 to-[#EFB078]/70 border border-white/20 flex items-center justify-center shadow-[0_4px_12px_rgba(112,24,69,0.3)]">
                                   <span className="text-sm font-semibold text-white">
                                     {user.name?.charAt(0)?.toUpperCase() || '?'}
                                   </span>
                                 </div>
                                 <div className="ml-3 sm:ml-4 min-w-0">
-                                  <div className="text-sm font-medium text-white truncate">
+                                  <div className="max-w-[10rem] truncate text-sm font-medium text-white sm:max-w-[16rem]" title={user.name}>
                                     {user.name || 'No Name'}
                                   </div>
+                                  {(user.role === 'faculty' || !user.dob) && (
+                                    <div className="mt-1 flex flex-wrap gap-1">
+                                      {user.role === 'faculty' && (
+                                        <span className="rounded-full border border-sky-300/30 bg-sky-400/10 px-2 py-0.5 text-[10px] font-semibold text-sky-200">Teacher</span>
+                                      )}
+                                      {!user.dob && (
+                                        <span title="Can't sign in to the app until a date of birth is added" className="rounded-full border border-amber-300/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold text-amber-200">No date of birth</span>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </td>
@@ -178,14 +189,14 @@ const AdminDashboard = () => {
                               className="hidden sm:table-cell px-6 py-4 whitespace-nowrap cursor-pointer"
                               onClick={() => navigate(`/admin/users/${user._id}`)}
                             >
-                              {user.email && <div className="text-sm text-gray-300">{user.email}</div>}
-                              <div className="text-sm text-gray-400">{user.phone || 'No phone'}</div>
+                              {user.email && <div className="max-w-[16rem] truncate text-sm text-gray-300" title={user.email}>{user.email}</div>}
+                              <div className="max-w-[16rem] truncate text-sm text-gray-400" title={user.phone}>{user.phone || 'No phone'}</div>
                             </td>
                             <td
                               className="hidden sm:table-cell px-6 py-4 whitespace-nowrap cursor-pointer"
                               onClick={() => navigate(`/admin/users/${user._id}`)}
                             >
-                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-[#701845]/30 to-[#EFB078]/20 text-[#EFB078] border border-[#EFB078]/30">
+                              <span className="inline-block max-w-[10rem] truncate px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-[#701845]/30 to-[#EFB078]/20 text-[#EFB078] border border-[#EFB078]/30">
                                 {user.class || 'Not specified'}
                               </span>
                             </td>
@@ -275,9 +286,12 @@ const EditUserModal = ({ user, onClose, onSave }) => {
     name: user.name || '',
     phone: user.phone || '',
     email: user.email || '',
-    class: user.class || ''
+    class: user.class || '',
+    dob: dobInputValue(user.dob)
   });
   const [loading, setLoading] = useState(false);
+  const dobLimits = dobInputLimits();
+  const hint = dobHint(user.dob, formData.dob);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -343,6 +357,20 @@ const EditUserModal = ({ user, onClose, onSave }) => {
                 placeholder="Enter class"
                 required
               />
+            </div>
+            <div>
+              <label htmlFor="edit-user-dob" className="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">Date of birth</label>
+              <input
+                id="edit-user-dob"
+                type="date"
+                value={formData.dob}
+                min={dobLimits.min}
+                max={dobLimits.max}
+                onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                className="mt-2 block w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white [color-scheme:dark] focus:border-[#EFB078]/60 focus:outline-none"
+                required={Boolean(dobInputValue(user.dob))}
+              />
+              <p className={`mt-1.5 text-xs ${hint.warn ? 'text-amber-200' : 'text-white/50'}`}>{hint.text}</p>
             </div>
 
             <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4">
