@@ -8,6 +8,7 @@ const { authenticateAdmin, authenticateUser } = require('../middlewares/auth');
 const { recordLearningEvent } = require('../services/learningEvents');
 const { submissionWindow } = require('../services/quizWindow');
 const { assessTiming } = require('../services/quizTiming');
+const { examAnswersAt, revealFields } = require('../services/answerReveal');
 
 const router = express.Router();
 
@@ -55,6 +56,8 @@ const buildResults = (attempt, questionMap) =>
     });
 
 // The attempt as the app receives it: after grading (201) or on a repeat (409).
+// Per-question results carry the correct answers, so they are only included
+// once the exam has closed for everyone.
 const shapeAttempt = (attempt, config, questionMap) => ({
     attemptId: attempt._id,
     quizId: attempt.quizId,
@@ -65,7 +68,7 @@ const shapeAttempt = (attempt, config, questionMap) => ({
     percentage: attempt.percentage,
     totalDuration: attempt.totalDuration,
     createdAt: attempt.createdAt,
-    results: buildResults(attempt, questionMap)
+    ...revealFields(examAnswersAt(config), buildResults(attempt, questionMap))
 });
 
 // POST /api/quizzes/attempt (user) - grades against the session's questionIds.

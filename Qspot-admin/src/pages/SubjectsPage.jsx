@@ -177,7 +177,7 @@ const SubjectsPage = () => {
     <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="subjects" onNavigate={navigate} />
       
-      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
+      <div className="flex-1 min-w-0 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-4 sm:p-6">
           <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
@@ -539,7 +539,7 @@ const EditSubjectModal = ({ subject, onClose, onSave }) => {
     <div className="fixed inset-0 z-[120] flex h-full w-full items-center justify-center bg-black/70 px-4 py-10 backdrop-blur-md">
       <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/12 bg-gradient-to-br from-[#100713]/95 via-[#190d23]/85 to-[#10060f]/95 shadow-[0_28px_80px_-28px_rgba(12,6,20,0.92)]">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(136,32,82,0.55),transparent_65%)]" aria-hidden="true" />
-        <div className="relative px-6 pt-8 pb-6">
+        <div className="relative max-h-[90vh] overflow-y-auto px-6 pt-8 pb-6">
           <div className="absolute left-8 top-[60px] flex h-12 w-12 items-center justify-center rounded-2xl border border-white/12 bg-black/60 shadow-[0_14px_36px_rgba(136,32,82,0.45)]">
             <img src={brandIcon} alt="QSpot icon" className="h-7 w-7 object-contain" />
           </div>

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../../services/api_client.dart';
 import '../model/notification_model.dart';
+import '../service/notification_inbox_service.dart';
 import '../service/notification_service.dart';
 
 class NotificationProvider extends ChangeNotifier {
@@ -15,15 +16,17 @@ class NotificationProvider extends ChangeNotifier {
   bool get hasError => _errorMessage.isNotEmpty;
   String get errorMessage => _errorMessage;
   int get notificationsCount => _notifications.length;
-  int get unreadCount =>
-      _notifications.where((n) => !_readNotificationIds.contains(n.id)).length;
+  int get unreadCount => _notifications.where((n) => !_isRead(n)).length;
+
+  // Read on the server (inbox) or on this phone (tapped while offline, or
+  // the older public list).
+  bool _isRead(NotificationModel n) =>
+      n.isRead || _readNotificationIds.contains(n.id);
 
   // Get notifications with read status
   List<NotificationModel> get notificationsWithReadStatus {
     return _notifications.map((notification) {
-      return notification.copyWith(
-        isRead: _readNotificationIds.contains(notification.id),
-      );
+      return notification.copyWith(isRead: _isRead(notification));
     }).toList();
   }
 
@@ -44,10 +47,7 @@ class NotificationProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final dynamic data = await ApiClient.get('/api/notifications');
-      final List<dynamic> notificationsJson = data is List
-          ? data
-          : (data is Map ? (data['data'] ?? []) : []);
+      final notificationsJson = await NotificationInboxService.fetch();
       _notifications = notificationsJson
           .map((json) => NotificationModel.fromJson(json))
           .toList();
@@ -73,6 +73,7 @@ class NotificationProvider extends ChangeNotifier {
       await NotificationService.markAsRead(notificationId);
       _readNotificationIds.add(notificationId);
       notifyListeners();
+      await NotificationInboxService.markRead(notificationId);
     } catch (e) {
       // Handle error silently
     }
@@ -96,6 +97,7 @@ class NotificationProvider extends ChangeNotifier {
       await NotificationService.markAllAsRead(notificationIds);
       _readNotificationIds.addAll(notificationIds);
       notifyListeners();
+      await NotificationInboxService.markAllRead();
     } catch (e) {
       // Handle error silently
     }
@@ -103,7 +105,10 @@ class NotificationProvider extends ChangeNotifier {
 
   // Check if notification is read
   bool isNotificationRead(String notificationId) {
-    return _readNotificationIds.contains(notificationId);
+    final n = getNotificationById(notificationId);
+    return n != null
+        ? _isRead(n)
+        : _readNotificationIds.contains(notificationId);
   }
 
   // Get notification by ID

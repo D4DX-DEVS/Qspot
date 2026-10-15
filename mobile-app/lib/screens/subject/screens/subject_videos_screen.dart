@@ -102,8 +102,8 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
 
   Widget _buildBody(SubjectVideosScreenProvider subjectVideos) {
     final videos = subjectVideos.videos;
-    // Numbers and locks come from the whole course, so a lesson here is
-    // closed for the same reason it is closed on the Course page.
+    // Numbers come from the whole course, so a lesson here carries the same
+    // number as on the Course page.
     final watch = context.watch<VideoProvider>();
     final syllabus = CourseSyllabus.forChapter(
       subjectId: widget.subject.id,
@@ -239,7 +239,6 @@ class _SubjectVideosScreenState extends State<SubjectVideosScreen> {
                   index: index,
                   child: LessonCardOverlay(
                     number: lesson?.number,
-                    locked: lesson?.isLocked ?? false,
                     child: VideoCard(
                       video: video,
                       progress: watch.progressFor(video.id),

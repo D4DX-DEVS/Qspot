@@ -17,7 +17,9 @@ import {
   FaTasks,
   FaChartLine,
   FaBars,
-  FaAward
+  FaAward,
+  FaTable,
+  FaCheckDouble
 } from 'react-icons/fa';
 import logo from '../assets/Logo 01.png';
 import ConfirmDialog from './dialogs/ConfirmDialog';
@@ -41,6 +43,8 @@ const menuGroups = [
     label: 'Learners',
     items: [
       { id: 'assignments', label: 'Assignments', icon: FaTasks, path: '/admin/assignments' },
+      { id: 'gradebook', label: 'Gradebook', icon: FaTable, path: '/admin/gradebook' },
+      { id: 'markWork', label: 'Mark work', icon: FaCheckDouble, path: '/admin/mark-work' },
       { id: 'analytics', label: 'Learning analytics', icon: FaChartLine, path: '/admin/analytics' },
       { id: 'users', label: 'Users', icon: FaUsers, path: '/admin/dashboard' },
       { id: 'speakers', label: 'Speakers', icon: FaUserTie, path: '/admin/speakers' },

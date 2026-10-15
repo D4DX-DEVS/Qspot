@@ -131,7 +131,7 @@ const SpeakersPage = () => {
     <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="speakers" onNavigate={navigate} />
       
-      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
+      <div className="flex-1 min-w-0 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-4 sm:p-6">
           <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>

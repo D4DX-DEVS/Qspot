@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import '../model/user_model.dart';
 import '../service/auth_service.dart';
 import '../../../utils/user_friendly_error.dart';
+import '../../../services/telemetry/telemetry.dart';
+import '../../../services/push/push.dart';
 
 enum AuthState { initial, authenticated, unauthenticated, loading }
 
@@ -28,6 +32,8 @@ class AuthProvider with ChangeNotifier {
       if (isLoggedIn) {
         _user = await _authService.getSavedUser();
         _authState = AuthState.authenticated;
+        Telemetry.setUser(_user?.id);
+        unawaited(Push.register());
         debugPrint('✅ [AUTH PROVIDER] User is authenticated');
       } else {
         _authState = AuthState.unauthenticated;
@@ -74,6 +80,8 @@ class AuthProvider with ChangeNotifier {
       if (result['success']) {
         _user = result['user'];
         _authState = AuthState.authenticated;
+        Telemetry.setUser(_user?.id);
+        unawaited(Push.register());
         debugPrint('✅ [AUTH PROVIDER] User signed in');
       } else {
         _errorMessage = result['message'];
@@ -100,6 +108,7 @@ class AuthProvider with ChangeNotifier {
       if (result['success']) {
         _user = result['user'];
         _authState = AuthState.authenticated;
+        Telemetry.setUser(_user?.id);
         debugPrint('✅ [AUTH PROVIDER] User authenticated successfully');
       } else {
         _errorMessage = result['message'];
@@ -165,9 +174,12 @@ class AuthProvider with ChangeNotifier {
   Future<void> logout() async {
     try {
       _setLoading(true);
+      // While still signed in, so the server accepts it.
+      await Push.unregister();
       await _authService.logout();
       _user = null;
       _authState = AuthState.unauthenticated;
+      Telemetry.setUser(null);
       debugPrint('✅ [AUTH PROVIDER] User logged out');
     } catch (e) {
       debugPrint('❌ [AUTH PROVIDER] Logout error: $e');

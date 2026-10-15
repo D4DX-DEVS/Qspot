@@ -6,6 +6,11 @@ const Video = require('../models/videos');
 const Assignment = require('../models/assignment');
 const AssignmentSubmission = require('../models/assignmentSubmission');
 const { authenticateFaculty } = require('../middlewares/auth');
+const { notifyAssignmentReviewed } = require('../services/notify');
+const { markFromRequest } = require('../services/rubric');
+const User = require('../models/user');
+const { parseDob, sameDob } = require('../services/dob');
+const { publicUser } = require('../services/publicUser');
 
 const router = express.Router();
 router.use(authenticateFaculty);
@@ -15,6 +20,22 @@ const populate = (query) => query.populate('faculty', 'name designation image').
 router.get('/me', async (req, res) => {
   const profile = await Speaker.findById(req.user.facultyProfile).select('name designation image order');
   res.json({ user: req.user, profile });
+});
+
+// The date of birth is the sign-in secret. A teacher whose account has none
+// fills it in once, like a student does through PUT /api/user/me; it can
+// never be changed here afterwards. Saving the same date again is harmless.
+router.put('/me/dob', async (req, res) => {
+  const dob = parseDob(req.body?.dob);
+  if (!dob) return res.status(400).json({ message: 'dob must be a valid date (YYYY-MM-DD)' });
+  // Only fills an empty date, so two saves at once cannot overwrite each other.
+  const filled = await User.findOneAndUpdate({ _id: req.user.id, dob: null }, { $set: { dob } }, { new: true });
+  const user = filled || await User.findById(req.user.id);
+  if (!user) return res.status(404).json({ message: 'User not found' });
+  if (!sameDob(user.dob, dob)) {
+    return res.status(409).json({ message: 'Your date of birth is already saved and cannot be changed here.' });
+  }
+  res.json({ message: 'Date of birth saved', user: publicUser(user) });
 });
 
 router.get('/dashboard', async (req, res) => {
@@ -64,20 +85,27 @@ router.get('/assignments/:id/submissions', async (req, res) => {
 
 router.put('/submissions/:id/grade', async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid submission id' });
-  const grade = Number(req.body?.grade);
-  if (!Number.isFinite(grade) || grade < 0) return res.status(400).json({ message: 'grade must be a non-negative number' });
   const feedback = String(req.body?.feedback || '').slice(0, 10000);
   const submission = await AssignmentSubmission.findById(req.params.id).populate('assignmentId', 'title maxPoints videoId createdBy');
   if (!submission) return res.status(404).json({ message: 'Submission not found' });
   const assignment = await Assignment.findOne({ _id: submission.assignmentId._id, ...(await facultyAssignmentFilter(req.user.facultyProfile)) });
   if (!assignment) return res.status(403).json({ message: 'This submission is outside your faculty scope' });
-  if (grade > assignment.maxPoints) return res.status(400).json({ message: `grade cannot exceed ${assignment.maxPoints}` });
-  submission.grade = grade;
+  // One number, or a score for each part when the assignment is marked by parts.
+  let mark;
+  try {
+    mark = markFromRequest(assignment, req.body || {});
+  } catch (error) {
+    return res.status(error.status || 400).json({ message: error.message });
+  }
+  if (!mark) return res.status(400).json({ message: 'Give a mark' });
+  submission.grade = mark.grade;
+  submission.rubricScores = mark.rubricScores;
   submission.feedback = feedback;
   submission.status = 'graded';
   submission.gradedAt = new Date();
   submission.gradedBy = req.user.name;
   await submission.save();
+  await notifyAssignmentReviewed(submission, assignment).catch((error) => console.error('Review notification failed:', error));
   res.json({ message: 'Submission graded', submission });
 });
 

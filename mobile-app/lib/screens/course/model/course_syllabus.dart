@@ -7,11 +7,9 @@ import 'lesson_status.dart';
 import 'syllabus_chapter.dart';
 import 'syllabus_lesson.dart';
 
-/// A course laid out in teaching order, with the lock rule applied: lessons
-/// open one after another across the whole course, chapter by chapter. Only
-/// the first lesson not yet finished is open; everything after it is locked
-/// until it is done. Finished lessons always stay open. Courses never affect
-/// each other.
+/// A course laid out in teaching order, chapter by chapter. Every released
+/// lesson is open, in any order; the order only decides what "carry on" means.
+/// A lesson that has not been released yet stays closed.
 class CourseSyllabus {
   const CourseSyllabus({required this.chapters});
 
@@ -26,7 +24,6 @@ class CourseSyllabus {
     final ordered = subjects.toList()
       ..sort((a, b) => a.order.compareTo(b.order));
     final chapters = <SyllabusChapter>[];
-    SyllabusLesson? frontier;
 
     for (var c = 0; c < ordered.length; c++) {
       final subject = ordered[c];
@@ -45,35 +42,23 @@ class CourseSyllabus {
         if (done) completed++;
         if (begun) started++;
 
-        final LessonStatus status;
-        var hint = '';
-        if (done) {
-          status = LessonStatus.completed;
-        } else if (frontier == null) {
-          status = video.isUpcoming
-              ? LessonStatus.upcoming
-              : begun
-              ? LessonStatus.inProgress
-              : LessonStatus.upNext;
-        } else {
-          status = video.isUpcoming
-              ? LessonStatus.upcoming
-              : LessonStatus.locked;
-          if (status == LessonStatus.locked) {
-            hint = 'Finish "${frontier.title}" first.';
-          }
-        }
+        final LessonStatus status = done
+            ? LessonStatus.completed
+            : video.isUpcoming
+            ? LessonStatus.upcoming
+            : begun
+            ? LessonStatus.inProgress
+            : LessonStatus.notStarted;
 
-        final lesson = SyllabusLesson(
-          video: video,
-          number: i + 1,
-          chapterNumber: c + 1,
-          status: status,
-          progress: watch?.percent ?? 0,
-          lockHint: hint,
+        lessons.add(
+          SyllabusLesson(
+            video: video,
+            number: i + 1,
+            chapterNumber: c + 1,
+            status: status,
+            progress: watch?.percent ?? 0,
+          ),
         );
-        lessons.add(lesson);
-        if (!done) frontier ??= lesson;
       }
 
       chapters.add(
@@ -153,12 +138,13 @@ class CourseSyllabus {
   Iterable<SyllabusLesson> get lessons =>
       chapters.expand((chapter) => chapter.lessons);
 
-  /// The lesson to carry on with: the one in progress or the next one open.
-  /// Null when the learner has finished everything that is released.
+  /// The lesson to carry on with: the first one, in teaching order, that is
+  /// open and not finished. Null when the learner has finished everything
+  /// that is released.
   SyllabusLesson? get next {
     for (final lesson in lessons) {
       if (lesson.status == LessonStatus.inProgress ||
-          lesson.status == LessonStatus.upNext) {
+          lesson.status == LessonStatus.notStarted) {
         return lesson;
       }
     }

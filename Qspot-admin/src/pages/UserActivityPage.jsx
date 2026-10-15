@@ -40,7 +40,7 @@ const UserActivityPage = () => {
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="users" onNavigate={navigate} />
-      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
+      <div className="flex-1 min-w-0 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-4 sm:p-6">
           <button
             type="button"
@@ -61,7 +61,7 @@ const UserActivityPage = () => {
                 description={[data.user?.phone, data.user?.class, data.user?.email].filter(Boolean).join(' · ')}
               />
 
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <section className="rounded-3xl border border-white/10 bg-white/5 p-5">
                   <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-white/60">
                     Quiz Attempts

@@ -61,4 +61,4 @@ const buildProgressSummary = ({ subjects, videos, progressRows, courseTitles = n
     return { videos: totals, subjects: subjectRows, courses: [...perCourse.values()] };
 };
 
-module.exports = { buildProgressSummary };
+module.exports = { buildProgressSummary, isUpcoming };

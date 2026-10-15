@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:qspot/screens/auth/model/user_model.dart';
 import 'package:qspot/screens/auth/provider/auth_provider.dart';
 import 'package:qspot/screens/auth/screens/dob_required_screen.dart';
 import 'package:qspot/screens/auth/widgets/date_picker_field.dart';
@@ -15,6 +16,7 @@ import 'package:qspot/screens/banner/provider/banner_provider.dart';
 import 'package:qspot/screens/bookmark/provider/bookmark_provider.dart';
 import 'package:qspot/screens/common/provider/main_navigation_provider.dart';
 import 'package:qspot/screens/common/screens/main_navigation_screen.dart';
+import 'package:qspot/screens/faculty/screens/faculty_home_screen.dart';
 import 'package:qspot/screens/notification/provider/notification_provider.dart';
 import 'package:qspot/screens/quiz/provider/quiz_provider.dart';
 import 'package:qspot/screens/schedule/provider/schedule_provider.dart';
@@ -44,6 +46,7 @@ void main() {
   Future<void> pumpScreen(
     WidgetTester tester, {
     required http.Response Function(http.Request) onPut,
+    UserModel? user,
   }) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
     tester.view.devicePixelRatio = 3;
@@ -65,17 +68,17 @@ void main() {
     requests = [];
     ApiClient.clientOverride = MockClient((request) async {
       requests.add(request);
-      if (request.method == 'PUT' && request.url.path == '/api/user/me') {
-        return onPut(request);
-      }
+      if (request.method == 'PUT') return onPut(request);
       return http.Response('[]', 200);
     });
     addTearDown(() => ApiClient.clientOverride = null);
+    final auth = AuthProvider();
+    if (user != null) await auth.updateUser(user);
 
     await tester.pumpWidget(
       MultiProvider(
         providers: [
-          ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider.value(value: auth),
           ChangeNotifierProvider(create: (_) => VideoProvider()),
           ChangeNotifierProvider(create: (_) => SpeakerProvider()),
           ChangeNotifierProvider(create: (_) => SubjectProvider()),
@@ -181,5 +184,50 @@ void main() {
     expect(find.byType(DobRequiredScreen), findsOneWidget);
     expect(find.byType(MainNavigationScreen), findsNothing);
     expect(_buttonEnabled(tester), isTrue, reason: 'can try again');
+  });
+
+  testWidgets('a teacher saves through the faculty route and opens the '
+      'faculty screen', (tester) async {
+    await pumpScreen(
+      tester,
+      user: UserModel(
+        id: 'f1',
+        phone: '9876543211',
+        name: 'Ustad',
+        role: 'faculty',
+      ),
+      onPut: (request) {
+        final dob = (jsonDecode(request.body) as Map)['dob'];
+        return http.Response(
+          jsonEncode({
+            'message': 'Date of birth saved',
+            'user': {
+              'id': 'f1',
+              'name': 'Ustad',
+              'phone': '9876543211',
+              'role': 'faculty',
+              'dob': '${dob}T00:00:00.000Z',
+            },
+          }),
+          200,
+        );
+      },
+    );
+    final auth = tester
+        .element(find.byType(DobRequiredScreen))
+        .read<AuthProvider>();
+
+    await pickDob(tester);
+    await tester.tap(find.byType(GradientPillButton));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final put = requests.singleWhere((r) => r.method == 'PUT');
+    expect(put.url.path, '/api/faculty/me/dob');
+    expect(jsonDecode(put.body), {'dob': _defaultPickedDob});
+    expect(auth.user?.hasDob, isTrue);
+    expect(auth.user?.role, 'faculty');
+    expect(find.byType(FacultyHomeScreen), findsOneWidget);
+    expect(find.byType(MainNavigationScreen), findsNothing);
   });
 }

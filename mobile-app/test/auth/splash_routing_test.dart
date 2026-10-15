@@ -15,6 +15,7 @@ import 'package:qspot/screens/bookmark/provider/bookmark_provider.dart';
 import 'package:qspot/screens/common/provider/main_navigation_provider.dart';
 import 'package:qspot/screens/common/screens/main_navigation_screen.dart';
 import 'package:qspot/screens/common/screens/splash_screen.dart';
+import 'package:qspot/screens/faculty/screens/faculty_home_screen.dart';
 import 'package:qspot/screens/notification/provider/notification_provider.dart';
 import 'package:qspot/screens/quiz/provider/quiz_provider.dart';
 import 'package:qspot/screens/schedule/provider/schedule_provider.dart';
@@ -25,8 +26,8 @@ import 'package:qspot/services/api_client.dart';
 import 'package:qspot/services/common/storage_service.dart';
 
 /// Where the splash sends someone: sign-in when there is no session, the
-/// add-your-date-of-birth screen for a student whose account has none, the
-/// main app otherwise.
+/// add-your-date-of-birth screen for a student or teacher whose account has
+/// none, the faculty screen for a teacher, the main app otherwise.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -124,6 +125,27 @@ void main() {
     );
 
     expect(find.byType(MainNavigationScreen), findsOneWidget);
+    expect(find.byType(DobRequiredScreen), findsNothing);
+  });
+
+  testWidgets('a teacher with no date of birth is asked for one', (
+    tester,
+  ) async {
+    await openSplash(tester, storage: signedIn(role: 'faculty'));
+
+    expect(find.byType(DobRequiredScreen), findsOneWidget);
+    expect(find.byType(FacultyHomeScreen), findsNothing);
+  });
+
+  testWidgets('a teacher with a date of birth goes to the faculty screen', (
+    tester,
+  ) async {
+    await openSplash(
+      tester,
+      storage: signedIn(dob: '1985-04-12T00:00:00.000Z', role: 'faculty'),
+    );
+
+    expect(find.byType(FacultyHomeScreen), findsOneWidget);
     expect(find.byType(DobRequiredScreen), findsNothing);
   });
 }

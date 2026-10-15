@@ -142,7 +142,7 @@ const ChapterGuidePage = () => {
     <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="subjects" onNavigate={navigate} />
 
-      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
+      <div className="flex-1 min-w-0 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-6 md:p-8 flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <p className="text-xs uppercase tracking-[0.35em] text-white/50">Admin Dashboard</p>
@@ -155,7 +155,7 @@ const ChapterGuidePage = () => {
 
           {error && <ErrorState message={error} onRetry={loadSubjects} />}
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
             <div className={`${cardClass} flex max-h-[70vh] flex-col`}>
               <div className="space-y-3 border-b border-white/10 p-4">
                 <div className="relative">
@@ -221,7 +221,7 @@ const ChapterGuidePage = () => {
               )}
 
               {selected && (
-                <div className="grid gap-6 xl:grid-cols-[1fr_minmax(240px,280px)]">
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(240px,280px)]">
                   <div className="space-y-4">
                     <div>
                       <p className="text-xs uppercase tracking-wide text-slate-300/70">Chapter</p>

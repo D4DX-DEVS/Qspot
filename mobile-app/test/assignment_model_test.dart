@@ -98,6 +98,44 @@ void main() {
     expect(items.single.title, 'First');
   });
 
+  test('work returned for changes is to do again', () {
+    final item = AssignmentModel.fromJson({
+      'id': 'a3',
+      'dueAt': '2026-10-04T12:00:00Z',
+      'submission': {
+        'status': 'returned',
+        'text': 'First try',
+        'submittedAt': '2026-10-02T10:00:00Z',
+        'feedback': 'Hold the madd longer',
+      },
+    });
+    expect(item.isReturned, isTrue);
+    expect(item.isSubmitted, isFalse);
+    expect(item.isReviewed, isFalse);
+    expect(item.feedback, 'Hold the madd longer');
+    // Past its deadline, but the teacher asked for it again.
+    expect(item.isClosed, isFalse);
+  });
+
+  test('a missed deadline closes the work; sent work is not closed', () {
+    final missed = AssignmentModel.fromJson({
+      'id': 'a4',
+      'dueAt': '2026-01-01T00:00:00Z',
+    });
+    expect(missed.isClosed, isTrue);
+    final sent = AssignmentModel.fromJson({
+      'id': 'a5',
+      'dueAt': '2026-01-01T00:00:00Z',
+      'submission': {'status': 'submitted', 'submittedAt': '2025-12-31'},
+    });
+    expect(sent.isClosed, isFalse);
+    final open = AssignmentModel.fromJson({
+      'id': 'a6',
+      'dueAt': '2099-01-01T00:00:00Z',
+    });
+    expect(open.isClosed, isFalse);
+  });
+
   test('missing optional values are handled safely', () {
     final item = AssignmentModel.fromJson({'id': 'a2'});
     expect(item.instructions, isEmpty);

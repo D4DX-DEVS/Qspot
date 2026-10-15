@@ -45,6 +45,7 @@ import '../../video/provider/video_provider.dart';
 import '../../video/screens/video_reels_screen.dart';
 import '../model/continue_lesson_info.dart';
 import '../model/lesson_counts.dart';
+import '../model/today_item_text.dart';
 import '../model/today_plan.dart';
 import '../model/today_section.dart';
 import '../provider/redesigned_home_screen_provider.dart';
@@ -285,12 +286,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
           child: PressableScale(
             haptic: true,
             child: GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const HomeThemeScope(child: ProfileScreen()),
-                ),
-              ),
+              onTap: _openProfile,
               child: InitialsAvatar(
                 name: name.isEmpty ? 'Learner' : name,
                 size: 44,
@@ -593,7 +589,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   }
 
   String? _itemLabel(TodayLearningItem item) {
-    if (item.status == 'overdue') return 'NEEDS YOUR ATTENTION';
+    if (item.isEndingSoon(DateTime.now())) return 'NEEDS YOUR ATTENTION';
     if (item.kind == 'assignment') return 'ASSIGNMENT';
     if (item.kind == 'quiz') {
       return item.assessmentType == 'practical' ? 'PRACTICAL EXAM' : 'PRACTICE';
@@ -604,7 +600,7 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
   }
 
   String _itemActionLabel(TodayLearningItem item) {
-    if (item.status == 'overdue') {
+    if (item.isEndingSoon(DateTime.now())) {
       return item.kind == 'video' ? 'Continue lesson' : 'Start now';
     }
     if (item.kind == 'assignment') return 'Open assignment';
@@ -643,6 +639,20 @@ class _RedesignedHomeScreenState extends State<RedesignedHomeScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => const HomeThemeScope(child: SubjectListScreen()),
+      ),
+    );
+  }
+
+  /// Me is a tab of the shell too, so it keeps the menu and bottom bar.
+  void _openProfile() {
+    if (_nav.hasKey('me')) {
+      _nav.setIndex(_nav.indexForKey('me'));
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const HomeThemeScope(child: ProfileScreen()),
       ),
     );
   }

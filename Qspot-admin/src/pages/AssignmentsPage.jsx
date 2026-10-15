@@ -23,6 +23,10 @@ import Spinner from '../components/ui/Spinner';
 import Modal from '../components/ui/Modal';
 import usePageTitle from '../hooks/usePageTitle';
 import apiClient from '../api/client';
+import RubricEditor from '../components/grading/RubricEditor';
+import SubmissionPanel from '../components/grading/SubmissionPanel';
+import { emptyRubric, isRubricOn, rubricForSave, rubricFrom, rubricTotal } from '../utils/rubric';
+import { submissionForPanel } from '../utils/gradebook';
 
 const cardClass = 'rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/75 via-[#1c0b18]/55 to-[#12060f]/75 shadow-[0_10px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl';
 const inputClass = 'w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder-white/40 outline-none transition focus:border-[#EFB078]/60 focus:ring-2 focus:ring-[#701845]/30';
@@ -36,6 +40,7 @@ const emptyForm = () => ({
   dueAt: '',
   maxPoints: '100',
   isPublished: false,
+  rubric: emptyRubric(),
 });
 
 const value = (item, keys, fallback = '') => {
@@ -157,6 +162,7 @@ const AssignmentsPage = () => {
       dueAt: toDateInput(value(assignment, ['dueAt', 'dueDate'])),
       maxPoints: String(value(assignment, ['maxPoints', 'points'], 100)),
       isPublished: Boolean(value(assignment, ['isPublished', 'published'], false)),
+      rubric: rubricFrom(assignment),
     });
     setFormError('');
     setFormOpen(true);
@@ -175,6 +181,8 @@ const AssignmentsPage = () => {
     if (!Number.isFinite(maxPoints) || maxPoints < 1 || maxPoints > 1000) {
       return setFormError('Max points must be a number between 1 and 1000.');
     }
+    const marking = rubricForSave(form.rubric);
+    if (marking.error) return setFormError(marking.error);
     const releaseDate = form.releaseAt ? new Date(form.releaseAt) : null;
     const dueDate = form.dueAt ? new Date(form.dueAt) : null;
     if (releaseDate && Number.isNaN(releaseDate.getTime())) {
@@ -194,7 +202,9 @@ const AssignmentsPage = () => {
       videoId: form.videoId || undefined,
       releaseAt: toIso(form.releaseAt),
       dueAt: toIso(form.dueAt),
-      maxPoints,
+      // Marked by parts: the total is the sum of the parts.
+      maxPoints: marking.rubric.enabled ? rubricTotal(marking.rubric) : maxPoints,
+      rubric: marking.rubric,
       isPublished: Boolean(form.isPublished),
     };
     try {
@@ -264,7 +274,7 @@ const AssignmentsPage = () => {
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="assignments" onNavigate={navigate} />
-      <div className="flex w-full flex-1 flex-col pb-28 md:ml-64 md:pb-0">
+      <div className="flex w-full min-w-0 flex-1 flex-col pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-4 sm:p-6 md:p-8">
           <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -326,14 +336,15 @@ const AssignmentsPage = () => {
           <label className="block"><span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-white/55">Instructions</span><textarea maxLength="10000" value={form.instructions} onChange={(event) => setForm((current) => ({ ...current, instructions: event.target.value }))} className={`${inputClass} min-h-24 resize-y`} placeholder="Tell learners what a good submission includes." /></label>
           <div className="grid gap-3 sm:grid-cols-2"><label className="block"><span className="mb-1.5 block text-xs font-semibold text-white/55">Course</span><select value={form.courseId} onChange={(event) => setForm((current) => ({ ...current, courseId: event.target.value, subjectId: '', videoId: '' }))} className={inputClass}><option value="">All courses</option>{courses.map((item) => <option key={getId(item)} value={getId(item)}>{getName(item)}</option>)}</select></label><label className="block"><span className="mb-1.5 block text-xs font-semibold text-white/55">Subject</span><select value={form.subjectId} onChange={(event) => setForm((current) => ({ ...current, subjectId: event.target.value, videoId: '' }))} className={inputClass}><option value="">All subjects</option>{scopedSubjects.map((item) => <option key={getId(item)} value={getId(item)}>{getName(item)}</option>)}</select></label></div>
           <label className="block"><span className="mb-1.5 block text-xs font-semibold text-white/55">Lesson (optional)</span><select value={form.videoId} onChange={(event) => setForm((current) => ({ ...current, videoId: event.target.value }))} className={inputClass}><option value="">All lessons in this scope</option>{scopedVideos.map((item) => <option key={getId(item)} value={getId(item)}>{getName(item)}</option>)}</select></label>
-          <div className="grid gap-3 sm:grid-cols-3"><label className="block"><span className="mb-1.5 block text-xs font-semibold text-white/55">Available from</span><input type="datetime-local" value={form.releaseAt} onChange={(event) => setForm((current) => ({ ...current, releaseAt: event.target.value }))} className={inputClass} /></label><label className="block"><span className="mb-1.5 block text-xs font-semibold text-white/55">Due date</span><input type="datetime-local" value={form.dueAt} onChange={(event) => setForm((current) => ({ ...current, dueAt: event.target.value }))} className={inputClass} /></label><label className="block"><span className="mb-1.5 block text-xs font-semibold text-white/55">Max points</span><input type="number" min="1" max="1000" required value={form.maxPoints} onChange={(event) => setForm((current) => ({ ...current, maxPoints: event.target.value }))} className={inputClass} /></label></div>
+          <div className="grid gap-3 sm:grid-cols-3"><label className="block"><span className="mb-1.5 block text-xs font-semibold text-white/55">Available from</span><input type="datetime-local" value={form.releaseAt} onChange={(event) => setForm((current) => ({ ...current, releaseAt: event.target.value }))} className={inputClass} /></label><label className="block"><span className="mb-1.5 block text-xs font-semibold text-white/55">Due date</span><input type="datetime-local" value={form.dueAt} onChange={(event) => setForm((current) => ({ ...current, dueAt: event.target.value }))} className={inputClass} /></label><label className="block"><span className="mb-1.5 block text-xs font-semibold text-white/55">Max points</span><input type="number" min="1" max="1000" required disabled={form.rubric.enabled} value={form.rubric.enabled ? rubricTotal(form.rubric) : form.maxPoints} onChange={(event) => setForm((current) => ({ ...current, maxPoints: event.target.value }))} className={`${inputClass} disabled:opacity-60`} /></label></div>
+          <RubricEditor value={form.rubric} onChange={(rubric) => setForm((current) => ({ ...current, rubric }))} />
           <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white/75"><input type="checkbox" checked={form.isPublished} onChange={(event) => setForm((current) => ({ ...current, isPublished: event.target.checked }))} className="h-4 w-4 accent-[#EFB078]" /> Publish this assignment for learners</label>
           <div className="flex justify-end gap-2 border-t border-white/10 pt-4"><button type="button" onClick={closeForm} className="rounded-xl border border-white/10 px-4 py-2 text-sm text-white/65 hover:bg-white/5">Cancel</button><button type="submit" disabled={saving} className="rounded-xl bg-gradient-to-r from-[#701845] to-[#EFB078]/80 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">{saving ? 'Saving…' : editing ? 'Save changes' : 'Create assignment'}</button></div>
         </form>
       </Modal>}
 
       {submissionsFor && <Modal title="Submission review" subtitle={submissionsFor.title || 'Assignment'} onClose={() => setSubmissionsFor(null)} maxWidth="max-w-3xl">
-        {submissionsLoading ? <Spinner /> : submissionsError ? <ErrorState message={submissionsError} onRetry={() => openSubmissions(submissionsFor)} /> : submissions.length === 0 ? <EmptyState icon={FiUsers} title="No submissions yet" description="Learner submissions will appear here when they turn in this assignment." /> : <div className="space-y-3">{submissions.map((submission) => { const learner = submission.user || submission.student || {}; const id = getId(submission); const rawMaxPoints = Number(value(submissionsFor, ['maxPoints', 'points'], 100)); const maxPoints = Number.isFinite(rawMaxPoints) && rawMaxPoints > 0 ? rawMaxPoints : 100; const statusValue = submission.status || 'submitted'; return <div key={id} className="rounded-xl border border-white/10 bg-white/[0.03] p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><div className="flex items-center gap-2 text-sm font-semibold text-white"><FiUser className="text-[#EFB078]" size={14} />{learner.name || learner.fullName || learner.phone || submission.userName || 'Learner'}</div><p className="mt-1 text-xs text-white/45">Submitted {displayDate(submission.submittedAt || submission.createdAt)}</p></div><span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${statusValue === 'graded' ? 'bg-emerald-400/15 text-emerald-300' : statusValue === 'returned' ? 'bg-amber-400/15 text-amber-200' : 'bg-white/10 text-white/65'}`}>{statusValue}</span></div><p className="mt-3 whitespace-pre-wrap break-words rounded-lg bg-black/20 p-3 text-sm text-white/70">{submission.text || submission.answer || submission.content || 'No written response. Check attached files in the learner record.'}</p><div className="mt-3 grid gap-2 sm:grid-cols-[130px_1fr_auto]"><input type="number" min="0" max={maxPoints} value={submission.grade ?? submission.score ?? ''} onChange={(event) => { setSubmissionsError(''); setSubmissions((current) => current.map((item) => getId(item) === id ? { ...item, grade: event.target.value } : item)); }} placeholder="Points" className={inputClass} /><input maxLength="10000" value={submission.feedback || ''} onChange={(event) => setSubmissions((current) => current.map((item) => getId(item) === id ? { ...item, feedback: event.target.value } : item))} placeholder="Feedback for learner" className={inputClass} /><button type="button" disabled={grading === id} onClick={() => { const rawGrade = submission.grade ?? submission.score; const grade = Number(rawGrade); if (rawGrade === undefined || rawGrade === null || String(rawGrade).trim() === '' || !Number.isFinite(grade) || grade < 0 || grade > maxPoints) { setSubmissionsError(`Grade must be between 0 and ${maxPoints}.`); return; } updateSubmission(submission, { grade, feedback: submission.feedback || '', status: 'graded' }); }} className="inline-flex items-center justify-center gap-1 rounded-xl bg-[#701845]/75 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"><FiCheck size={14} />{grading === id ? 'Saving' : 'Save grade'}</button></div></div>; })}</div>}
+        {submissionsLoading ? <Spinner /> : submissionsError ? <ErrorState message={submissionsError} onRetry={() => openSubmissions(submissionsFor)} /> : submissions.length === 0 ? <EmptyState icon={FiUsers} title="No submissions yet" description="Learner submissions will appear here when they turn in this assignment." /> : <div className="space-y-3">{submissions.map((submission) => { const learner = submission.user || submission.student || {}; const id = getId(submission); const rawMaxPoints = Number(value(submissionsFor, ['maxPoints', 'points'], 100)); const maxPoints = Number.isFinite(rawMaxPoints) && rawMaxPoints > 0 ? rawMaxPoints : 100; const statusValue = submission.status || 'submitted'; if (isRubricOn(submissionsFor.rubric)) return <div key={id} className="rounded-xl border border-white/10 bg-white/[0.03] p-4"><SubmissionPanel submission={submissionForPanel(submission, submissionsFor)} onSaved={() => openSubmissions(submissionsFor)} /></div>; return <div key={id} className="rounded-xl border border-white/10 bg-white/[0.03] p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><div className="flex items-center gap-2 text-sm font-semibold text-white"><FiUser className="text-[#EFB078]" size={14} />{learner.name || learner.fullName || learner.phone || submission.userName || 'Learner'}</div><p className="mt-1 text-xs text-white/45">Submitted {displayDate(submission.submittedAt || submission.createdAt)}</p></div><span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${statusValue === 'graded' ? 'bg-emerald-400/15 text-emerald-300' : statusValue === 'returned' ? 'bg-amber-400/15 text-amber-200' : 'bg-white/10 text-white/65'}`}>{statusValue}</span></div><p className="mt-3 whitespace-pre-wrap break-words rounded-lg bg-black/20 p-3 text-sm text-white/70">{submission.text || submission.answer || submission.content || 'No written response. Check attached files in the learner record.'}</p><div className="mt-3 grid gap-2 sm:grid-cols-[130px_1fr_auto]"><input type="number" min="0" max={maxPoints} value={submission.grade ?? submission.score ?? ''} onChange={(event) => { setSubmissionsError(''); setSubmissions((current) => current.map((item) => getId(item) === id ? { ...item, grade: event.target.value } : item)); }} placeholder="Points" className={inputClass} /><input maxLength="10000" value={submission.feedback || ''} onChange={(event) => setSubmissions((current) => current.map((item) => getId(item) === id ? { ...item, feedback: event.target.value } : item))} placeholder="Feedback for learner" className={inputClass} /><button type="button" disabled={grading === id} onClick={() => { const rawGrade = submission.grade ?? submission.score; const grade = Number(rawGrade); if (rawGrade === undefined || rawGrade === null || String(rawGrade).trim() === '' || !Number.isFinite(grade) || grade < 0 || grade > maxPoints) { setSubmissionsError(`Grade must be between 0 and ${maxPoints}.`); return; } updateSubmission(submission, { grade, feedback: submission.feedback || '', status: 'graded' }); }} className="inline-flex items-center justify-center gap-1 rounded-xl bg-[#701845]/75 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"><FiCheck size={14} />{grading === id ? 'Saving' : 'Save grade'}</button></div></div>; })}</div>}
       </Modal>}
 
       {deleteTarget && <ConfirmDialog title="Delete assignment" description={`Delete “${deleteTarget.title || 'this assignment'}”? Existing submissions may become unavailable.`} cancelLabel="Keep assignment" confirmLabel="Delete" confirmVariant="danger" onCancel={() => setDeleteTarget(null)} onConfirm={deleteAssignment} />}

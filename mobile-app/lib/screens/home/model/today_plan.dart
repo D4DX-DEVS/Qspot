@@ -1,7 +1,8 @@
 import '../../../services/today_service.dart';
+import 'today_item_text.dart';
 import 'today_section.dart';
 
-/// What Today shows for one learner: their overdue, to-do and upcoming work,
+/// What Today shows for one learner: their ending-soon, to-do and upcoming work,
 /// the next step for the top card, and the order of the sections, so the
 /// screen follows their own work instead of a fixed layout.
 class TodayPlan {
@@ -14,7 +15,8 @@ class TodayPlan {
     this.isCaughtUp = false,
   });
 
-  /// Past-due work.
+  /// Open work whose deadline is less than an hour away. Past-due work is
+  /// not listed anywhere: its time is over and it can no longer be sent.
   final List<TodayLearningItem> attention;
 
   /// Work to do now.
@@ -35,16 +37,10 @@ class TodayPlan {
   final bool isCaughtUp;
 
   /// Assignment states that mean the learner already handed the work in.
-  static const doneStatuses = {
-    'submitted',
-    'late',
-    'graded',
-    'returned',
-    'completed',
-  };
+  static const doneStatuses = {'submitted', 'late', 'graded', 'completed'};
 
-  /// The first group that has work, for the third stat tile: overdue, then
-  /// to do, then coming up.
+  /// The first group that has work, for the third stat tile: ending soon,
+  /// then to do, then coming up.
   TodaySection get focus => attention.isNotEmpty
       ? TodaySection.attention
       : todo.isNotEmpty
@@ -61,8 +57,9 @@ class TodayPlan {
 
   /// Without an overview (not loaded, or the request failed) this is the
   /// plain layout: lessons, then subjects.
-  factory TodayPlan.fromOverview(TodayOverview? overview) {
+  factory TodayPlan.fromOverview(TodayOverview? overview, {DateTime? now}) {
     if (overview == null) return const TodayPlan();
+    final at = now ?? DateTime.now();
 
     final attention = <TodayLearningItem>[];
     final todo = <TodayLearningItem>[];
@@ -77,7 +74,7 @@ class TodayPlan {
     void addContinuation(TodayLearningItem item) {
       final key = '${item.kind}:${item.id}';
       if (item.id.isEmpty || continueSeen.add(key)) {
-        todo.add(item);
+        (item.isEndingSoon(at) ? attention : todo).add(item);
         if (item.id.isNotEmpty) blocked.add(key);
       }
     }
@@ -92,21 +89,23 @@ class TodayPlan {
     }
 
     for (final item in overview.upcoming) {
-      if (doneStatuses.contains(item.status)) continue;
+      if (doneStatuses.contains(item.status) || item.status == 'overdue') {
+        continue;
+      }
       final key = '${item.kind}:${item.id}';
       if (item.id.isNotEmpty && blocked.contains(key)) continue;
-      if (item.status == 'overdue') {
-        attention.add(item);
-      } else if (item.kind == 'assignment' ||
+      if (item.kind == 'assignment' ||
           (item.kind == 'quiz' && item.status == 'live')) {
-        todo.add(item);
+        (item.isEndingSoon(at) ? attention : todo).add(item);
       } else {
         comingUp.add(item);
       }
     }
 
     bool isActionable(TodayLearningItem item) =>
-        item.title.trim().isNotEmpty && !doneStatuses.contains(item.status);
+        item.title.trim().isNotEmpty &&
+        !doneStatuses.contains(item.status) &&
+        item.status != 'overdue';
     TodayLearningItem? firstActionable(List<TodayLearningItem> items) {
       for (final item in items) {
         if (isActionable(item)) return item;
@@ -114,11 +113,12 @@ class TodayPlan {
       return null;
     }
 
-    final fallbackNext =
+    // Work ending within the hour beats the server's pick.
+    final heroItem =
         firstActionable(attention) ??
+        (next != null && isActionable(next) ? next : null) ??
         firstActionable(todo) ??
         firstActionable(comingUp);
-    final heroItem = next != null && isActionable(next) ? next : fallbackNext;
     final lessonsInProgress = overview.continueItems.any(
       (item) => item.kind == 'video',
     );

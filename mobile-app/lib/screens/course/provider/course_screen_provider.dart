@@ -24,7 +24,7 @@ typedef SyllabusInputs = ({
   Map<String, VideoProgressStatus> progress,
 });
 
-/// State of one course page: the syllabus with its lock rule, the open
+/// State of one course page: the syllabus, the open
 /// chapters, the selected tab and the course's assignments.
 class CourseScreenProvider extends ChangeNotifier {
   CourseScreenProvider({
@@ -143,7 +143,7 @@ class CourseScreenProvider extends ChangeNotifier {
 
   String get summaryDetail {
     final total = assignments.length;
-    if (total == 0) return 'Lessons open one after another';
+    if (total == 0) return 'No assignments yet';
     return 'Assignments $assignmentsDone of $total';
   }
 
@@ -193,8 +193,8 @@ class CourseScreenProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Reloads the learner's watch state, so a finished lesson unlocks the
-  /// next one.
+  /// Reloads the learner's watch state, so a lesson finished meanwhile shows
+  /// as done.
   Future<void> refreshProgress() => _refreshProgress();
 
   void _rebuild() {

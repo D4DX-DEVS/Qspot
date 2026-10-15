@@ -151,7 +151,7 @@ const QuizAttemptsPage = () => {
     <div className="flex min-h-screen overflow-x-hidden bg-[#0b0614] text-white">
       <Sidebar currentPage="quizAttempts" onNavigate={navigate} />
 
-      <main className="w-full bg-[#0f0a1d] px-4 py-8 pb-28 sm:px-6 md:ml-64 md:pb-8">
+      <main className="w-full min-w-0 bg-[#0f0a1d] px-4 py-8 pb-28 sm:px-6 md:ml-64 md:pb-8">
         <header className="mb-8 flex flex-col justify-between gap-4 rounded-2xl border border-white/5 bg-white/5 px-4 py-5 shadow-[0_20px_60px_rgba(10,7,18,0.55)] backdrop-blur sm:px-6">
           <div className="flex w-full flex-col flex-wrap items-start gap-4 sm:flex-row sm:items-center">
             <div>
@@ -203,7 +203,7 @@ const QuizAttemptsPage = () => {
             <select
               value={quizId || ''}
               onChange={(event) => handleSelectQuiz(event.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-[#0d0711] px-3 py-2.5 text-sm text-white focus:border-[#EFB078] focus:outline-none sm:w-auto"
+              className="w-full rounded-xl border border-white/10 bg-[#0d0711] px-3 py-2.5 text-sm text-white focus:border-[#EFB078] focus:outline-none sm:w-72 sm:shrink-0"
             >
               <option value="">Select a quiz…</option>
               {filteredQuizOptions.map((quiz) => (

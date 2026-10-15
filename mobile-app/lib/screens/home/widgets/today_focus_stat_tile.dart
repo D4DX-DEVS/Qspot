@@ -6,7 +6,7 @@ import '../../../widgets/common/stat_tile.dart';
 import '../model/today_section.dart';
 
 /// Stat tile that follows what matters most to the learner right now:
-/// overdue work, then work to do, then what is coming up.
+/// work ending within the hour, then work to do, then what is coming up.
 class TodayFocusStatTile extends StatelessWidget {
   const TodayFocusStatTile({
     super.key,
@@ -26,7 +26,7 @@ class TodayFocusStatTile extends StatelessWidget {
       TodaySection.attention => (
         LucideIcons.triangleAlert,
         palette.coral.color,
-        'Overdue',
+        'Ending Soon',
       ),
       TodaySection.todo => (LucideIcons.listTodo, palette.rose.color, 'To Do'),
       _ => (LucideIcons.calendarDays, palette.amber.color, 'Coming Up'),

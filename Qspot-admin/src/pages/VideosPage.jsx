@@ -561,7 +561,7 @@ const VideosPage = () => {
     <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="videos" onNavigate={navigate} />
       
-      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
+      <div className="flex-1 min-w-0 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           {/* Header Section */}
           <div className="mb-8">

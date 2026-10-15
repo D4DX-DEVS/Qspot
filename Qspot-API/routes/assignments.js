@@ -8,6 +8,8 @@ const Video = require('../models/videos');
 const { authenticateAdmin, authenticateUser } = require('../middlewares/auth');
 const { recordLearningEvent } = require('../services/learningEvents');
 const { assignmentUpload, getCdnUrl } = require('../services/cdnStorageService');
+const { notifyAssignmentReviewed } = require('../services/notify');
+const { normalizeRubric, rubricTotal, markFromRequest } = require('../services/rubric');
 
 const userRouter = express.Router();
 const adminRouter = express.Router();
@@ -103,6 +105,7 @@ const normalizeAssignmentInput = (body, existing = null) => {
     const maxFileSizeBytes = Number(value('maxFileSizeBytes', existing?.maxFileSizeBytes ?? 10 * 1024 * 1024));
     if (!Number.isInteger(maxFileSizeBytes) || maxFileSizeBytes < 1 || maxFileSizeBytes > 100 * 1024 * 1024) throw Object.assign(new Error('maxFileSizeBytes is invalid'), { status: 400 });
     const allowedMimeTypes = value('allowedMimeTypes', existing?.allowedMimeTypes || []);
+    const rubric = normalizeRubric(body.rubric, existing?.rubric || null);
     if (!Array.isArray(allowedMimeTypes) || allowedMimeTypes.length > 20 || allowedMimeTypes.some((mime) => typeof mime !== 'string' || mime.trim().length > 120)) throw Object.assign(new Error('allowedMimeTypes must be an array of at most 20 strings'), { status: 400 });
 
     return {
@@ -114,7 +117,9 @@ const normalizeAssignmentInput = (body, existing = null) => {
         class: String(value('class', existing?.class || '') || '').trim().slice(0, 80),
         releaseAt,
         dueAt,
-        maxPoints,
+        // Marked by parts: the total is the sum of the parts.
+        maxPoints: rubric.enabled ? rubricTotal(rubric) : maxPoints,
+        rubric,
         allowedMimeTypes: allowedMimeTypes.map((mime) => mime.trim()).filter(Boolean),
         maxFileSizeBytes,
         isPublished: value('isPublished', existing?.isPublished ?? false) === true || String(value('isPublished', existing?.isPublished ?? false)) === 'true'
@@ -151,6 +156,7 @@ const shapeLearnerAssignment = (assignment, submission = null) => {
             metadata: submission.metadata,
             status: submission.status,
             grade: submission.grade,
+            rubricScores: submission.rubricScores || [],
             feedback: submission.feedback,
             submittedAt: submission.submittedAt,
             gradedAt: submission.gradedAt
@@ -219,6 +225,13 @@ const submitAssignment = async (req, res) => {
     try {
         const assignment = await assignmentForLearner(req.params.id, req.user);
         if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+        const now = new Date();
+        const late = assignment.dueAt && now > new Date(assignment.dueAt);
+        // After the deadline only work the teacher sent back can be sent again.
+        if (late) {
+            const existing = await AssignmentSubmission.findOne({ assignmentId: assignment._id, userId: req.user.id }).select('status').lean();
+            if (existing?.status !== 'returned') return res.status(403).json({ message: 'The time for this assignment is over', code: 'assignment_closed' });
+        }
         const body = req.body || {};
         const text = body.text === undefined || body.text === null ? '' : String(body.text);
         if (text.length > 20000) return res.status(400).json({ message: 'text must be at most 20000 characters' });
@@ -226,8 +239,6 @@ const submitAssignment = async (req, res) => {
         const metadata = validateMetadata(body.metadata);
         if (!text.trim() && !files.length) return res.status(400).json({ message: 'Provide text or at least one file' });
 
-        const now = new Date();
-        const late = assignment.dueAt && now > new Date(assignment.dueAt);
         const submission = await AssignmentSubmission.findOneAndUpdate(
             { assignmentId: assignment._id, userId: req.user.id },
             { $set: { text, files, metadata, status: late ? 'late' : 'submitted', submittedAt: now, grade: null, feedback: '', gradedAt: null, gradedBy: '' }, $setOnInsert: { assignmentId: assignment._id, userId: req.user.id } },
@@ -349,7 +360,7 @@ adminRouter.put('/:id/submissions/:submissionId', authenticateAdmin, async (req,
     try {
         const { id, submissionId } = req.params;
         if (!validId(id) || !validId(submissionId)) return res.status(400).json({ message: 'Invalid assignment or submission id' });
-        const assignment = await Assignment.findById(id).select('maxPoints');
+        const assignment = await Assignment.findById(id).select('title maxPoints rubric');
         if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
         const submission = await AssignmentSubmission.findOne({ _id: submissionId, assignmentId: id });
         if (!submission) return res.status(404).json({ message: 'Submission not found' });
@@ -359,10 +370,16 @@ adminRouter.put('/:id/submissions/:submissionId', authenticateAdmin, async (req,
             if (typeof body.feedback !== 'string' || body.feedback.length > 10000) return res.status(400).json({ message: 'feedback is invalid' });
             update.feedback = body.feedback;
         }
-        if (body.grade !== undefined && body.grade !== null && body.grade !== '') {
-            const grade = Number(body.grade);
-            if (!Number.isFinite(grade) || grade < 0 || grade > assignment.maxPoints) return res.status(400).json({ message: `grade must be between 0 and ${assignment.maxPoints}` });
-            update.grade = grade;
+        // One number, or a score for each part when marked by parts.
+        let mark;
+        try {
+            mark = markFromRequest(assignment, body);
+        } catch (error) {
+            return res.status(error.status || 400).json({ message: error.message });
+        }
+        if (mark) {
+            update.grade = mark.grade;
+            update.rubricScores = mark.rubricScores;
             update.status = 'graded';
         }
         if (body.status !== undefined) {
@@ -375,6 +392,10 @@ adminRouter.put('/:id/submissions/:submissionId', authenticateAdmin, async (req,
             update.gradedBy = req.user.username || '';
         }
         const updated = await AssignmentSubmission.findByIdAndUpdate(submission._id, update, { new: true, runValidators: true }).populate('userId', 'name phone email class');
+        // Tell the learner; a failed notification must not undo the mark.
+        if (update.status === 'graded' || update.status === 'returned') {
+            await notifyAssignmentReviewed(updated, assignment).catch((error) => console.error('Review notification failed:', error));
+        }
         res.json({ message: 'Submission updated successfully', submission: updated });
     } catch (error) {
         console.error('Error updating assignment submission:', error);

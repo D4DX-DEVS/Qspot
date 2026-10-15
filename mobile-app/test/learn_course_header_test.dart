@@ -94,6 +94,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Syllabus'), findsOneWidget);
-    expect(find.text('1 of 3 lessons'), findsOneWidget);
+    // Once in the summary card and once on the chapter's heading.
+    expect(find.text('1 of 3 lessons'), findsNWidgets(2));
   });
 }

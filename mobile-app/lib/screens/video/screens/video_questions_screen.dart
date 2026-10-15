@@ -17,8 +17,11 @@ import '../../../widgets/animation/fade_on_change.dart';
 import '../../../widgets/animation/pressable_scale.dart';
 import '../../../widgets/animation/staggered_entrance.dart';
 import '../../../widgets/common/common_app_bar.dart';
+import '../model/practice_result_summary.dart';
 import '../model/video_model.dart';
 import '../provider/video_questions_screen_provider.dart';
+import '../widgets/practice_result_actions.dart';
+import '../../../services/telemetry/telemetry.dart';
 
 /// The questions attached to a video, asked once the video has been watched.
 ///
@@ -40,16 +43,16 @@ class VideoQuestionsScreen extends StatefulWidget {
   final List<VideoQuestionItem> questions;
   final String locale;
 
-  /// When the student already has a graded attempt for this video, it is
-  /// passed in here and shown read-only — there is no retake once an attempt
-  /// exists (see the video-quiz contract: 409 "Already attempted").
+  /// When the student already has a graded attempt for this video, its best
+  /// try is passed in here and shown first; Try Again starts a new one while
+  /// the practice is open (the best try is kept on the server).
   final VideoQuizResult? priorResult;
   final VideoPracticeSettings settings;
 
-  /// Opens Practice for [video]: checks for an existing (graded) attempt
-  /// first and shows it read-only when found, otherwise fetches the
-  /// questions and lets the student answer them. Gated on `completed` by the
-  /// caller (the Practice entry point is disabled until the video is done).
+  /// Opens Practice for [video]: shows the saved best result first when
+  /// there is one (with Try Again while practice is open), otherwise fetches
+  /// the questions and lets the student answer them. Gated on `completed` by
+  /// the caller (the Practice entry point is disabled until the video is done).
   static Future<void> open(
     BuildContext context,
     VideoModel video, {
@@ -59,14 +62,24 @@ class VideoQuestionsScreen extends StatefulWidget {
     if (!context.mounted) return;
 
     if (prior != null) {
+      // Fetched now so Try Again can start straight away.
+      final retake = prior.canRetake;
+      final questions = retake
+          ? await VideoProgressService.questions(video.id)
+          : const <VideoQuestionItem>[];
+      final settings = retake
+          ? await VideoProgressService.practiceSettings(video.id)
+          : const VideoPracticeSettings();
+      if (!context.mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => VideoQuestionsScreen(
             videoId: video.id,
             videoTitle: video.displayTitle,
-            questions: const [],
+            questions: questions,
             locale: locale,
             priorResult: prior,
+            settings: settings,
           ),
         ),
       );
@@ -150,6 +163,22 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
   }
 
   bool get _isReview => widget.priorResult != null;
+
+  /// A fresh try of the same practice, replacing this screen.
+  void _retake() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => VideoQuestionsScreen(
+          videoId: widget.videoId,
+          videoTitle: widget.videoTitle,
+          questions: widget.questions,
+          locale: widget.locale,
+          settings: widget.settings,
+        ),
+      ),
+    );
+  }
+
   bool _isLast(VideoQuestionsScreenProvider q) =>
       q.index == widget.questions.length - 1;
 
@@ -180,6 +209,7 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
         answers: answers,
         locale: widget.locale,
       );
+      Telemetry.event('practice_submitted', {'video_id': widget.videoId});
       if (!mounted) return;
       _q.finishSubmit(result);
     } on ApiException catch (e) {
@@ -233,119 +263,129 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
 
   Widget _buildResult(VideoQuestionsScreenProvider q) {
     final result = q.result!;
-    final headline = result.percentage >= 80
+    final summary = PracticeResultSummary(result, justSubmitted: !_isReview);
+    final percentage = summary.shownPercentage;
+    final headline = percentage >= 80
         ? 'Way to Go!'
-        : result.percentage >= 50
+        : percentage >= 50
         ? 'Nice Work!'
         : 'Keep Going!';
+    final canRetake = result.canRetake && widget.questions.isNotEmpty;
 
     final content = SafeArea(
       top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: PressableScale(
-                child: InkWell(
-                  onTap: () => Navigator.of(context).pop(),
-                  customBorder: const CircleBorder(),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      color: AppColors.surfaceAlt,
-                      shape: BoxShape.circle,
+      // Scrolls when the result is taller than the screen (large text), and
+      // keeps the spacing of the Spacers when it is not.
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: PressableScale(
+                        child: InkWell(
+                          onTap: () => Navigator.of(context).pop(),
+                          customBorder: const CircleBorder(),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: const BoxDecoration(
+                              color: AppColors.surfaceAlt,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              LucideIcons.x,
+                              color: AppColors.textPrimary,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                    child: const Icon(
-                      LucideIcons.x,
-                      color: AppColors.textPrimary,
-                      size: 20,
+                    const Spacer(),
+                    StaggeredEntrance(
+                      index: 0,
+                      child: _celebration(percentage),
                     ),
-                  ),
-                ),
-              ),
-            ),
-            const Spacer(),
-            StaggeredEntrance(index: 0, child: _celebration(result.percentage)),
-            const SizedBox(height: 28),
-            StaggeredEntrance(
-              index: 1,
-              child: Text(
-                headline,
-                textAlign: TextAlign.center,
-                style: AppFonts.bold(
-                  fontSize: 26,
-                  height: 1.2,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            StaggeredEntrance(
-              index: 2,
-              child: Text(
-                'You answered ${result.score} of ${result.totalQuestions} correctly.',
-                textAlign: TextAlign.center,
-                style: AppFonts.regular(
-                  fontSize: 16,
-                  height: 1.4,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              widget.videoTitle,
-              textAlign: TextAlign.center,
-              style: AppFonts.regular(
-                color: AppColors.textMuted,
-                fontSize: 13,
-                height: 1.4,
-              ),
-            ),
-            if (_isReview) ...[
-              const SizedBox(height: 8),
-              Text(
-                'You already answered these questions — this is your saved result.',
-                textAlign: TextAlign.center,
-                style: AppFonts.regular(
-                  color: AppColors.textMuted,
-                  fontSize: 12.5,
-                ),
-              ),
-            ],
-            const Spacer(),
-            StaggeredEntrance(
-              index: 3,
-              child: SizedBox(
-                height: 54,
-                child: PressableScale(
-                  haptic: true,
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.onPrimary,
-                      shape: const StadiumBorder(),
-                      textStyle: AppFonts.bold(fontSize: 16),
+                    const SizedBox(height: 28),
+                    StaggeredEntrance(
+                      index: 1,
+                      child: Text(
+                        headline,
+                        textAlign: TextAlign.center,
+                        style: AppFonts.bold(
+                          fontSize: 26,
+                          height: 1.2,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
                     ),
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Done'),
-                  ),
+                    const SizedBox(height: 10),
+                    StaggeredEntrance(
+                      index: 2,
+                      child: Text(
+                        summary.scoreLine,
+                        textAlign: TextAlign.center,
+                        style: AppFonts.regular(
+                          fontSize: 16,
+                          height: 1.4,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      widget.videoTitle,
+                      textAlign: TextAlign.center,
+                      style: AppFonts.regular(
+                        color: AppColors.textMuted,
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    PracticeResultActions(
+                      summary: summary,
+                      locale: widget.locale,
+                      onRetake: canRetake ? _retake : null,
+                    ),
+                    const Spacer(),
+                    StaggeredEntrance(
+                      index: 3,
+                      child: SizedBox(
+                        height: 54,
+                        child: PressableScale(
+                          haptic: true,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: AppColors.onPrimary,
+                              shape: const StadiumBorder(),
+                              textStyle: AppFonts.bold(fontSize: 16),
+                            ),
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('Done'),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            // No retake once an attempt exists — the server rejects it (409)
-            // and the contract explicitly forbids offering one.
-          ],
+          ),
         ),
       ),
     );
 
     // A strong score gets a one-off confetti shower over the result.
-    if (result.percentage < 80) return content;
+    if (percentage < 80) return content;
     return Stack(
       fit: StackFit.expand,
       children: [

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
@@ -30,6 +31,7 @@ import '../widgets/video_scrim.dart';
 import '../widgets/video_title_block.dart';
 import '../widgets/youtube_loading_spinner.dart';
 import 'video_questions_screen.dart';
+import '../../downloads/provider/downloads_provider.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
   final VideoModel video;
@@ -104,9 +106,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   /// Non-YouTube (CDN-hosted) videos: `video_player` + `chewie`, replacing the
   /// old "open in browser" fallback (M16).
   Future<void> _initializeDirectPlayer() async {
-    final controller = vp.VideoPlayerController.networkUrl(
-      Uri.parse(widget.video.videoUrl),
-    );
+    // A lesson saved for offline plays from the phone.
+    final saved = DownloadsProvider.active?.localPathFor(widget.video.videoUrl);
+    final controller = saved != null
+        ? vp.VideoPlayerController.file(File(saved))
+        : vp.VideoPlayerController.networkUrl(Uri.parse(widget.video.videoUrl));
     _directController = controller;
     try {
       await controller.initialize().timeout(const Duration(seconds: 12));

@@ -10,7 +10,6 @@ class SyllabusLesson {
     required this.chapterNumber,
     required this.status,
     this.progress = 0,
-    this.lockHint = '',
   });
 
   final VideoModel video;
@@ -23,25 +22,14 @@ class SyllabusLesson {
   /// 0 to 1, how far the learner got.
   final double progress;
 
-  /// Why a locked lesson is closed, e.g. `Finish "Rules of Madd" first.`
-  final String lockHint;
-
   String get id => video.id;
   String get title => video.displayTitle;
 
-  /// Whether the learner can play it now.
-  bool get isOpenable =>
-      status == LessonStatus.completed ||
-      status == LessonStatus.inProgress ||
-      status == LessonStatus.upNext;
-
-  /// Closed until the lessons before it are finished.
-  bool get isLocked => status == LessonStatus.locked;
+  /// Whether the learner can play it now: every lesson that has been
+  /// released, in any order.
+  bool get isOpenable => status != LessonStatus.upcoming;
 
   /// Why it cannot be opened, or null when it can.
-  String? get blockedMessage => switch (status) {
-    LessonStatus.locked => lockHint,
-    LessonStatus.upcoming => 'This lesson has not opened yet.',
-    _ => null,
-  };
+  String? get blockedMessage =>
+      isOpenable ? null : 'This lesson has not opened yet.';
 }

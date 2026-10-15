@@ -25,9 +25,9 @@ import '../widgets/course_grades_view.dart';
 import '../widgets/course_tab_bar.dart';
 import '../widgets/syllabus_chapter_card.dart';
 
-/// One course: how far the learner is, the syllabus chapter by chapter with
-/// lessons that open in order, the course's assignments and what the course
-/// is about.
+/// One course: how far the learner is, then tabs for the syllabus (chapter by
+/// chapter), the course's assignments, its grades
+/// and what the course is about.
 class CourseScreen extends StatelessWidget {
   const CourseScreen({super.key, required this.course});
 
@@ -74,6 +74,14 @@ class CourseScreen extends StatelessWidget {
             const SizedBox(height: 14),
             ...switch (state.tab) {
               CourseTab.syllabus => _syllabus(context, state),
+              CourseTab.assignments => [
+                CourseAssignmentsSection(
+                  assignments: state.assignments,
+                  loading: state.isLoadingAssignments,
+                  onTap: (assignment) =>
+                      _openAssignment(context, state, assignment),
+                ),
+              ],
               CourseTab.grades => [
                 CourseGradesView(
                   entries: state.grades,
@@ -118,10 +126,6 @@ class CourseScreen extends StatelessWidget {
             onLessonTap: (lesson) => _openLesson(context, state, lesson),
           ),
         ),
-      CourseAssignmentsSection(
-        assignments: state.assignments,
-        onTap: (assignment) => _openAssignment(context, state, assignment),
-      ),
     ];
   }
 
@@ -146,7 +150,7 @@ class CourseScreen extends StatelessWidget {
             HomeThemeScope(child: LessonScreen(video: lesson.video)),
       ),
     );
-    // A lesson finished meanwhile unlocks the next one.
+    // A lesson finished meanwhile shows as done.
     await state.refreshProgress();
   }
 

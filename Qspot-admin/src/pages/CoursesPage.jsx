@@ -203,7 +203,7 @@ const CoursesPage = () => {
     <div className="flex min-h-screen overflow-x-hidden bg-black">
       <Sidebar currentPage="courses" onNavigate={(path) => navigate(path)} />
 
-      <div className="flex-1 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
+      <div className="flex-1 min-w-0 flex flex-col w-full pb-28 md:ml-64 md:pb-0">
         <main className="flex-1 p-6 md:p-8 flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <p className="text-xs uppercase tracking-[0.35em] text-white/50">Admin Dashboard</p>
@@ -220,7 +220,7 @@ const CoursesPage = () => {
             </div>
           )}
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,300px)_1fr]">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)]">
             <div className={`${cardClass} flex max-h-[70vh] flex-col`}>
               <div className="flex items-center justify-between border-b border-white/10 p-4">
                 <span className="text-xs uppercase tracking-wide text-slate-300/70">

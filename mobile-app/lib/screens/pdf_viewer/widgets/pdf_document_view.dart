@@ -18,11 +18,18 @@ class PdfDocumentView extends StatelessWidget {
     final viewer = context.read<PdfViewerProvider>();
     final attempt = context.select<PdfViewerProvider, int>((v) => v.attempt);
     final p = HomePalette.of(context);
+    // A handout saved for offline is a file path, not a web address.
+    final saved = !viewer.url.startsWith('http');
     return PdfViewer(
-      PdfDocumentRefUri(
-        Uri.parse(viewer.url),
-        key: PdfDocumentRefKey(viewer.url, [attempt]),
-      ),
+      saved
+          ? PdfDocumentRefFile(
+              viewer.url,
+              key: PdfDocumentRefKey(viewer.url, [attempt]),
+            )
+          : PdfDocumentRefUri(
+              Uri.parse(viewer.url),
+              key: PdfDocumentRefKey(viewer.url, [attempt]),
+            ),
       key: ValueKey(attempt),
       params: PdfViewerParams(
         backgroundColor: p.background,
