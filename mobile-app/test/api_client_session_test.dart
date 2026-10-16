@@ -64,4 +64,21 @@ void main() {
     await failure();
     expect(await token(), isEmpty);
   });
+
+  test(
+    'an expired sign-in also clears the account data, a business 403 does not',
+    () async {
+      var cleared = 0;
+      ApiClient.onSessionExpired = () async => cleared++;
+      addTearDown(() => ApiClient.onSessionExpired = null);
+
+      respond(403, 'Quiz is not live right now');
+      await failure();
+      expect(cleared, 0);
+
+      respond(403, 'Invalid or expired token');
+      await failure();
+      expect(cleared, 1);
+    },
+  );
 }

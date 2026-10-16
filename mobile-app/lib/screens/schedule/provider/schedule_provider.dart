@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../../auth/service/auth_service.dart';
 import '../model/schedule_model.dart';
 import '../../../utils/api_urls.dart';
 import '../../../utils/user_friendly_error.dart';
@@ -8,7 +9,16 @@ import '../../../utils/user_friendly_error.dart';
 enum ScheduleLoadingState { idle, loading, loaded, error }
 
 class ScheduleProvider with ChangeNotifier {
+  ScheduleProvider({Future<String?> Function()? loadClass})
+    : _loadClass = loadClass ?? _savedClass;
+
   static const Duration _timeoutDuration = Duration(seconds: 10);
+
+  /// The signed-in student's class; sessions are listed for that class only.
+  final Future<String?> Function() _loadClass;
+
+  static Future<String?> _savedClass() async =>
+      (await AuthService().getSavedUser())?.classNumber;
 
   // State variables
   ScheduleLoadingState _loadingState = ScheduleLoadingState.idle;
@@ -48,7 +58,12 @@ class ScheduleProvider with ChangeNotifier {
   // Fetch all schedules
   Future<void> fetchSchedules() async {
     try {
-      final uri = Uri.parse(ApiUrls.scheduleEndpoint);
+      // Only the student's own class, like Today and the Calendar. A teacher
+      // has no class and sees every session.
+      final userClass = (await _loadClass())?.trim() ?? '';
+      final uri = Uri.parse(ApiUrls.scheduleEndpoint).replace(
+        queryParameters: userClass.isEmpty ? null : {'class': userClass},
+      );
       debugPrint('📅 [SCHEDULES] Fetching from: $uri');
 
       final response = await http

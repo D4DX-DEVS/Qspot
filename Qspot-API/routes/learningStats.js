@@ -3,18 +3,9 @@ const User = require('../models/user');
 const mongoose = require('mongoose');
 const Video = require('../models/videos');
 const { authenticateUser } = require('../middlewares/auth');
-const { dayKey, recordLearningEvent } = require('../services/learningEvents');
+const { XP, dayKey, ensureXpTotal, recordLearningEvent } = require('../services/learningEvents');
 
 const router = express.Router();
-const XP = {
-    video_started: 2,
-    video_completed: 20,
-    video_question_completed: 10,
-    quiz_completed: 25,
-    assignment_submitted: 15,
-    note_read: 5
-};
-
 const previousDay = (key) => {
     const date = new Date(`${key}T00:00:00.000Z`);
     date.setUTCDate(date.getUTCDate() - 1);
@@ -25,7 +16,8 @@ router.get('/', authenticateUser, async (req, res) => {
     try {
         const offset = Number(req.query.tzOffsetMinutes);
         const offsetMinutes = Number.isInteger(offset) && Math.abs(offset) <= 840 ? offset : 0;
-        const user = await User.findById(req.user.id).select('learningEvents').lean();
+        await ensureXpTotal(req.user.id);
+        const user = await User.findById(req.user.id).select('learningEvents xpTotal bestStreak').lean();
         const events = (user?.learningEvents || []).sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt));
         // Recompute day keys at read time so a learner's local midnight is
         // respected even though events are written with a UTC timestamp.
@@ -52,7 +44,12 @@ router.get('/', authenticateUser, async (req, res) => {
             }
             longest = Math.max(longest, run);
         }
-        const xp = events.reduce((total, event) => total + (XP[event.type] || 0), 0);
+        // Running totals: old events trimmed from the list keep counting.
+        if (longest > (user?.bestStreak || 0)) {
+            await User.updateOne({ _id: req.user.id }, { $max: { bestStreak: longest } });
+        }
+        longest = Math.max(longest, user?.bestStreak || 0);
+        const xp = user?.xpTotal ?? events.reduce((total, event) => total + (XP[event.type] || 0), 0);
         // Grace days need a persisted entitlement/consumption policy; do not
         // infer one from activity history alone.
         const graceDayAvailable = false;

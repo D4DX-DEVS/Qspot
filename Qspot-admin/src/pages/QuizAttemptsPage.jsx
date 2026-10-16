@@ -7,7 +7,7 @@ import ErrorState from '../components/ui/ErrorState';
 import Pagination from '../components/ui/Pagination';
 import usePageTitle from '../hooks/usePageTitle';
 import apiClient from '../api/client';
-import { formatDuration } from '../utils/format';
+import { formatDuration, localDateTimeToISO } from '../utils/format';
 
 // Attempts are always scoped to one quiz (CONTRACT.md removed the unscoped
 // /api/quizzes/stats endpoint). When no ?quizId is present we show a quiz
@@ -82,8 +82,9 @@ const QuizAttemptsPage = () => {
       setTableLoading(true);
       setTableError('');
       const params = { page, limit };
-      if (fromDate) params.from = fromDate;
-      if (toDate) params.to = toDate;
+      // Exact times with the admin's own time zone, whatever zone the server runs in.
+      if (fromDate) params.from = localDateTimeToISO(fromDate) || undefined;
+      if (toDate) params.to = localDateTimeToISO(toDate) || undefined;
       if (minScore !== '') params.minScore = minScore;
       if (maxScore !== '') params.maxScore = maxScore;
       if (searchTerm.trim()) params.search = searchTerm.trim();

@@ -143,18 +143,12 @@ router.post('/', authenticateUser, async (req, res) => {
                 ? String(submitted.attemptedAnswer)
                 : null;
 
+            // The app sends the number of the button picked (0 = first), never
+            // the option text, so compare it with the correct button's number.
             let isCorrect = false;
-            if (attempted !== null) {
-                const expected = String(question.correct_answer).trim();
-                if (attempted.trim().toLowerCase() === expected.toLowerCase()) {
-                    isCorrect = true;
-                } else {
-                    const options = readOptions(question.options_en);
-                    const index = Number.parseInt(attempted, 10);
-                    if (Number.isInteger(index) && options[index] !== undefined) {
-                        isCorrect = String(options[index]).trim().toLowerCase() === expected.toLowerCase();
-                    }
-                }
+            if (attempted !== null && /^\d+$/.test(attempted.trim())) {
+                const expectedIndex = correctIndex(question, readOptions(question.options_en));
+                isCorrect = expectedIndex >= 0 && Number.parseInt(attempted, 10) === expectedIndex;
             }
 
             if (isCorrect) score += 1;

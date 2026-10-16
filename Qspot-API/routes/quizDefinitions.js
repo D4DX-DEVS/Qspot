@@ -6,6 +6,7 @@ const QuizSession = require('../models/quizSession');
 const Quiz = require('../models/quiz');
 const Certificate = require('../models/certificate');
 const { authenticateAdmin } = require('../middlewares/auth');
+const { textMatch } = require('../services/search');
 
 const router = express.Router();
 
@@ -356,7 +357,7 @@ router.get('/:id/results', authenticateAdmin, async (req, res) => {
             .sort({ score: -1, totalDuration: 1 });
 
         if (search) {
-            const re = new RegExp(String(search).trim(), 'i');
+            const re = textMatch(search);
             attempts = attempts.filter((a) => re.test(a.userId?.name || '') || re.test(a.userId?.class || ''));
         }
 

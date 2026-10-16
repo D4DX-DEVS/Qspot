@@ -200,6 +200,8 @@ class _VideoQuestionsScreenState extends State<VideoQuestionsScreen> {
   }
 
   Future<void> _submit() async {
+    // Stop the countdown so it cannot send the answers a second time.
+    _timer?.cancel();
     _q.startSubmit();
     final answers = _q.answersPayload(widget.questions);
 

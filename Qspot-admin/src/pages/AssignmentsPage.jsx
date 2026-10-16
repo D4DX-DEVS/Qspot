@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FiActivity,
@@ -20,6 +20,7 @@ import ConfirmDialog from '../components/dialogs/ConfirmDialog';
 import ErrorState from '../components/ui/ErrorState';
 import EmptyState from '../components/ui/EmptyState';
 import Spinner from '../components/ui/Spinner';
+import Pagination from '../components/ui/Pagination';
 import Modal from '../components/ui/Modal';
 import usePageTitle from '../hooks/usePageTitle';
 import apiClient from '../api/client';
@@ -68,11 +69,16 @@ const displayDate = (date) => {
     : parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
+const PAGE_SIZE = 20;
+const SUBMISSIONS_PAGE_SIZE = 20;
+
 const isPast = (date) => date && new Date(date).getTime() < Date.now();
 const extractItems = (data) => (Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : Array.isArray(data?.assignments) ? data.assignments : []);
 
 const getName = (item, fallback = 'Unassigned') => value(item, ['title', 'name'], fallback);
 const getId = (item) => value(item, ['_id', 'id']);
+// Linked course/subject/lesson arrive filled in ({ _id, title }) or as a bare id.
+const refId = (ref) => (typeof ref === 'string' ? ref : getId(ref));
 
 const AssignmentsPage = () => {
   usePageTitle('Assignments');
@@ -85,6 +91,12 @@ const AssignmentsPage = () => {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
+  // One page of assignments from the server, plus its total and the overall counts.
+  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [counts, setCounts] = useState({ all: 0, published: 0, overdue: 0, needsReview: 0 });
+  const latestRequest = useRef(0);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm());
@@ -94,54 +106,59 @@ const AssignmentsPage = () => {
   const [submissionsFor, setSubmissionsFor] = useState(null);
   const [submissions, setSubmissions] = useState([]);
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
+  const [submissionsPage, setSubmissionsPage] = useState(1);
+  const [submissionsTotal, setSubmissionsTotal] = useState(0);
   const [submissionsError, setSubmissionsError] = useState('');
   const [grading, setGrading] = useState(null);
 
-  const load = async () => {
+  const loadAssignments = useCallback(async () => {
+    // Only the newest request may update the list (filters can change mid-load).
+    const request = ++latestRequest.current;
     setLoading(true);
     setError('');
     try {
-      const [assignmentResponse, courseResponse, subjectResponse, videoResponse] = await Promise.all([
-        apiClient.get('/admin/assignments'),
-        apiClient.get('/courses'),
-        apiClient.get('/subjects'),
-        apiClient.get('/videos'),
-      ]);
-      setAssignments(extractItems(assignmentResponse.data));
-      setCourses(extractItems(courseResponse.data));
-      setSubjects(extractItems(subjectResponse.data));
-      setVideos(extractItems(videoResponse.data));
-    } catch (err) {
-      setError(err.message || 'Could not load assignments.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { load(); }, []);
-
-  const filteredAssignments = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return assignments
-      .filter((assignment) => {
-        if (status === 'published' && !value(assignment, ['isPublished', 'published'], false)) return false;
-        if (status === 'draft' && value(assignment, ['isPublished', 'published'], false)) return false;
-        if (status === 'overdue' && !isPast(value(assignment, ['dueAt', 'dueDate']))) return false;
-        if (!query) return true;
-        return [assignment.title, assignment.instructions, assignment.course?.title, assignment.subject?.name, assignment.video?.title]
-          .filter(Boolean)
-          .some((field) => String(field).toLowerCase().includes(query));
-      })
-      .sort((a, b) => {
-        const dateA = new Date(value(a, ['dueAt', 'dueDate'], '9999-12-31')).getTime();
-        const dateB = new Date(value(b, ['dueAt', 'dueDate'], '9999-12-31')).getTime();
-        return dateA - dateB;
+      const response = await apiClient.get('/admin/assignments', {
+        params: { page, limit: PAGE_SIZE, search: searchTerm.trim() || undefined, status: status === 'all' ? undefined : status },
       });
-  }, [assignments, search, status]);
+      if (request !== latestRequest.current) return;
+      const items = extractItems(response.data);
+      // The last item on the last page was removed: show the page before it.
+      if (!items.length && page > 1) setPage(page - 1);
+      setAssignments(items);
+      setTotal(response.data?.total || 0);
+      if (response.data?.counts) setCounts(response.data.counts);
+    } catch (err) {
+      if (request === latestRequest.current) setError(err.message || 'Could not load assignments.');
+    } finally {
+      if (request === latestRequest.current) setLoading(false);
+    }
+  }, [page, searchTerm, status]);
 
-  const publishedCount = assignments.filter((item) => Boolean(value(item, ['isPublished', 'published'], false))).length;
-  const overdueCount = assignments.filter((item) => isPast(value(item, ['dueAt', 'dueDate']))).length;
-  const reviewCount = assignments.reduce((sum, item) => sum + Number(value(item, ['pendingSubmissions', 'submissionsPending', 'needsReview'], 0) || 0), 0);
+  useEffect(() => { loadAssignments(); }, [loadAssignments]);
+
+  // Course, subject and lesson lists for the form's dropdowns.
+  useEffect(() => {
+    Promise.all([apiClient.get('/courses'), apiClient.get('/subjects'), apiClient.get('/videos')])
+      .then(([courseResponse, subjectResponse, videoResponse]) => {
+        setCourses(extractItems(courseResponse.data));
+        setSubjects(extractItems(subjectResponse.data));
+        setVideos(extractItems(videoResponse.data));
+      })
+      .catch((err) => setError(err.message || 'Could not load assignments.'));
+  }, []);
+
+  // Debounce the search box into the server-side `search` param.
+  useEffect(() => {
+    const timer = setTimeout(() => setSearchTerm(search), 350);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // A new search or tab starts again from the first page.
+  useEffect(() => { setPage(1); }, [searchTerm, status]);
+
+  const publishedCount = counts.published;
+  const overdueCount = counts.overdue;
+  const reviewCount = counts.needsReview;
 
   const openCreate = () => {
     setEditing(null);
@@ -155,9 +172,9 @@ const AssignmentsPage = () => {
     setForm({
       title: assignment.title || '',
       instructions: assignment.instructions || assignment.description || '',
-      courseId: getId(assignment.course) || assignment.courseId || '',
-      subjectId: getId(assignment.subject) || assignment.subjectId || '',
-      videoId: getId(assignment.video) || assignment.videoId || '',
+      courseId: getId(assignment.course) || refId(assignment.courseId) || '',
+      subjectId: getId(assignment.subject) || refId(assignment.subjectId) || '',
+      videoId: getId(assignment.video) || refId(assignment.videoId) || '',
       releaseAt: toDateInput(value(assignment, ['releaseAt', 'availableFrom'])),
       dueAt: toDateInput(value(assignment, ['dueAt', 'dueDate'])),
       maxPoints: String(value(assignment, ['maxPoints', 'points'], 100)),
@@ -213,7 +230,7 @@ const AssignmentsPage = () => {
       if (editing) await apiClient.put(`/admin/assignments/${getId(editing)}`, payload);
       else await apiClient.post('/admin/assignments', payload);
       closeForm();
-      await load();
+      await loadAssignments();
     } catch (err) {
       setFormError(err.message || 'Failed to save assignment.');
     } finally {
@@ -226,21 +243,26 @@ const AssignmentsPage = () => {
     try {
       await apiClient.delete(`/admin/assignments/${getId(deleteTarget)}`);
       setDeleteTarget(null);
-      await load();
+      await loadAssignments();
     } catch (err) {
       setError(err.message || 'Failed to delete assignment.');
       setDeleteTarget(null);
     }
   };
 
-  const openSubmissions = async (assignment) => {
+  // One page of an assignment's submissions at a time.
+  const openSubmissions = async (assignment, pageNumber = 1) => {
     setSubmissionsFor(assignment);
     setSubmissions([]);
     setSubmissionsError('');
     setSubmissionsLoading(true);
+    setSubmissionsPage(pageNumber);
     try {
-      const response = await apiClient.get(`/admin/assignments/${getId(assignment)}/submissions`);
+      const response = await apiClient.get(`/admin/assignments/${getId(assignment)}/submissions`, {
+        params: { page: pageNumber, limit: SUBMISSIONS_PAGE_SIZE },
+      });
       setSubmissions(extractItems(response.data));
+      setSubmissionsTotal(response.data?.total || 0);
     } catch (err) {
       setSubmissionsError(err.message || 'Could not load submissions.');
     } finally {
@@ -289,7 +311,7 @@ const AssignmentsPage = () => {
 
           <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
-              ['Total', assignments.length, FiFileText],
+              ['Total', counts.all, FiFileText],
               ['Published', publishedCount, FiCheck],
               ['Overdue', overdueCount, FiClock],
               ['Needs review', reviewCount, FiUsers],
@@ -307,15 +329,15 @@ const AssignmentsPage = () => {
             </div>
           </div>
 
-          {loading ? <Spinner /> : error ? <ErrorState message={error} onRetry={load} /> : filteredAssignments.length === 0 ? <div className={cardClass}><EmptyState icon={FiFileText} title={search || status !== 'all' ? 'No assignments match this view' : 'No assignments yet'} description="Create an assignment to give learners a focused practice step." action={<button type="button" onClick={openCreate} className="mt-2 rounded-xl bg-[#701845]/70 px-4 py-2 text-sm font-semibold text-white">Create assignment</button>} /></div> : (
+          {loading ? <Spinner /> : error ? <ErrorState message={error} onRetry={loadAssignments} /> : assignments.length === 0 ? <div className={cardClass}><EmptyState icon={FiFileText} title={search || status !== 'all' ? 'No assignments match this view' : 'No assignments yet'} description="Create an assignment to give learners a focused practice step." action={<button type="button" onClick={openCreate} className="mt-2 rounded-xl bg-[#701845]/70 px-4 py-2 text-sm font-semibold text-white">Create assignment</button>} /></div> : (
             <div className={`${cardClass} overflow-hidden`}>
               <div className="hidden grid-cols-[minmax(0,1.6fr)_minmax(120px,1fr)_minmax(125px,0.9fr)_auto] gap-4 border-b border-white/10 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40 md:grid"><span>Assignment</span><span>Scope</span><span>Due</span><span>Actions</span></div>
-              <div className="divide-y divide-white/10">{filteredAssignments.map((assignment) => {
+              <div className="divide-y divide-white/10">{assignments.map((assignment) => {
                 const published = Boolean(value(assignment, ['isPublished', 'published'], false));
                 const dueAt = value(assignment, ['dueAt', 'dueDate']);
-                const courseName = getName(assignment.course, assignment.courseId ? 'Course linked' : 'All courses');
-                const subjectName = getName(assignment.subject, assignment.subjectId ? 'Subject linked' : 'All subjects');
-                const videoName = getName(assignment.video, assignment.videoId ? 'Lesson linked' : 'All lessons');
+                const courseName = getName(assignment.course || assignment.courseId, assignment.courseId ? 'Course linked' : 'All courses');
+                const subjectName = getName(assignment.subject || assignment.subjectId, assignment.subjectId ? 'Subject linked' : 'All subjects');
+                const videoName = getName(assignment.video || assignment.videoId, assignment.videoId ? 'Lesson linked' : 'All lessons');
                 const pending = Number(value(assignment, ['pendingSubmissions', 'submissionsPending', 'needsReview'], 0) || 0);
                 return <div key={getId(assignment)} className="grid gap-3 px-4 py-4 transition hover:bg-white/[0.03] md:grid-cols-[minmax(0,1.6fr)_minmax(120px,1fr)_minmax(125px,0.9fr)_auto] md:items-center md:gap-4 md:px-5">
                   <div className="min-w-0"><div className="flex items-start gap-3"><span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#701845]/35 text-[#EFB078]"><FiBookOpen size={15} /></span><div className="min-w-0"><h2 className="break-words text-sm font-semibold text-white">{assignment.title || 'Untitled assignment'}</h2><p className="mt-1 line-clamp-2 text-xs text-white/50">{assignment.instructions || 'No instructions added yet.'}</p></div></div><div className="mt-2 flex flex-wrap items-center gap-2 pl-11 text-[11px] text-white/45"><span className={`rounded-full px-2 py-0.5 ${published ? 'bg-emerald-400/15 text-emerald-300' : 'bg-white/10 text-white/55'}`}>{published ? 'Published' : 'Draft'}</span>{pending > 0 && <span className="text-amber-300">{pending} awaiting review</span>}</div></div>
@@ -324,6 +346,7 @@ const AssignmentsPage = () => {
                   <div className="flex items-center gap-1 pl-11 md:justify-end md:pl-0"><button type="button" title="Review submissions" onClick={() => openSubmissions(assignment)} className="inline-flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 text-xs text-white/70 hover:bg-white/10"><FiUsers size={14} /><span className="hidden lg:inline">Review</span></button><button type="button" title="Edit assignment" onClick={() => openEdit(assignment)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 hover:bg-white/10"><FiEdit2 size={14} /></button><button type="button" title="Delete assignment" onClick={() => setDeleteTarget(assignment)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-300/15 bg-rose-400/5 text-rose-200/70 hover:bg-rose-400/10"><FiTrash2 size={14} /></button></div>
                 </div>;
               })}</div>
+              <div className="px-4"><Pagination page={page} total={total} limit={PAGE_SIZE} onChange={setPage} label="assignments" /></div>
             </div>
           )}
         </main>
@@ -344,7 +367,7 @@ const AssignmentsPage = () => {
       </Modal>}
 
       {submissionsFor && <Modal title="Submission review" subtitle={submissionsFor.title || 'Assignment'} onClose={() => setSubmissionsFor(null)} maxWidth="max-w-3xl">
-        {submissionsLoading ? <Spinner /> : submissionsError ? <ErrorState message={submissionsError} onRetry={() => openSubmissions(submissionsFor)} /> : submissions.length === 0 ? <EmptyState icon={FiUsers} title="No submissions yet" description="Learner submissions will appear here when they turn in this assignment." /> : <div className="space-y-3">{submissions.map((submission) => { const learner = submission.user || submission.student || {}; const id = getId(submission); const rawMaxPoints = Number(value(submissionsFor, ['maxPoints', 'points'], 100)); const maxPoints = Number.isFinite(rawMaxPoints) && rawMaxPoints > 0 ? rawMaxPoints : 100; const statusValue = submission.status || 'submitted'; if (isRubricOn(submissionsFor.rubric)) return <div key={id} className="rounded-xl border border-white/10 bg-white/[0.03] p-4"><SubmissionPanel submission={submissionForPanel(submission, submissionsFor)} onSaved={() => openSubmissions(submissionsFor)} /></div>; return <div key={id} className="rounded-xl border border-white/10 bg-white/[0.03] p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><div className="flex items-center gap-2 text-sm font-semibold text-white"><FiUser className="text-[#EFB078]" size={14} />{learner.name || learner.fullName || learner.phone || submission.userName || 'Learner'}</div><p className="mt-1 text-xs text-white/45">Submitted {displayDate(submission.submittedAt || submission.createdAt)}</p></div><span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${statusValue === 'graded' ? 'bg-emerald-400/15 text-emerald-300' : statusValue === 'returned' ? 'bg-amber-400/15 text-amber-200' : 'bg-white/10 text-white/65'}`}>{statusValue}</span></div><p className="mt-3 whitespace-pre-wrap break-words rounded-lg bg-black/20 p-3 text-sm text-white/70">{submission.text || submission.answer || submission.content || 'No written response. Check attached files in the learner record.'}</p><div className="mt-3 grid gap-2 sm:grid-cols-[130px_1fr_auto]"><input type="number" min="0" max={maxPoints} value={submission.grade ?? submission.score ?? ''} onChange={(event) => { setSubmissionsError(''); setSubmissions((current) => current.map((item) => getId(item) === id ? { ...item, grade: event.target.value } : item)); }} placeholder="Points" className={inputClass} /><input maxLength="10000" value={submission.feedback || ''} onChange={(event) => setSubmissions((current) => current.map((item) => getId(item) === id ? { ...item, feedback: event.target.value } : item))} placeholder="Feedback for learner" className={inputClass} /><button type="button" disabled={grading === id} onClick={() => { const rawGrade = submission.grade ?? submission.score; const grade = Number(rawGrade); if (rawGrade === undefined || rawGrade === null || String(rawGrade).trim() === '' || !Number.isFinite(grade) || grade < 0 || grade > maxPoints) { setSubmissionsError(`Grade must be between 0 and ${maxPoints}.`); return; } updateSubmission(submission, { grade, feedback: submission.feedback || '', status: 'graded' }); }} className="inline-flex items-center justify-center gap-1 rounded-xl bg-[#701845]/75 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"><FiCheck size={14} />{grading === id ? 'Saving' : 'Save grade'}</button></div></div>; })}</div>}
+        {submissionsLoading ? <Spinner /> : submissionsError ? <ErrorState message={submissionsError} onRetry={() => openSubmissions(submissionsFor, submissionsPage)} /> : submissions.length === 0 ? <EmptyState icon={FiUsers} title="No submissions yet" description="Learner submissions will appear here when they turn in this assignment." /> : <><div className="space-y-3">{submissions.map((submission) => { const learner = (submission.userId && typeof submission.userId === 'object' ? submission.userId : null) || submission.user || submission.student || {}; const id = getId(submission); const rawMaxPoints = Number(value(submissionsFor, ['maxPoints', 'points'], 100)); const maxPoints = Number.isFinite(rawMaxPoints) && rawMaxPoints > 0 ? rawMaxPoints : 100; const statusValue = submission.status || 'submitted'; if (isRubricOn(submissionsFor.rubric)) return <div key={id} className="rounded-xl border border-white/10 bg-white/[0.03] p-4"><SubmissionPanel submission={submissionForPanel(submission, submissionsFor)} onSaved={() => openSubmissions(submissionsFor, submissionsPage)} /></div>; return <div key={id} className="rounded-xl border border-white/10 bg-white/[0.03] p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><div className="flex items-center gap-2 text-sm font-semibold text-white"><FiUser className="text-[#EFB078]" size={14} />{learner.name || learner.fullName || learner.phone || submission.userName || 'Learner'}{learner.class ? <span className="font-normal text-white/50">· Class {learner.class}</span> : null}</div><p className="mt-1 text-xs text-white/45">Submitted {displayDate(submission.submittedAt || submission.createdAt)}</p></div><span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${statusValue === 'graded' ? 'bg-emerald-400/15 text-emerald-300' : statusValue === 'returned' ? 'bg-amber-400/15 text-amber-200' : 'bg-white/10 text-white/65'}`}>{statusValue}</span></div><p className="mt-3 whitespace-pre-wrap break-words rounded-lg bg-black/20 p-3 text-sm text-white/70">{submission.text || submission.answer || submission.content || 'No written response. Check attached files in the learner record.'}</p><div className="mt-3 grid gap-2 sm:grid-cols-[130px_1fr_auto]"><input type="number" min="0" max={maxPoints} value={submission.grade ?? submission.score ?? ''} onChange={(event) => { setSubmissionsError(''); setSubmissions((current) => current.map((item) => getId(item) === id ? { ...item, grade: event.target.value } : item)); }} placeholder="Points" className={inputClass} /><input maxLength="10000" value={submission.feedback || ''} onChange={(event) => setSubmissions((current) => current.map((item) => getId(item) === id ? { ...item, feedback: event.target.value } : item))} placeholder="Feedback for learner" className={inputClass} /><button type="button" disabled={grading === id} onClick={() => { const rawGrade = submission.grade ?? submission.score; const grade = Number(rawGrade); if (rawGrade === undefined || rawGrade === null || String(rawGrade).trim() === '' || !Number.isFinite(grade) || grade < 0 || grade > maxPoints) { setSubmissionsError(`Grade must be between 0 and ${maxPoints}.`); return; } updateSubmission(submission, { grade, feedback: submission.feedback || '', status: 'graded' }); }} className="inline-flex items-center justify-center gap-1 rounded-xl bg-[#701845]/75 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"><FiCheck size={14} />{grading === id ? 'Saving' : 'Save grade'}</button></div></div>; })}</div><Pagination page={submissionsPage} total={submissionsTotal} limit={SUBMISSIONS_PAGE_SIZE} onChange={(pageNumber) => openSubmissions(submissionsFor, pageNumber)} label="submissions" /></>}
       </Modal>}
 
       {deleteTarget && <ConfirmDialog title="Delete assignment" description={`Delete “${deleteTarget.title || 'this assignment'}”? Existing submissions may become unavailable.`} cancelLabel="Keep assignment" confirmLabel="Delete" confirmVariant="danger" onCancel={() => setDeleteTarget(null)} onConfirm={deleteAssignment} />}

@@ -7,6 +7,7 @@ const VideoProgress = require('../models/videoProgress');
 const VideoQuizAttempt = require('../models/videoQuizAttempt');
 const { authenticateAdmin, optionalToken } = require('../middlewares/auth');
 const { learnerSubjects, isScopedLearner } = require('../services/learnerScope');
+const { shapeVideo } = require('../services/videoShape');
 const {
     handoutUpload,
     uploadVideo,
@@ -31,13 +32,6 @@ const readBool = (value, fallback) => {
     return String(value) !== 'false';
 };
 
-const isUpcoming = (releaseDate) => {
-    if (!releaseDate) return false;
-    const parsed = new Date(releaseDate);
-    if (Number.isNaN(parsed.getTime())) return false;
-    return parsed.getTime() > Date.now();
-};
-
 const normalizePracticeTimerMode = (value) =>
     ['none', 'overall', 'per-question', 'both'].includes(value) ? value : 'none';
 const normalizePracticeConfig = (body, existing = {}) => {
@@ -58,23 +52,6 @@ const normalizePracticeConfig = (body, existing = {}) => {
         practiceStartDate: body.practiceStartDate !== undefined && body.practiceStartDate !== '' ? new Date(body.practiceStartDate) : (existing.practiceStartDate || null),
         practiceEndDate: body.practiceEndDate !== undefined && body.practiceEndDate !== '' ? new Date(body.practiceEndDate) : (existing.practiceEndDate || null),
         practiceConditions: body.practiceConditions && typeof body.practiceConditions === 'object' ? body.practiceConditions : (existing.practiceConditions || {})
-    };
-};
-
-// Shapes one video for the response. Admin gets everything; public gets the
-// video URL withheld for not-yet-released episodes.
-const shapeVideo = (video, questionCount, isAdmin) => {
-    const obj = video.toObject ? video.toObject() : { ...video };
-    const upcoming = isUpcoming(obj.releaseDate);
-
-    if (!isAdmin && upcoming) {
-        obj.video = '';
-    }
-
-    return {
-        ...obj,
-        isUpcoming: upcoming,
-        questionCount: questionCount || 0
     };
 };
 
@@ -229,26 +206,17 @@ router.put('/:id', authenticateAdmin, (req, res, next) => {
                 speaker && mongoose.Types.ObjectId.isValid(speaker) ? speaker : null;
         }
 
+        // The edit form sends the current address back on every save, so only a
+        // new file or a different address replaces the video and its stored file.
+        let replacedKey = null;
         if (req.file) {
-            if (oldVideo.videoKey) {
-                try {
-                    await deleteFile(oldVideo.videoKey);
-                } catch (error) {
-                    console.warn('Could not delete old video from CDN:', error.message);
-                }
-            }
             updateData.video = getCdnUrl(req.file.key);
             updateData.videoKey = req.file.key;
-        } else if (video && typeof video === 'string') {
-            if (oldVideo.videoKey) {
-                try {
-                    await deleteFile(oldVideo.videoKey);
-                } catch (error) {
-                    console.warn('Could not delete old video from CDN:', error.message);
-                }
-            }
+            replacedKey = oldVideo.videoKey;
+        } else if (video && typeof video === 'string' && video !== oldVideo.video) {
             updateData.video = video;
             updateData.videoKey = null;
+            replacedKey = oldVideo.videoKey;
         }
 
         const updatedVideo = await Video.findByIdAndUpdate(
@@ -256,6 +224,15 @@ router.put('/:id', authenticateAdmin, (req, res, next) => {
             updateData,
             { new: true, runValidators: true }
         ).populate('subject', '_id name').populate('speaker', '_id name designation image');
+
+        // Delete the old file only after the new address is saved.
+        if (replacedKey) {
+            try {
+                await deleteFile(replacedKey);
+            } catch (error) {
+                console.warn('Could not delete old video from CDN:', error.message);
+            }
+        }
 
         const questionCount = await VideoQuestion.countDocuments({ videoId: updatedVideo._id });
         res.json({

@@ -53,6 +53,10 @@ void main() {
     expect(linkedAsIds.subjectId, 's2');
     expect(unlinked.courseId, isNull);
     expect(unlinked.subjectId, isNull);
+    // The chapter's name shows on the list and the assignment page.
+    expect(linkedAsRecords.subject, 'Letters');
+    expect(linkedAsIds.subject, isEmpty, reason: 'a bare id is not a name');
+    expect(unlinked.subject, isEmpty);
   });
 
   test('reads what it is marked out of and the teacher mark', () {

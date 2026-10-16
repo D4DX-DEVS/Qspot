@@ -343,11 +343,12 @@ class VideoProgressService {
     }
   }
 
-  /// All video ids this user has progress on, keyed by video id.
-  static Future<Map<String, VideoProgressStatus>> fetchAll() async {
+  /// All video ids this user has progress on, keyed by video id. Null when it
+  /// could not be fetched, so callers keep what they already show.
+  static Future<Map<String, VideoProgressStatus>?> fetchAll() async {
     try {
       final body = await ApiClient.get('/api/video-progress');
-      if (body is! List) return {};
+      if (body is! List) return null;
       return {
         for (final item in body.whereType<Map>())
           (item['videoId'] ?? '').toString(): VideoProgressStatus.fromJson(
@@ -355,7 +356,7 @@ class VideoProgressService {
           ),
       };
     } catch (_) {
-      return {};
+      return null;
     }
   }
 

@@ -63,7 +63,7 @@ const SubjectCard = ({ subject, onClick }) => {
 const SubjectsPage = () => {
   usePageTitle('Subjects');
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [subjects, setSubjects] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -89,6 +89,10 @@ const SubjectsPage = () => {
       if (target) {
         setEditingSubject(target);
         setShowEditModal(true);
+        // Opened from Curriculum: open it once, not again after every save.
+        const next = new URLSearchParams(searchParams);
+        next.delete('subject');
+        setSearchParams(next, { replace: true });
       }
     } catch (err) {
       setError(err.message || 'Failed to fetch subjects');

@@ -33,4 +33,8 @@ const loginPhoneLimiter = () => failedAttempts(MAX_FAILED_PER_PHONE, phoneKey);
 // Stops one device trying the same date against many numbers.
 const loginIpLimiter = () => failedAttempts(MAX_FAILED_PER_IP);
 
-module.exports = { loginPhoneLimiter, loginIpLimiter, phoneKey, MAX_FAILED_PER_PHONE, MAX_FAILED_PER_IP };
+// The admin panel has one login with full control: stop password guessing.
+const MAX_FAILED_ADMIN = 5;
+const adminLoginLimiter = () => failedAttempts(MAX_FAILED_ADMIN);
+
+module.exports = { loginPhoneLimiter, loginIpLimiter, adminLoginLimiter, phoneKey, MAX_FAILED_PER_PHONE, MAX_FAILED_PER_IP, MAX_FAILED_ADMIN };

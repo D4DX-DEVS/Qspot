@@ -41,7 +41,11 @@ const AdminLogin = () => {
                 setError('Login failed. Please try again.');
             }
         } catch (err) {
-            setError(err.message || 'Login failed. Please try again.');
+            // Here a 401 means wrong details, not an expired session.
+            const status = err.response?.status;
+            if (status === 401) setError('Wrong username or password.');
+            else if (status === 429) setError('Too many failed attempts. Please try again in 15 minutes.');
+            else setError(err.message || 'Login failed. Please try again.');
         } finally {
             setLoading(false);
         }
