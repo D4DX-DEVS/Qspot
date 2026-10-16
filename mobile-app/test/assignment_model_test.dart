@@ -140,6 +140,30 @@ void main() {
     expect(open.isClosed, isFalse);
   });
 
+  test('sent or missed work is finished; returned work is not', () {
+    final missed = AssignmentModel.fromJson({
+      'id': 'a7',
+      'dueAt': '2026-01-01T00:00:00Z',
+    });
+    expect(missed.isFinished, isTrue);
+    final sent = AssignmentModel.fromJson({
+      'id': 'a8',
+      'submission': {'status': 'submitted', 'submittedAt': '2025-12-31'},
+    });
+    expect(sent.isFinished, isTrue);
+    final returned = AssignmentModel.fromJson({
+      'id': 'a9',
+      'dueAt': '2026-01-01T00:00:00Z',
+      'submission': {'status': 'returned', 'submittedAt': '2025-12-31'},
+    });
+    expect(returned.isFinished, isFalse);
+    final open = AssignmentModel.fromJson({
+      'id': 'a10',
+      'dueAt': '2099-01-01T00:00:00Z',
+    });
+    expect(open.isFinished, isFalse);
+  });
+
   test('missing optional values are handled safely', () {
     final item = AssignmentModel.fromJson({'id': 'a2'});
     expect(item.instructions, isEmpty);

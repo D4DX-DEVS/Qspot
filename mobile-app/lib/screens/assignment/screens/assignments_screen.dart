@@ -103,16 +103,16 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
           }
           final sorted = [...assignments]
             ..sort((a, b) {
-              if (a.isSubmitted != b.isSubmitted) return a.isSubmitted ? 1 : -1;
+              if (a.isFinished != b.isFinished) return a.isFinished ? 1 : -1;
               final aDue = a.dueAt ?? DateTime(2100);
               final bDue = b.dueAt ?? DateTime(2100);
               return aDue.compareTo(bDue);
             });
           final visible = switch (_view) {
             _AssignmentView.todo =>
-              sorted.where((item) => !item.isSubmitted).toList(),
+              sorted.where((item) => !item.isFinished).toList(),
             _AssignmentView.history =>
-              sorted.where((item) => item.isSubmitted).toList(),
+              sorted.where((item) => item.isFinished).toList(),
             _AssignmentView.all => sorted,
           };
           return RefreshIndicator(
@@ -136,10 +136,8 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                       selected: _view,
                       onChanged: (value) => setState(() => _view = value),
                       counts: (
-                        todo: sorted.where((item) => !item.isSubmitted).length,
-                        history: sorted
-                            .where((item) => item.isSubmitted)
-                            .length,
+                        todo: sorted.where((item) => !item.isFinished).length,
+                        history: sorted.where((item) => item.isFinished).length,
                         all: sorted.length,
                       ),
                     ),
@@ -156,7 +154,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                           ? 'No Assignment History Yet'
                           : 'No Assignments To Do',
                       message: _view == _AssignmentView.history
-                          ? 'Submitted assignments will appear here.'
+                          ? 'Submitted and past-due assignments will appear here.'
                           : 'You have no pending assignments right now.',
                     ),
                   );
