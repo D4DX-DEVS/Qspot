@@ -97,19 +97,9 @@ class VideoModel {
   // Factory constructor for JSON deserialization (server shape, or the
   // app's own cached shape from [toJson] — both round-trip cleanly).
   factory VideoModel.fromJson(Map<String, dynamic> json) {
-    DateTime? parsedDate;
-
-    if (json['releaseDate'] != null) {
-      try {
-        final dateStr = json['releaseDate'].toString();
-        final formattedStr = dateStr.replaceAll('.', ':');
-        parsedDate = DateTime.parse(formattedStr);
-      } catch (_) {}
-    } else if (json['date'] != null) {
-      try {
-        parsedDate = DateTime.parse(json['date'].toString());
-      } catch (_) {}
-    }
+    final DateTime? parsedDate = json['releaseDate'] != null
+        ? _readDate(json['releaseDate'])
+        : _readDate(json['date']);
 
     // Handle subject (nested object from the API, or flat id/name from cache).
     String? subId;
@@ -188,6 +178,17 @@ class VideoModel {
       isUpcoming: upcoming,
       progress: jsonInt(json['progress']) ?? 0,
     );
+  }
+
+  /// Reads a release date ("2026-09-15", or the admin panel's full
+  /// "2026-10-20T04:30:00.000Z") in the phone's own time zone. Older rows that
+  /// wrote times with dots ("10.30") are still read as before.
+  static DateTime? _readDate(Object? raw) {
+    if (raw == null) return null;
+    final text = raw.toString();
+    final parsed =
+        DateTime.tryParse(text) ?? DateTime.tryParse(text.replaceAll('.', ':'));
+    return parsed?.toLocal();
   }
 
   // Convert to JSON for local (1-hour) caching. Round-trips every field so

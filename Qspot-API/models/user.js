@@ -92,7 +92,12 @@ const userSchema = new mongoose.Schema({
             metadata: { type: mongoose.Schema.Types.Mixed, default: {} }
         }],
         default: []
-    }
+    },
+    // Running totals beside learningEvents, which keeps only the latest 500:
+    // trimming old events never lowers a learner's XP or best streak.
+    // xpTotal is missing on older accounts until it is filled from their events.
+    xpTotal: { type: Number },
+    bestStreak: { type: Number, default: 0 }
 }, {
     timestamps: true
 });

@@ -13,6 +13,7 @@ import 'package:qspot/screens/subject/provider/subject_provider.dart';
 import 'package:qspot/screens/video/provider/video_provider.dart';
 import 'package:qspot/routes/app_routes.dart';
 import 'package:qspot/services/api_client.dart';
+import 'package:qspot/services/session.dart';
 import 'package:qspot/services/common/storage_service.dart';
 import 'package:qspot/services/telemetry/telemetry.dart';
 
@@ -42,6 +43,16 @@ void main() async {
 
   // Initialize alarm service
   await AlarmService().initialize();
+
+  // A sign-in that ran out clears that account's data like Log out does, so a
+  // shared phone's next student never sees it. Unsent quiz answers stay for
+  // the same student's next sign-in.
+  ApiClient.onSessionExpired = () async {
+    final context = navigatorKey.currentContext;
+    if (context != null) {
+      await clearAccountData(context, keepUnsentQuizzes: true);
+    }
+  };
 
   runApp(const QSpotApp());
 }

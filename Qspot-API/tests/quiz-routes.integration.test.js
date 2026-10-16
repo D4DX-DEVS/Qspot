@@ -550,4 +550,239 @@ describe('quiz routes', { skip }, () => {
         const { token } = await student();
         assert.equal((await put(route, token, { ...fields, dob: '2011-01-01' })).status, 403, 'admins only');
     });
+
+    it('editing an uploaded video keeps its file unless the address really changes', async () => {
+        const mongoose = require('mongoose');
+        const uploaded = 'https://cdn.example.com/videos/it-lesson.mp4';
+        const video = await models.Video.create({
+            title: 'Uploaded Lesson', video: uploaded, videoKey: 'videos/it-lesson.mp4', subject: new mongoose.Types.ObjectId()
+        });
+        created.videos.push(video._id);
+        const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+        const route = `/api/videos/${video._id}`;
+
+        // The edit form sends the current address back with every save.
+        assert.equal((await put(route, admin, { title: 'Renamed Lesson', video: uploaded })).status, 200);
+        let saved = await models.Video.findById(video._id).lean();
+        assert.equal(saved.title, 'Renamed Lesson');
+        assert.equal(saved.video, uploaded);
+        assert.equal(saved.videoKey, 'videos/it-lesson.mp4', 'the stored file is kept');
+
+        assert.equal((await put(route, admin, { video: 'https://youtu.be/integration' })).status, 200);
+        saved = await models.Video.findById(video._id).lean();
+        assert.equal(saved.video, 'https://youtu.be/integration');
+        assert.equal(saved.videoKey, null, 'a new address replaces the stored file');
+    });
+
+    it('practice marks the button picked, even when the options are numbers', async () => {
+        // "What is 1 + 1?" with buttons 1, 2, 3, 4: the right one is the 2nd (button 1).
+        const numbers = JSON.stringify(['1', '2', '3', '4']);
+        const pick = async (button) => {
+            const { user, token } = await student();
+            const { video, items } = await practiceLesson(user._id);
+            await models.VideoQuestion.updateMany({ videoId: video._id }, { options_en: numbers, options_ml: numbers, correct_answer: '2' });
+            const sent = await call('/api/user/video-quiz', token, { videoId: video._id, answers: practiceAnswers(items, button) });
+            assert.equal(sent.status, 201);
+            return sent.body.attempt.score;
+        };
+
+        assert.equal(await pick(2), 0, 'the 3rd button ("3") is wrong, though the app sends "2"');
+        assert.equal(await pick(1), 2, 'the 2nd button ("2") is right');
+        assert.equal(await pick(-1), 0, 'unanswered');
+
+        const { user, token } = await student();
+        const { video, items } = await practiceLesson(user._id);
+        const text = await call('/api/user/video-quiz', token, { videoId: video._id, answers: items.map((q) => ({ questionId: q._id, attemptedAnswer: 'A' })) });
+        assert.equal(text.body.attempt.score, 0, 'only button numbers are marked');
+    });
+
+    it('an unreleased lesson shows students only its coming-soon card, and no storage file name ever', async () => {
+        const mongoose = require('mongoose');
+        const subject = new mongoose.Types.ObjectId();
+        const upcoming = await models.Video.create({
+            title: 'Coming Lesson', description: 'secret notes', video: 'https://cdn.example.com/videos/coming.mp4', videoKey: 'videos/coming.mp4',
+            subject, order: 2, releaseDate: new Date(Date.now() + 24 * 60 * MINUTE).toISOString(),
+            learnText: 'secret', downloads: [{ title: 'Handout', url: 'https://cdn.example.com/handouts/h.pdf', key: 'handouts/h.pdf' }]
+        });
+        const released = await models.Video.create({
+            title: 'Released Lesson', video: 'https://cdn.example.com/videos/out.mp4', videoKey: 'videos/out.mp4', subject, order: 1
+        });
+        created.videos.push(upcoming._id, released._id);
+        const card = ['_id', 'isUpcoming', 'order', 'questionCount', 'releaseDate', 'speaker', 'subject', 'title', 'video'];
+
+        const one = await call(`/api/videos/${upcoming._id}`);
+        assert.deepEqual(Object.keys(one.body).sort(), card);
+        assert.equal(one.body.video, '');
+        assert.equal(one.body.isUpcoming, true);
+
+        const list = await call(`/api/videos?subject=${subject}`);
+        assert.deepEqual(Object.keys(list.body.find((v) => v._id === String(upcoming._id))).sort(), card);
+        const out = list.body.find((v) => v._id === String(released._id));
+        assert.equal(out.video, 'https://cdn.example.com/videos/out.mp4');
+        assert.equal(out.videoKey, undefined, 'students never get the storage file name');
+
+        const { user, token } = await student();
+        await models.User.updateOne({ _id: user._id }, { bookmarks: [upcoming._id, released._id] });
+        const saved = await call('/api/user/bookmarks', token);
+        assert.deepEqual(Object.keys(saved.body.find((v) => v._id === String(upcoming._id))).sort(), card);
+        assert.equal(saved.body.find((v) => v._id === String(released._id)).videoKey, undefined);
+
+        const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+        const full = await call(`/api/videos/${upcoming._id}`, admin);
+        assert.equal(full.body.videoKey, 'videos/coming.mp4', 'the admin still sees everything');
+    });
+
+    it('a phone number the admin types with +91 or spaces still signs the student in', async () => {
+        const digits = `8${String(Math.floor(Math.random() * 1e9)).padStart(9, '0')}`;
+        const { user } = await student({ phone: digits, dob: new Date('2010-05-03') });
+        const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+        const route = `/api/admin/users/${user._id}`;
+        const fields = { name: 'Integration', class: '8' };
+
+        const typed = `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+        assert.equal((await put(route, admin, { ...fields, phone: typed })).status, 200);
+        assert.equal((await models.User.findById(user._id).lean()).phone, digits, 'saved as the 10 digits');
+        assert.equal((await call('/api/user/login', null, { phone: digits, dob: '2010-05-03' })).status, 200);
+
+        assert.equal((await put(route, admin, { ...fields, phone: '12345' })).status, 400, 'not a 10-digit number');
+        const { user: other } = await student({ phone: `7${digits.slice(1)}` });
+        assert.equal((await put(route, admin, { ...fields, phone: `0${other.phone}` })).status, 409, 'already used by another account');
+    });
+
+    it('admin search takes any symbol, and finds a student by a number typed with +91', async () => {
+        const digits = `6${String(Math.floor(Math.random() * 1e9)).padStart(9, '0')}`;
+        const { user } = await student({ phone: digits });
+        const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+        const users = (search) => call(`/api/admin/users?search=${encodeURIComponent(search)}`, admin);
+
+        const byPhone = await users(`+91 ${digits.slice(0, 5)} ${digits.slice(5)}`);
+        assert.equal(byPhone.status, 200);
+        assert.ok(byPhone.body.items.some((u) => String(u._id) === String(user._id)));
+        for (const search of ['(', '+', 'a+b@x.com', '[']) {
+            assert.equal((await users(search)).status, 200, search);
+        }
+
+        const { config } = await quiz();
+        assert.equal((await call(`/api/quiz-definitions/${config._id}/results?search=${encodeURIComponent('(')}`, admin)).status, 200);
+    });
+
+    it('the admin Q&A list pages on the server, with search, answered and teacher filters', async () => {
+        const Speaker = require('../models/speakers');
+        const Question = require('../models/question');
+        const tag = `qa${Date.now()}`;
+        const teacher = await Speaker.create({ name: `Teacher ${tag}`, image: 'https://example.com/t.png' });
+        const other = await Speaker.create({ name: `Other ${tag}`, image: 'https://example.com/o.png' });
+        const { user } = await student({ name: `Asker ${tag}` });
+        const rows = [];
+        for (let i = 0; i < 25; i += 1) {
+            rows.push({ description: `${tag} question ${i}`, subject: 'Fiqh', user: user._id, faculty: i < 20 ? teacher._id : other._id, answer: i < 5 ? 'Answered.' : null });
+        }
+        const made = await Question.insertMany(rows);
+        const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+        const list = (query) => call(`/api/questions/admin?${new URLSearchParams(query)}`, admin);
+
+        try {
+            const first = await list({ search: tag, limit: 10, page: 1 });
+            assert.equal(first.body.items.length, 10);
+            assert.equal(first.body.total, 25);
+            const third = await list({ search: tag, limit: 10, page: 3 });
+            assert.equal(third.body.items.length, 5);
+
+            assert.equal((await list({ search: tag, answered: 'true' })).body.total, 5);
+            assert.equal((await list({ search: tag, answered: 'false' })).body.total, 20);
+            assert.equal((await list({ search: tag, faculty: other.name })).body.total, 5);
+            assert.equal((await list({ search: `Asker ${tag}` })).body.total, 25, 'search finds the student name too');
+            assert.equal((await list({ search: '(' })).status, 200);
+
+            const counts = first.body.counts;
+            assert.ok(counts.all >= 25 && counts.answered >= 5 && counts.pending >= 20);
+            assert.equal(counts.all, counts.answered + counts.pending);
+        } finally {
+            await Question.deleteMany({ _id: { $in: made.map((q) => q._id) } });
+            await Speaker.deleteMany({ _id: { $in: [teacher._id, other._id] } });
+        }
+    });
+
+    it('the admin assignment list pages on the server, with search, status tabs and totals', async () => {
+        const tag = `as${Date.now()}`;
+        const past = new Date(Date.now() - 24 * 60 * MINUTE);
+        const future = new Date(Date.now() + 24 * 60 * MINUTE);
+        const rows = [];
+        for (let i = 0; i < 25; i += 1) {
+            // 0-9 published and overdue, 10-19 published and due later, 20-24 drafts with no deadline.
+            rows.push({ title: `${tag} ${i}`, instructions: i === 7 ? `find ${tag}-marker` : '', maxPoints: 10, isPublished: i < 20, dueAt: i < 10 ? past : i < 20 ? future : null });
+        }
+        const made = await models.Assignment.insertMany(rows);
+        created.assignments.push(...made.map((a) => a._id));
+        const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+        const list = (query) => call(`/api/admin/assignments?${new URLSearchParams(query)}`, admin);
+
+        const first = await list({ search: tag, limit: 10, page: 1 });
+        assert.equal(first.body.items.length, 10);
+        assert.equal(first.body.total, 25);
+        const last = await list({ search: tag, limit: 10, page: 3 });
+        assert.equal(last.body.items.length, 5);
+        assert.ok(last.body.items.every((a) => a.dueAt === null), 'no deadline comes last');
+
+        assert.equal((await list({ search: tag, status: 'published' })).body.total, 20);
+        assert.equal((await list({ search: tag, status: 'draft' })).body.total, 5);
+        assert.equal((await list({ search: tag, status: 'overdue' })).body.total, 10);
+        assert.equal((await list({ search: `${tag}-marker` })).body.total, 1, 'search reads the instructions too');
+        assert.equal((await list({ search: '(' })).status, 200);
+
+        const { counts } = first.body;
+        assert.ok(counts.all >= 25 && counts.published >= 20 && counts.overdue >= 10);
+        assert.equal(typeof counts.needsReview, 'number');
+    });
+
+    it('Today lists only the quizzes this student may open, like the Quizzes screen', async () => {
+        const { token } = await student({ class: '8' });
+        const quizTotal = async () => (await call('/api/user/today', token)).body.summary.quizzes.total;
+        const before = await quizTotal();
+
+        await quiz({ allowedClasses: ['10'] });
+        assert.equal(await quizTotal(), before, 'a Class 10 quiz is not counted for Class 8');
+        await quiz({ conditions: { requireCompletedVideo: true } });
+        assert.equal(await quizTotal(), before, 'nor one that needs a finished video first');
+        await quiz({ allowedClasses: ['8'] });
+        assert.equal(await quizTotal(), before + 1, 'a Class 8 quiz is');
+    });
+
+    it('XP and the best streak never go down when old learning events are trimmed', async () => {
+        const mongoose = require('mongoose');
+        // An account from before running totals: 500 finished quizzes (25 XP each), all on one day.
+        const events = Array.from({ length: 500 }, (_, i) => ({
+            type: 'quiz_completed', sourceType: 'quiz', sourceId: new mongoose.Types.ObjectId(), dayKey: '2026-01-01', occurredAt: new Date(Date.UTC(2026, 0, 1, 0, 0, i))
+        }));
+        const { user, token } = await student({ learningEvents: events });
+        await models.User.collection.updateOne({ _id: user._id }, { $set: { bestStreak: 30 } });
+        const stats = async () => (await call('/api/user/learning-stats', token)).body;
+
+        const before = await stats();
+        assert.equal(before.xp, 12500);
+        assert.equal(before.longestStreak, 30, 'a longer streak from events trimmed long ago is kept');
+
+        // A 501st event trims the oldest finished quiz from the list.
+        const { video } = await practiceLesson(user._id);
+        assert.equal((await call('/api/user/learning-stats/note-read', token, { videoId: video._id })).status, 201);
+        assert.equal((await models.User.findById(user._id).lean()).learningEvents.length, 500);
+        assert.equal((await stats()).xp, 12505, 'the note adds 5; the trimmed quiz keeps its 25');
+    });
+
+    it('the admin assignment list says how much work is waiting to be marked', async () => {
+        const title = `Awaiting ${Date.now()}`;
+        const assignment = await models.Assignment.create({ title, maxPoints: 10, isPublished: true });
+        created.assignments.push(assignment._id);
+        for (const status of ['submitted', 'late', 'graded', 'returned']) {
+            const { user } = await student();
+            await models.AssignmentSubmission.create({ assignmentId: assignment._id, userId: user._id, status, text: status });
+        }
+        const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+
+        const list = await call(`/api/admin/assignments?search=${encodeURIComponent(title)}`, admin);
+        assert.equal(list.status, 200);
+        const item = list.body.items.find((entry) => entry.id === String(assignment._id));
+        assert.equal(item.submissionCount, 4);
+        assert.equal(item.pendingSubmissions, 2, 'submitted and late work waits for marking; graded and returned do not');
+    });
 });

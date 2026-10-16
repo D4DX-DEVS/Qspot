@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FiAward, FiCheck, FiEye, FiRefreshCw, FiShield, FiUsers } from 'react-icons/fi';
 import Sidebar from '../components/Sidebar';
@@ -6,6 +6,7 @@ import CertificateViewer from '../components/certificates/CertificateViewer';
 import ClassMultiSelect from '../components/ui/ClassMultiSelect';
 import ErrorState from '../components/ui/ErrorState';
 import Spinner from '../components/ui/Spinner';
+import Pagination from '../components/ui/Pagination';
 import PageHeader from '../components/ui/PageHeader';
 import apiClient from '../api/client';
 import { formatDateTime } from '../utils/format';
@@ -13,6 +14,8 @@ import usePageTitle from '../hooks/usePageTitle';
 
 const cardClass = 'rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/80 via-[#1c0b18]/55 to-[#12060f]/80 shadow-[0_10px_32px_rgba(0,0,0,0.3)]';
 const inputClass = 'mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white focus:border-[#EFB078]/60 focus:outline-none';
+
+const ATTEMPTS_PAGE_SIZE = 20;
 
 const CertificatesPage = () => {
   usePageTitle('Certificates');
@@ -22,7 +25,14 @@ const CertificatesPage = () => {
 
   const [quizOptions, setQuizOptions] = useState([]);
   const [quiz, setQuiz] = useState(null);
+  // One page of the exam's attempts from the server, for picking students.
   const [attempts, setAttempts] = useState([]);
+  const [attemptsPage, setAttemptsPage] = useState(1);
+  const [attemptsTotal, setAttemptsTotal] = useState(0);
+  const [completedCount, setCompletedCount] = useState(0);
+  const [studentSearchInput, setStudentSearchInput] = useState('');
+  const [studentSearch, setStudentSearch] = useState('');
+  const latestAttemptsRequest = useRef(0);
   const [certificates, setCertificates] = useState([]);
   const [mode, setMode] = useState('criteria');
   const [minimumPercentage, setMinimumPercentage] = useState('0');
@@ -34,9 +44,16 @@ const CertificatesPage = () => {
   const [notice, setNotice] = useState('');
   const [viewing, setViewing] = useState(null);
 
+  // The exam picker lists every exam, fetched 100 at a time.
   const loadQuizOptions = async () => {
-    const response = await apiClient.get('/quiz-definitions', { params: { page: 1, limit: 100 } });
-    setQuizOptions(Array.isArray(response.data?.items) ? response.data.items : []);
+    const items = [];
+    for (let page = 1; ; page += 1) {
+      const response = await apiClient.get('/quiz-definitions', { params: { page, limit: 100 } });
+      const batch = Array.isArray(response.data?.items) ? response.data.items : [];
+      items.push(...batch);
+      if (!batch.length || items.length >= (response.data?.total || 0)) break;
+    }
+    setQuizOptions(items);
   };
 
   const loadExam = async (id = selectedQuizId) => {
@@ -50,14 +67,12 @@ const CertificatesPage = () => {
     try {
       setLoading(true);
       setError('');
-      const [quizResponse, resultResponse, certificateResponse] = await Promise.all([
+      const [quizResponse, certificateResponse] = await Promise.all([
         apiClient.get(`/quiz-definitions/${id}`),
-        apiClient.get(`/quiz-definitions/${id}/results`, { params: { page: 1, limit: 100 } }),
         apiClient.get(`/certificates/quiz/${id}`)
       ]);
       const loadedQuiz = quizResponse.data || {};
       setQuiz(loadedQuiz);
-      setAttempts(Array.isArray(resultResponse.data?.items) ? resultResponse.data.items : []);
       setCertificates(Array.isArray(certificateResponse.data?.items) ? certificateResponse.data.items : []);
       setMinimumPercentage(String(loadedQuiz.certificate?.minimumPercentage ?? 0));
       setClasses(Array.isArray(loadedQuiz.certificate?.eligibleClasses) ? loadedQuiz.certificate.eligibleClasses : []);
@@ -77,6 +92,43 @@ const CertificatesPage = () => {
     loadExam();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedQuizId]);
+
+  const loadAttempts = useCallback(async () => {
+    if (!selectedQuizId) return;
+    // Only the newest request may update the list (the search can change mid-load).
+    const request = ++latestAttemptsRequest.current;
+    try {
+      const response = await apiClient.get(`/quiz-definitions/${selectedQuizId}/results`, {
+        params: { page: attemptsPage, limit: ATTEMPTS_PAGE_SIZE, search: studentSearch.trim() || undefined },
+      });
+      if (request !== latestAttemptsRequest.current) return;
+      setAttempts(Array.isArray(response.data?.items) ? response.data.items : []);
+      setAttemptsTotal(response.data?.total || 0);
+      if (!studentSearch.trim()) setCompletedCount(response.data?.total || 0);
+    } catch (err) {
+      if (request === latestAttemptsRequest.current) setError(err.message || 'Failed to load certificate data.');
+    }
+  }, [selectedQuizId, attemptsPage, studentSearch]);
+
+  useEffect(() => {
+    loadAttempts();
+  }, [loadAttempts]);
+
+  // Debounce the student search into the server-side `search` param.
+  useEffect(() => {
+    const timer = setTimeout(() => setStudentSearch(studentSearchInput), 350);
+    return () => clearTimeout(timer);
+  }, [studentSearchInput]);
+
+  // Another exam or a new search starts again from the first page.
+  useEffect(() => {
+    setAttemptsPage(1);
+  }, [selectedQuizId, studentSearch]);
+
+  const refresh = () => {
+    loadExam();
+    loadAttempts();
+  };
 
   const ended = Boolean(quiz && new Date(quiz.endDate) <= new Date());
   const issuedUserIds = useMemo(() => new Set(certificates.map((item) => String(item.userId))), [certificates]);
@@ -141,7 +193,7 @@ const CertificatesPage = () => {
         <main className="flex-1 p-6 md:p-8 flex flex-col gap-6">
           <PageHeader
             title="Certificates"
-            actions={<button type="button" onClick={() => loadExam()} className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/75 hover:border-[#EFB078]/50"><FiRefreshCw size={13} /> Refresh</button>}
+            actions={<button type="button" onClick={refresh} className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white/75 hover:border-[#EFB078]/50"><FiRefreshCw size={13} /> Refresh</button>}
           />
 
           <section className={`${cardClass} p-5`}>
@@ -154,7 +206,7 @@ const CertificatesPage = () => {
             </label>
           </section>
 
-          {error && <ErrorState message={error} onRetry={() => loadExam()} />}
+          {error && <ErrorState message={error} onRetry={refresh} />}
           {notice && <div className="rounded-2xl border border-emerald-400/25 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">{notice}</div>}
 
           {loading ? <Spinner /> : quiz && (
@@ -164,7 +216,7 @@ const CertificatesPage = () => {
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#EFB078]">{quiz.assessmentType === 'practical' ? 'Practical exam' : 'Knowledge exam'}</p>
                     <h2 className="mt-2 text-2xl font-bold text-white">{quiz.title}</h2>
-                    <p className="mt-1 text-sm text-white/55">Ended {formatDateTime(quiz.endDate)} · {attempts.length} completed attempt(s)</p>
+                    <p className="mt-1 text-sm text-white/55">Ended {formatDateTime(quiz.endDate)} · {completedCount} completed attempt(s)</p>
                   </div>
                   <div className={`rounded-full px-3 py-1.5 text-xs font-semibold ${quiz.certificate?.enabled ? 'bg-emerald-400/15 text-emerald-200' : 'bg-white/10 text-white/55'}`}>
                     {quiz.certificate?.enabled ? 'Certificate enabled' : 'Certificate disabled'}
@@ -188,9 +240,11 @@ const CertificatesPage = () => {
               {mode === 'selected' && (
                 <section className={`${cardClass} p-5`}>
                   <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><FiUsers className="text-[#EFB078]" /><h2 className="text-lg font-semibold text-white">Select students</h2></div><span className="text-xs text-white/50">{selectedIds.size} selected</span></div>
+                  <input type="search" value={studentSearchInput} onChange={(event) => setStudentSearchInput(event.target.value)} placeholder="Search students by name or class" className={inputClass} />
                   <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-2">
                     {selectableAttempts.map((attempt) => <label key={attempt.attemptId} className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3 hover:border-[#EFB078]/40"><input type="checkbox" checked={selectedIds.has(String(attempt.userId))} onChange={() => toggleStudent(attempt.userId)} className="h-4 w-4 accent-[#EFB078]" /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-white">{attempt.name || 'Unknown'}</span><span className="text-xs text-white/50">Class {attempt.class || '—'} · {attempt.percentage}%</span></span>{issuedUserIds.has(String(attempt.userId)) && <FiCheck className="text-emerald-300" />}</label>)}
                   </div>
+                  <Pagination page={attemptsPage} total={attemptsTotal} limit={ATTEMPTS_PAGE_SIZE} onChange={setAttemptsPage} label="attempts" />
                 </section>
               )}
 

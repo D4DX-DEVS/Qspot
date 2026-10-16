@@ -223,11 +223,18 @@ const VideoQuestionsPage = () => {
     );
   };
 
+  // The correct mark follows its answer when another option is removed. Removing
+  // the correct option itself leaves none marked, so the admin picks again.
   const removeOption = (index) => {
+    if (form.options.length > 2 && form.correctIndex === index) {
+      setFormError('You removed the correct answer. Pick the new correct answer before saving.');
+    }
     setForm((prev) => {
       if (prev.options.length <= 2) return prev;
       const options = prev.options.filter((_, i) => i !== index);
-      const correctIndex = prev.correctIndex >= options.length ? 0 : prev.correctIndex;
+      let correctIndex = prev.correctIndex;
+      if (correctIndex === index) correctIndex = null;
+      else if (correctIndex !== null && correctIndex > index) correctIndex -= 1;
       return { ...prev, options, correctIndex };
     });
   };
@@ -931,7 +938,7 @@ const VideoQuestionsPage = () => {
                         type="radio"
                         name="correct-option"
                         checked={form.correctIndex === index}
-                        onChange={() => setForm({ ...form, correctIndex: index })}
+                        onChange={() => { setForm({ ...form, correctIndex: index }); setFormError(''); }}
                         className="h-4 w-4 accent-[#EFB078]"
                         aria-label={`Mark option ${index + 1} correct`}
                       />

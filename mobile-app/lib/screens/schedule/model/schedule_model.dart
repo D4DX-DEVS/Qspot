@@ -25,7 +25,8 @@ class ScheduleModel {
     final dateField = json['scheduleDate'] ?? json['date'];
     if (dateField != null) {
       try {
-        parsedDate = DateTime.parse(dateField.toString());
+        // The server sends UTC; show and compare in the phone's own time.
+        parsedDate = DateTime.parse(dateField.toString()).toLocal();
       } catch (e) {
         debugPrint('Error parsing schedule date: $e');
       }

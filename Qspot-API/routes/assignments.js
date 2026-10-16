@@ -261,17 +261,49 @@ adminRouter.get('/', authenticateAdmin, async (req, res) => {
     try {
         const page = Math.max(1, parseInt(req.query.page, 10) || 1);
         const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+        const now = new Date();
         const filter = {};
-        if (req.query.search) filter.title = new RegExp(escapeRegExp(String(req.query.search).trim()), 'i');
         if (req.query.class) filter.class = String(req.query.class).trim();
         if (req.query.isPublished !== undefined) filter.isPublished = String(req.query.isPublished) === 'true';
-        const [items, total] = await Promise.all([
-            Assignment.find(filter).sort({ dueAt: 1, createdAt: -1 }).skip((page - 1) * limit).limit(limit).populate('courseId', 'title').populate('subjectId', 'name').populate('videoId', 'title').lean(),
-            Assignment.countDocuments(filter)
+        // The admin page pages on the server, so its tabs and search run here too.
+        if (req.query.status === 'published') filter.isPublished = true;
+        if (req.query.status === 'draft') filter.isPublished = { $ne: true };
+        if (req.query.status === 'overdue') filter.dueAt = { $lt: now };
+        if (req.query.search) {
+            const re = new RegExp(escapeRegExp(String(req.query.search).trim()), 'i');
+            const [courseIds, subjectIds, videoIds] = await Promise.all([
+                Course.find({ title: re }).distinct('_id'),
+                Subject.find({ name: re }).distinct('_id'),
+                Video.find({ title: re }).distinct('_id')
+            ]);
+            filter.$or = [{ title: re }, { instructions: re }, { courseId: { $in: courseIds } }, { subjectId: { $in: subjectIds } }, { videoId: { $in: videoIds } }];
+        }
+        // Soonest deadline first; assignments with no deadline come last.
+        const [rows, total, all, published, overdue, needsReview] = await Promise.all([
+            Assignment.aggregate([
+                { $match: filter },
+                { $addFields: { dueSort: { $ifNull: ['$dueAt', new Date('9999-12-31')] } } },
+                { $sort: { dueSort: 1, createdAt: -1 } },
+                { $skip: (page - 1) * limit },
+                { $limit: limit },
+                { $project: { dueSort: 0 } }
+            ]),
+            Assignment.countDocuments(filter),
+            Assignment.countDocuments({}),
+            Assignment.countDocuments({ isPublished: true }),
+            Assignment.countDocuments({ dueAt: { $lt: now } }),
+            AssignmentSubmission.countDocuments({ status: { $in: ['submitted', 'late'] } })
         ]);
-        const counts = await AssignmentSubmission.aggregate([{ $match: { assignmentId: { $in: items.map((item) => item._id) } } }, { $group: { _id: '$assignmentId', count: { $sum: 1 } } }]);
-        const countMap = new Map(counts.map((item) => [String(item._id), item.count]));
-        res.json({ items: items.map((item) => ({ ...item, id: String(item._id), submissionCount: countMap.get(String(item._id)) || 0 })), total, page, limit });
+        const items = await Assignment.populate(rows, [
+            { path: 'courseId', select: 'title' },
+            { path: 'subjectId', select: 'name' },
+            { path: 'videoId', select: 'title' }
+        ]);
+        // Waiting to be marked = the same work the Mark work queue lists.
+        const perAssignment = await AssignmentSubmission.aggregate([{ $match: { assignmentId: { $in: items.map((item) => item._id) } } }, { $group: { _id: '$assignmentId', count: { $sum: 1 }, pending: { $sum: { $cond: [{ $in: ['$status', ['submitted', 'late']] }, 1, 0] } } } }]);
+        const countMap = new Map(perAssignment.map((item) => [String(item._id), item]));
+        // counts: the whole list, for the page's Total / Published / Overdue / Needs review boxes.
+        res.json({ items: items.map((item) => ({ ...item, id: String(item._id), submissionCount: countMap.get(String(item._id))?.count || 0, pendingSubmissions: countMap.get(String(item._id))?.pending || 0 })), total, page, limit, counts: { all, published, overdue, needsReview } });
     } catch (error) {
         console.error('Error fetching admin assignments:', error);
         res.status(500).json({ message: 'Internal server error' });

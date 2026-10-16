@@ -11,7 +11,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const { loginIpLimiter, loginPhoneLimiter } = require('./middlewares/loginLimiter');
+const { loginIpLimiter, loginPhoneLimiter, adminLoginLimiter } = require('./middlewares/loginLimiter');
 const multer = require('multer');
 const path = require('path');
 const { reportError } = require('./services/errorReporter');
@@ -95,6 +95,8 @@ app.use('/api/user/login/verify', otpLimiter);
 
 // Sign-in with phone number + date of birth: limit failed guesses.
 app.post('/api/user/login', loginIpLimiter(), loginPhoneLimiter());
+// Admin sign-in: 5 wrong passwords per device in 15 minutes.
+app.post('/api/admin/login', adminLoginLimiter());
 
 // Import routes
 const adminRoutes = require('./routes/admin');

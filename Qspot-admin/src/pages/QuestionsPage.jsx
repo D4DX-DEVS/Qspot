@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiTrash2, FiMessageSquare, FiSearch, FiChevronLeft, FiChevronRight, FiHelpCircle, FiClock, FiCheckCircle, FiUser, FiBookOpen, FiEdit2, FiX, FiEyeOff, FiEye } from 'react-icons/fi';
 import ConfirmDialog from '../components/dialogs/ConfirmDialog';
@@ -12,11 +12,18 @@ import brandIcon from '../assets/Icon.png';
 // GET /api/questions/admin?status=&page&limit -> {items,total,page,limit}
 // per CONTRACT.md, which also adds hide/unhide (PUT /admin/:id/status) and
 // delete (DELETE /admin/:id) on top of the existing answer routes.
+
+// The server does not send an "answered" flag to the admin, so read it from
+// the answer text itself.
+const isAnswered = (question) => Boolean(question?.answer && String(question.answer).trim());
+
 const QuestionsPage = () => {
   usePageTitle('Q&A');
   const navigate = useNavigate();
+  // One page of questions from the server, plus its total and the overall counts.
   const [questions, setQuestions] = useState([]);
-  const [filteredQuestions, setFilteredQuestions] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [counts, setCounts] = useState({ all: 0, answered: 0, pending: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [statusActionLoading, setStatusActionLoading] = useState(false);
@@ -35,6 +42,8 @@ const QuestionsPage = () => {
   // Pagination and search states
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const latestRequest = useRef(0);
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'answered', 'pending'
   const [filterOpen, setFilterOpen] = useState(false);
   const [speakerFilterOpen, setSpeakerFilterOpen] = useState(false);
@@ -48,10 +57,6 @@ const QuestionsPage = () => {
   const [speakerOptions, setSpeakerOptions] = useState([]);
   const [speakerFilter, setSpeakerFilter] = useState('all');
   const itemsPerPage = 10;
-
-  useEffect(() => {
-    fetchQuestions();
-  }, []);
 
   useEffect(() => {
     if (!expandedQuestionId) return;
@@ -80,53 +85,51 @@ const QuestionsPage = () => {
     };
   }, [filterOpen, speakerFilterOpen]);
 
-  // Filter questions based on search term and status filter
+  // Debounce the search box into the server-side `search` param.
   useEffect(() => {
-    let filtered = [...questions];
+    const timer = setTimeout(() => setSearchTerm(searchInput), 350);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
-    if (searchTerm) {
-      filtered = filtered.filter((question) =>
-        question.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        question.faculty?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        question.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        question.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        question.user?.class?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter((question) =>
-        statusFilter === 'answered' ? question.isAnswered : !question.isAnswered
-      );
-    }
-
-    if (speakerFilter !== 'all') {
-      filtered = filtered.filter((question) =>
-        question.faculty?.name?.toLowerCase() === speakerFilter.toLowerCase()
-      );
-    }
-
-    setFilteredQuestions(filtered);
+  // A new search or filter starts again from the first page.
+  useEffect(() => {
     setCurrentPage(1);
-  }, [questions, searchTerm, statusFilter, speakerFilter]);
+  }, [searchTerm, statusFilter, speakerFilter]);
 
-  const fetchQuestions = async () => {
+  const fetchQuestions = useCallback(async () => {
+    // Only the newest request may update the list (filters can change mid-load).
+    const request = ++latestRequest.current;
     try {
       setLoading(true);
       setError('');
-      // A generous limit keeps the existing client-side search/pagination
-      // working; the admin endpoint itself is still paginated server-side.
-      const response = await apiClient.get('/questions/admin', { params: { limit: 500 } });
+      const response = await apiClient.get('/questions/admin', {
+        params: {
+          page: currentPage,
+          limit: itemsPerPage,
+          search: searchTerm.trim() || undefined,
+          answered: statusFilter === 'all' ? undefined : String(statusFilter === 'answered'),
+          faculty: speakerFilter === 'all' ? undefined : speakerFilter,
+        },
+      });
       const data = response.data?.items || [];
+      if (request !== latestRequest.current) return data;
+      // The last item on the last page was removed: show the page before it.
+      if (!data.length && currentPage > 1) setCurrentPage(currentPage - 1);
       setQuestions(data);
+      setTotal(response.data?.total || 0);
+      if (response.data?.counts) setCounts(response.data.counts);
       return data;
     } catch (err) {
-      setError(err.message || 'Failed to fetch questions');
+      if (request === latestRequest.current) setError(err.message || 'Failed to fetch questions');
       return [];
     } finally {
-      setLoading(false);
+      if (request === latestRequest.current) setLoading(false);
     }
-  };
+  }, [currentPage, searchTerm, statusFilter, speakerFilter]);
+
+  useEffect(() => {
+    fetchQuestions();
+  }, [fetchQuestions]);
 
   const fetchSpeakers = async () => {
     try {
@@ -164,7 +167,7 @@ const QuestionsPage = () => {
     if (!questionSummary?._id) return;
     setExpandedQuestionId(questionSummary._id);
     setExpandedQuestion(questionSummary);
-    setAnswerMode(questionSummary.isAnswered ? 'update' : 'create');
+    setAnswerMode(isAnswered(questionSummary) ? 'update' : 'create');
     setAnswerText('');
     setDetailError('');
     setDetailLoading(true);
@@ -220,12 +223,8 @@ const QuestionsPage = () => {
       }
       setAnswerText('');
       const updatedList = await fetchQuestions();
-      const updatedQuestion = updatedList.find((item) => item._id === questionId);
-      if (updatedQuestion) {
-        await loadQuestionDetail(updatedQuestion);
-      } else {
-        resetExpandedState();
-      }
+      // It may now be on another page or filtered out; keep it open anyway.
+      await loadQuestionDetail(updatedList.find((item) => item._id === questionId) || expandedQuestion);
       setIsEditingAnswer(false);
     } catch (err) {
       alert(err.message || 'Failed to submit answer');
@@ -243,12 +242,7 @@ const QuestionsPage = () => {
       setAnswerText('');
       const updatedList = await fetchQuestions();
       if (expandedQuestionId === expandedQuestion._id) {
-        const updatedQuestion = updatedList.find((item) => item._id === expandedQuestion._id);
-        if (updatedQuestion) {
-          await loadQuestionDetail(updatedQuestion);
-        } else {
-          resetExpandedState();
-        }
+        await loadQuestionDetail(updatedList.find((item) => item._id === expandedQuestion._id) || expandedQuestion);
       }
       setIsEditingAnswer(false);
     } catch (err) {
@@ -319,18 +313,17 @@ const QuestionsPage = () => {
   };
 
   // Pagination logic
-  const totalPages = Math.ceil(filteredQuestions.length / itemsPerPage);
+  const totalPages = Math.ceil(total / itemsPerPage);
 const startIndex = (currentPage - 1) * itemsPerPage;
-const endIndex = startIndex + itemsPerPage;
-const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
+const endIndex = startIndex + questions.length;
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
   };
 
   // Statistics
-  const answeredCount = questions.filter(q => q.isAnswered).length;
-  const pendingCount = questions.filter(q => !q.isAnswered).length;
+  const answeredCount = counts.answered;
+  const pendingCount = counts.pending;
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-black">
@@ -354,7 +347,7 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
                       <FiHelpCircle className="text-[#EFB078]" size={16} />
                     </div>
                     <div>
-                      <p className="text-lg font-bold text-white">{questions.length}</p>
+                      <p className="text-lg font-bold text-white">{counts.all}</p>
                       <p className="text-xs uppercase tracking-wide text-slate-300/70">Total</p>
                     </div>
                   </div>
@@ -391,8 +384,8 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
                 <input
                   type="text"
                   placeholder="Search questions by content, faculty, subject, or user..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   className="w-full pl-9 pr-4 py-3 bg-gradient-to-br from-[#11060d]/60 via-[#1c0b18]/40 to-[#12060f]/60 border border-white/10 rounded-2xl text-white placeholder-slate-400 backdrop-blur-xl focus:outline-none focus:border-[#701845]/50 focus:ring-2 focus:ring-[#701845]/30 transition-all text-sm"
                 />
               </div>
@@ -515,7 +508,7 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
             <ErrorState message={error} onRetry={fetchQuestions} />
           ) : (
             <div className="space-y-4">
-              {filteredQuestions.length === 0 ? (
+              {questions.length === 0 ? (
                 <div className="text-center py-8">
                   <FiHelpCircle className="mx-auto text-gray-500 mb-3" size={36} />
                   <p className="text-gray-400">
@@ -524,7 +517,7 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
                   {(searchTerm || statusFilter !== 'all') && (
                     <button
                       onClick={() => {
-                        setSearchTerm('');
+                        setSearchInput('');
                         setStatusFilter('all');
                       }}
                       className="mt-2 text-indigo-400 hover:text-indigo-300 transition-colors text-sm"
@@ -536,7 +529,7 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
               ) : (
                 <>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {currentQuestions.map((question) => {
+                    {questions.map((question) => {
                       const isSelected = question._id === expandedQuestionId;
                       const userInitial = question.user?.name?.charAt(0)?.toUpperCase() || '?';
                       return (
@@ -553,12 +546,12 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
                           <div className="flex w-full items-start justify-between text-xs font-medium">
                             <span
                               className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${
-                                question.isAnswered
+                                isAnswered(question)
                                   ? 'border-green-500/40 bg-green-900/30 text-green-300'
                                   : 'border-yellow-500/40 bg-yellow-900/30 text-yellow-200'
                               }`}
                             >
-                              {question.isAnswered ? (
+                              {isAnswered(question) ? (
                                 <>
                                   <FiCheckCircle size={12} />
                                   Answered
@@ -654,12 +647,12 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
                 <div className="flex flex-col items-end gap-2 text-xs text-white/60">
                               <span
                                 className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
-                                  expandedQuestion?.isAnswered
+                                  isAnswered(expandedQuestion)
                                     ? 'border-green-500/40 bg-green-900/30 text-green-300'
                                     : 'border-yellow-500/40 bg-yellow-900/30 text-yellow-200'
                                 }`}
                               >
-                                {expandedQuestion?.isAnswered ? (
+                                {isAnswered(expandedQuestion) ? (
                                   <>
                                     <FiCheckCircle size={12} />
                                     Answered
@@ -801,7 +794,7 @@ const currentQuestions = filteredQuestions.slice(startIndex, endIndex);
                     <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#11060d]/60 via-[#1c0b18]/40 to-[#12060f]/60 backdrop-blur-sm p-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="text-xs text-gray-400">
-                          Showing {startIndex + 1} to {Math.min(endIndex, filteredQuestions.length)} of {filteredQuestions.length} questions
+                          Showing {startIndex + 1} to {endIndex} of {total} questions
                         </div>
                         <div className="flex flex-wrap items-center gap-1">
                           <button

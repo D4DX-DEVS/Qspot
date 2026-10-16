@@ -70,7 +70,11 @@ class AssignmentModel {
     final submission = rawSubmission is Map
         ? Map<String, dynamic>.from(rawSubmission)
         : <String, dynamic>{};
-    final rawSubject = json['subject'];
+    // The server sends the chapter filled in under subjectId ({_id, name});
+    // a bare id there is not a name.
+    final rawSubject =
+        json['subject'] ??
+        (json['subjectId'] is Map ? json['subjectId'] : null);
     final subject = rawSubject is Map
         ? (rawSubject['name'] ?? '').toString()
         : (rawSubject ?? json['subjectName'] ?? '').toString();

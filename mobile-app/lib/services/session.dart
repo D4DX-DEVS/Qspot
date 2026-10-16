@@ -36,6 +36,28 @@ Future<bool> confirmLogout(BuildContext context) async {
 /// never touches a possibly-unmounted [BuildContext] after an async gap.
 Future<void> performLogout(BuildContext context) async {
   final authProvider = Provider.of<AuthProvider>(context, listen: false);
+  final navigator = Navigator.of(context);
+
+  await clearAccountData(context);
+
+  await authProvider.logout();
+
+  navigator.pushAndRemoveUntil(
+    MaterialPageRoute(builder: (_) => const LoginScreen()),
+    (route) => false,
+  );
+}
+
+/// Clears the signed-in account's data from this phone (lists, saved lessons,
+/// reminders). A sign-in that ran out passes [keepUnsentQuizzes]: those
+/// answers are saved under that student's id, so no one else sees them, and
+/// the same student can still send them after signing back in.
+///
+/// Grabs everything it needs from [context] before the first `await`.
+Future<void> clearAccountData(
+  BuildContext context, {
+  bool keepUnsentQuizzes = false,
+}) async {
   final videoProvider = Provider.of<VideoProvider>(context, listen: false);
   final bookmarkProvider = Provider.of<BookmarkProvider>(
     context,
@@ -54,24 +76,16 @@ Future<void> performLogout(BuildContext context) async {
     context,
     listen: false,
   );
-  final navigator = Navigator.of(context);
 
   videoProvider.clear();
   bookmarkProvider.clear();
   // Saved quiz answers belong to this student only; the warning in
   // [confirmLogout] told them about any that were never sent.
-  await quizProvider.deleteSavedQuizzes();
+  if (!keepUnsentQuizzes) await quizProvider.deleteSavedQuizzes();
   quizProvider.clear();
   await notificationProvider.clear();
   scheduleProvider.clear();
   await AlarmService().cancelAllReminders();
   // Saved lessons belong to this learner (shared family phones).
   await downloadsProvider?.removeAll();
-
-  await authProvider.logout();
-
-  navigator.pushAndRemoveUntil(
-    MaterialPageRoute(builder: (_) => const LoginScreen()),
-    (route) => false,
-  );
 }
