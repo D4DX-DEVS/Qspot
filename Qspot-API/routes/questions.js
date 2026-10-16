@@ -2,7 +2,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 const Question = require('../models/question');
 const Speaker = require('../models/speakers');
+const User = require('../models/user');
 const { authenticateUser, authenticateAdmin } = require('../middlewares/auth');
+const { textMatch } = require('../services/search');
 
 const router = express.Router();
 
@@ -42,18 +44,36 @@ router.get('/admin', authenticateAdmin, async (req, res) => {
         const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
         const filter = {};
         if (req.query.status) filter.status = req.query.status;
+        // The admin page pages on the server, so its filters run here too.
+        const hasAnswer = { $nin: [null, ''] };
+        if (req.query.answered === 'true') filter.answer = hasAnswer;
+        if (req.query.answered === 'false') filter.answer = { $in: [null, ''] };
+        if (req.query.faculty) {
+            filter.faculty = { $in: await Speaker.find({ name: String(req.query.faculty) }).distinct('_id') };
+        }
+        if (req.query.search) {
+            const re = textMatch(req.query.search);
+            const [userIds, facultyIds] = await Promise.all([
+                User.find({ $or: [{ name: re }, { class: re }] }).distinct('_id'),
+                Speaker.find({ name: re }).distinct('_id')
+            ]);
+            filter.$or = [{ description: re }, { subject: re }, { user: { $in: userIds } }, { faculty: { $in: facultyIds } }];
+        }
 
-        const [items, total] = await Promise.all([
+        const [items, total, all, answered] = await Promise.all([
             Question.find(filter)
                 .populate('faculty', 'name designation')
                 .populate('user', 'name class')
                 .sort({ createdAt: -1 })
                 .skip((page - 1) * limit)
                 .limit(limit),
-            Question.countDocuments(filter)
+            Question.countDocuments(filter),
+            Question.countDocuments({}),
+            Question.countDocuments({ answer: hasAnswer })
         ]);
 
-        res.json({ items, total, page, limit });
+        // counts: the whole Q&A, for the page's Total / Answered / Pending boxes.
+        res.json({ items, total, page, limit, counts: { all, answered, pending: all - answered } });
     } catch (error) {
         console.error('Error fetching admin questions:', error);
         res.status(500).json({ message: 'Internal server error' });

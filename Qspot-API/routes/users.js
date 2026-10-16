@@ -24,6 +24,9 @@ const { buildProgressSummary } = require('../services/progressSummary');
 const { parseDob, sameDob } = require('../services/dob');
 const { examAnswersAt, revealFields } = require('../services/answerReveal');
 const { publicUser } = require('../services/publicUser');
+const { shapeVideo } = require('../services/videoShape');
+const { normalizePhone } = require('../services/phone');
+const { isAccessible } = require('../services/quizAccess');
 const {
   profileUpload,
   CDN_ENABLED,
@@ -115,14 +118,6 @@ const todayItem = ({ kind, id, title, status, subject = null, releaseAt = null, 
     ? null
     : Math.max(0, Math.round(Number(estimatedMinutes) || 0))
 });
-
-const normalizePhone = (raw) => {
-  let phone = String(raw || '').replace(/\s+/g, '');
-  if (phone.startsWith('+91')) phone = phone.slice(3);
-  else if (phone.startsWith('91') && phone.length > 10) phone = phone.slice(2);
-  else if (phone.startsWith('0')) phone = phone.replace(/^0+/, '');
-  return phone.slice(-10);
-};
 
 const maskPhone = (phone) => phone.replace(/.(?=.{4})/g, '*');
 
@@ -510,7 +505,7 @@ router.get('/today', authenticateUser, async (req, res) => {
       ? requestedOffset : 0;
     // Lessons from the learner's own courses only, like the Subjects list.
     const scopedSubjects = await learnerSubjects(userId);
-    const [videos, progressRows, videoAttempts, quizConfigs, quizAttempts, quizSessions, schedules, assignments, assignmentSubmissions, learner] = await Promise.all([
+    const [videos, progressRows, videoAttempts, allQuizConfigs, quizAttempts, quizSessions, schedules, assignments, assignmentSubmissions, learner] = await Promise.all([
       Video.find({ subject: { $in: scopedSubjects.map((subject) => subject._id) }, isPublished: { $ne: false } })
         .select('_id title subject releaseDate durationSeconds order createdAt')
         .populate('subject', '_id name')
@@ -519,7 +514,7 @@ router.get('/today', authenticateUser, async (req, res) => {
       VideoProgress.find({ userId }).select('videoId positionSeconds watchedSeconds durationSeconds completed lastViewedAt completedAt createdAt updatedAt').lean(),
       VideoQuizAttempt.find({ userId }).select('videoId createdAt updatedAt percentage').lean(),
       QuizConfig.find({ isEnable: true, endDate: { $gte: now } })
-        .select('_id title assessmentType startDate endDate overallTimeLimit perQuestionTimeLimit numberOfQuestions')
+        .select('_id title assessmentType startDate endDate overallTimeLimit perQuestionTimeLimit numberOfQuestions allowedClasses conditions')
         .sort({ startDate: 1 })
         .lean(),
       Quiz.find({ userId }).select('quizId percentage createdAt updatedAt').lean(),
@@ -604,6 +599,11 @@ router.get('/today', authenticateUser, async (req, res) => {
       }
       watchedSeconds += Number(progress?.watchedSeconds) || 0;
     }
+
+    // Only the quizzes the Quizzes screen shows this learner (class, finished video).
+    const hasCompletedVideo = async () => progressRows.some((row) => row.completed);
+    const access = await Promise.all(allQuizConfigs.map((quiz) => isAccessible(quiz, req.user, hasCompletedVideo)));
+    const quizConfigs = allQuizConfigs.filter((_, i) => access[i]);
 
     let quizCompleted = 0;
     for (const quiz of quizConfigs) {
@@ -789,7 +789,7 @@ router.get('/bookmarks', authenticateUser, async (req, res) => {
       .populate('subject', 'name')
       .populate('speaker', 'name designation image');
 
-    res.json(videos);
+    res.json(videos.map((video) => shapeVideo(video, 0, false)));
   } catch (error) {
     console.error('Error fetching bookmarks:', error);
     res.status(500).json({ message: 'Internal server error' });

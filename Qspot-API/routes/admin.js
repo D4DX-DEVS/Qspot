@@ -11,6 +11,8 @@ const VideoQuizAttempt = require('../models/videoQuizAttempt');
 const Video = require('../models/videos');
 const { authenticateAdmin } = require('../middlewares/auth');
 const { parseDob } = require('../services/dob');
+const { normalizePhone } = require('../services/phone');
+const { textMatch } = require('../services/search');
 const router = express.Router();
 
 // Admin login route
@@ -67,8 +69,14 @@ router.get('/users', authenticateAdmin, async (req, res) => {
         const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
         const filter = {};
         if (req.query.search) {
-            const re = new RegExp(String(req.query.search).trim(), 'i');
+            const text = String(req.query.search).trim();
+            const re = textMatch(text);
             filter.$or = [{ name: re }, { phone: re }, { email: re }];
+            // Phones are saved as 10 digits, so "+91 98765 43210" looks for those.
+            if (/^[+\d\s()-]+$/.test(text)) {
+                const digits = normalizePhone(text.replace(/[^\d+]/g, ''));
+                if (/^\d{3,10}$/.test(digits)) filter.$or.push({ phone: textMatch(digits) });
+            }
         }
 
         const [items, total] = await Promise.all([
@@ -178,14 +186,20 @@ router.put('/users/:id', authenticateAdmin, async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        if (phone !== user.phone) {
-            const existingUser = await User.findOne({ phone });
+        // Saved the way sign-in looks it up, or the student could not sign in.
+        const cleanPhone = normalizePhone(phone);
+        if (!/^\d{10}$/.test(cleanPhone)) {
+            return res.status(400).json({ message: 'Enter a valid 10-digit phone number' });
+        }
+
+        if (cleanPhone !== user.phone) {
+            const existingUser = await User.findOne({ phone: cleanPhone, _id: { $ne: user._id } });
             if (existingUser) {
                 return res.status(409).json({ message: 'Phone number already exists' });
             }
         }
 
-        const update = { name, phone, email: email || '', class: userClass };
+        const update = { name, phone: cleanPhone, email: email || '', class: userClass };
         if (dobValue) update.dob = dobValue;
         const updatedUser = await User.findByIdAndUpdate(
             req.params.id,

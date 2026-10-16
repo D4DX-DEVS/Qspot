@@ -440,6 +440,13 @@ const VideosPage = () => {
       const target = loadedVideos.find((video) => video._id === searchParams.get('video'));
       if (target && searchParams.get('view') === 'edit') handleEditVideo(target);
       if (target && searchParams.get('view') === 'stats') handleOpenStats(target);
+      if (target && ['edit', 'stats'].includes(searchParams.get('view'))) {
+        // Opened from Curriculum: open it once, not again after every save.
+        const next = new URLSearchParams(searchParams);
+        next.delete('video');
+        next.delete('view');
+        setSearchParams(next, { replace: true });
+      }
     } catch (err) {
       setError(err.message || 'Failed to fetch videos');
     } finally {

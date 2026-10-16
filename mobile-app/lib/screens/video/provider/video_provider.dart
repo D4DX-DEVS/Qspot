@@ -146,6 +146,8 @@ class VideoProvider with ChangeNotifier {
   /// on-device cache.
   Future<void> loadProgress() async {
     final progress = await VideoProgressService.fetchAll();
+    // A failed refresh keeps the progress already shown.
+    if (progress == null) return;
     _progressByVideo = progress;
     notifyListeners();
   }

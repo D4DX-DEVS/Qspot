@@ -100,6 +100,10 @@ class ApiClient {
   /// [_defaultClient].
   static http.Client? clientOverride;
 
+  /// Clears the expired account's data on this phone (set in main.dart), so
+  /// the next person to sign in never sees it.
+  static Future<void> Function()? onSessionExpired;
+
   static http.Client get _client => clientOverride ?? _defaultClient;
 
   static Future<String?> _token() =>
@@ -168,6 +172,7 @@ class ApiClient {
     final work = () async {
       await StorageService.remove(_tokenKey);
       await StorageService.remove('user_data');
+      await onSessionExpired?.call();
       final nav = navigatorKey.currentState;
       if (nav != null && nav.mounted) {
         nav.pushAndRemoveUntil(
