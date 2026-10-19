@@ -10,6 +10,7 @@ import StateMessageView from '../../../components/common/StateMessageView'
 import { useLocalNotifier } from '../../../lib/useNotifier'
 import { toastStore } from '../../../stores/toastStore'
 import CertificatePreview from '../components/CertificatePreview'
+import { SHEET_HEIGHT, SHEET_WIDTH } from '../components/CertificateSheet'
 import { CertificatesStore } from '../stores/certificatesStore'
 
 // One issued certificate, scaled to fit, with Download PDF and Print
@@ -32,7 +33,11 @@ export default function CertificatePage() {
   if (certificate) {
     body = (
       <PageShell width="max-w-4xl" className="flex flex-col items-center gap-6">
-        <CertificatePreview certificate={certificate} sheetRef={sheet} />
+        {/* On a short laptop screen the full-width sheet pushes the buttons
+            out of view, so it is narrowed to leave room for them. */}
+        <div className="w-full" style={{ maxWidth: `max(280px, calc((100dvh - 250px) * ${SHEET_WIDTH / SHEET_HEIGHT}))` }}>
+          <CertificatePreview certificate={certificate} sheetRef={sheet} />
+        </div>
         <div className="flex w-full max-w-[480px] flex-col gap-3">
           <FilledButton icon={Download} label={store.isDownloading ? 'Preparing PDF…' : 'Download PDF'} loading={store.isDownloading} onClick={download} />
           <OutlinedButton icon={Printer} label="Print" onClick={() => store.print(certificate)} />
