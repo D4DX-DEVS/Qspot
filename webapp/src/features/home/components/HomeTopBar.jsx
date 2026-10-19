@@ -4,10 +4,11 @@ import IconButton from '../../../components/common/IconButton'
 import InitialsAvatar from '../../../components/common/InitialsAvatar'
 
 // Logo on the left; refresh and the student's avatar (opens their account)
-// on the right. Sits on the sky, so it has no fill of its own.
+// on the right, at the screen's edges on wide screens too. Sits on the sky,
+// so it has no fill of its own.
 export default function HomeTopBar({ name, refreshing, onRefresh, onAccount }) {
   return (
-    <header className="relative mx-auto flex w-full max-w-4xl items-center gap-1 px-4 pb-2 pt-[calc(12px+env(safe-area-inset-top))]">
+    <header className="relative flex w-full items-center gap-1 px-4 pb-2 pt-[calc(12px+env(safe-area-inset-top))] sm:px-6 lg:px-8">
       <div className="min-w-0 flex-1">
         <AppLogo width={124} />
       </div>
