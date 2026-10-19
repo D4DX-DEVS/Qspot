@@ -27,7 +27,9 @@ export default function LoginPage() {
     <AuthPageLayout
       center
       artHeight="clamp(170px, 30dvh, 280px)"
-      overlap={0.4}
+      // Only the empty sky at the top of the art may sit under the form:
+      // any deeper and the last row covers the crescent moon.
+      overlap={0.1}
       bottomArt={<AuthArt paint={paintMosqueSkyline} />}
     >
       <form
@@ -39,7 +41,9 @@ export default function LoginPage() {
       >
         <Entrance index={0}>
           <ArchHeader>
-            <AuthBrandMark size={150} />
+            {/* Smaller on short screens (laptops, small phones) so the form and
+                the skyline fit with less scrolling. */}
+            <AuthBrandMark size={150} className="max-h-[17dvh] max-w-[17dvh]" />
             <AuthHeadline
               center
               title="Learn the "
