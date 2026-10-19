@@ -149,6 +149,9 @@ class AssignmentModel {
   /// The deadline has passed, so the work can no longer be sent. Work the
   /// teacher sent back for changes can still be sent again.
   bool get isClosed => isOverdue && !isReturned;
+
+  /// Nothing is left to do: the work was sent, or its deadline has passed.
+  bool get isFinished => isSubmitted || isClosed;
 }
 
 class AssignmentFileModel {
