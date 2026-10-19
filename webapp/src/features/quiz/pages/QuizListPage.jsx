@@ -56,7 +56,7 @@ export default function QuizListPage() {
         <SkyBackdrop />
       </div>
       <div className="relative">
-        <HomeTopBar name={auth.user?.name} refreshing={quiz.isListLoading} onRefresh={reload} onAccount={() => openAccount(navigate)} />
+        <HomeTopBar name={auth.user?.name} onAccount={() => openAccount(navigate)} />
         <PageShell width="max-w-4xl">
           {quiz.hasListError ? null : (
             <HomeIntro
