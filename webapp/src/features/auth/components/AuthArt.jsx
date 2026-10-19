@@ -5,14 +5,15 @@ import { AUTH_PALETTE } from '../../../theme/authPalette'
 // Paints decorative artwork with the light or dark palette, filling its
 // (sized) parent and repainting on resize or a light/dark change (AuthArt in
 // the app). [paint](ctx, width, height, palette) draws in CSS pixels.
-export default function AuthArt({ paint, className = 'absolute inset-0' }) {
+// [palette] replaces the light/dark one, for art on a fixed-colour surface.
+export default function AuthArt({ paint, palette: fixed = null, className = 'absolute inset-0' }) {
   const ref = useRef(null)
   const isDark = useIsDark()
 
   useEffect(() => {
     const canvas = ref.current
     if (!canvas) return undefined
-    const palette = isDark ? AUTH_PALETTE.dark : AUTH_PALETTE.light
+    const palette = fixed ?? (isDark ? AUTH_PALETTE.dark : AUTH_PALETTE.light)
     const draw = () => {
       const { width, height } = canvas.getBoundingClientRect()
       if (width === 0 || height === 0) return
@@ -28,7 +29,7 @@ export default function AuthArt({ paint, className = 'absolute inset-0' }) {
     const observer = new ResizeObserver(draw)
     observer.observe(canvas)
     return () => observer.disconnect()
-  }, [isDark, paint])
+  }, [isDark, paint, fixed])
 
   return <canvas ref={ref} aria-hidden="true" className={`pointer-events-none size-full ${className}`} />
 }

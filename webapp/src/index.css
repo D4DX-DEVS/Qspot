@@ -39,6 +39,9 @@
   --qs-bar-shadow: rgb(0 0 0 / 0.06);
   --qs-appbar-shadow: rgb(0 0 0 / 0.25);
   --qs-scrim: rgb(0 0 0 / 0.4);
+  /* Warm glow at the top of the home screen (homeLightSkyTop). */
+  --qs-sky-top: #fffbf6;
+  --qs-skyline-opacity: 0.08;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -71,6 +74,9 @@
     --qs-bar-shadow: rgb(0 0 0 / 0.3);
     --qs-appbar-shadow: rgb(0 0 0 / 0.6);
     --qs-scrim: rgb(0 0 0 / 0.6);
+    --qs-sky-top: #2a1522;
+    /* The night skyline's lit windows are loud; keep it further back. */
+    --qs-skyline-opacity: 0.1;
   }
 }
 
@@ -239,7 +245,29 @@
   animation: qs-dialog-in 200ms ease-out both;
 }
 
+/* IdleAttention: the hero button breathes gently to invite a tap. */
+@keyframes qs-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.014); }
+}
+
+.qs-breathe {
+  animation: qs-breathe 2200ms ease-in-out infinite;
+}
+
+/* SparkleAccent: pops in once with a little overshoot, then rests. */
+@keyframes qs-sparkle {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+
+.qs-sparkle {
+  animation: qs-sparkle 700ms cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .qs-breathe,
+  .qs-sparkle,
   .qs-enter,
   .qs-fade,
   .qs-pop,
