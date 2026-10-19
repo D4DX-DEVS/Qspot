@@ -5,15 +5,17 @@ import PageShell from '../../../components/common/PageShell'
 import SkyBackdrop from '../../../components/common/SkyBackdrop'
 import StateMessageView from '../../../components/common/StateMessageView'
 import { useLocalNotifier, useNotifier } from '../../../lib/useNotifier'
+import { logout } from '../../auth/actions/authActions'
 import { authStore } from '../../auth/stores/authStore'
 import { CertificatesStore } from '../../certificate/stores/certificatesStore'
-import { openAccount, openHeroQuiz } from '../../home/actions/homeActions'
+import { openHeroQuiz } from '../../home/actions/homeActions'
 import HomeIntro from '../../home/components/HomeIntro'
 import HomeTopBar from '../../home/components/HomeTopBar'
 import { featuredQuiz, quizStats } from '../../home/models/homeSummary'
 import { continueQuiz, openQuizFromList } from '../actions/quizListActions'
 import QuizListContent from '../components/QuizListContent'
 import QuizOfflineContinueList from '../components/QuizOfflineContinueList'
+import RefreshFailedNotice from '../components/RefreshFailedNotice'
 import { quizStore } from '../stores/quizStore'
 
 // Home: a greeting over the sky, the quiz to take next, the student's numbers
@@ -30,8 +32,19 @@ export default function QuizListPage() {
     quizStore.fetchQuizList()
     certificates.loadOnce()
     const onOnline = () => quizStore.fetchQuizList()
+    // Coming back to the tab, and every minute while it is open, the list is
+    // reloaded if it is stale, so a quiz that went live shows up by itself.
+    const onVisible = () => {
+      if (!document.hidden) quizStore.refreshIfStale()
+    }
+    const every = setInterval(() => !document.hidden && quizStore.refreshIfStale(60000), 60000)
     window.addEventListener('online', onOnline)
-    return () => window.removeEventListener('online', onOnline)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.removeEventListener('online', onOnline)
+      document.removeEventListener('visibilitychange', onVisible)
+      clearInterval(every)
+    }
   }, [certificates])
 
   const reload = () => {
@@ -56,7 +69,7 @@ export default function QuizListPage() {
         <SkyBackdrop />
       </div>
       <div className="relative">
-        <HomeTopBar name={auth.user?.name} onAccount={() => openAccount(navigate)} />
+        <HomeTopBar onLogout={() => logout(navigate)} />
         <PageShell width="max-w-4xl">
           {quiz.hasListError ? null : (
             <HomeIntro
@@ -68,6 +81,11 @@ export default function QuizListPage() {
               onHeroAction={() => openHeroQuiz(hero, navigate)}
             />
           )}
+          {quiz.refreshError ? (
+            <div className="mt-4">
+              <RefreshFailedNotice message={quiz.refreshError} onRetry={reload} />
+            </div>
+          ) : null}
           <div className="mt-2">{body}</div>
         </PageShell>
       </div>

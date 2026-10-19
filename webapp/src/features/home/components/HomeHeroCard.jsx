@@ -21,20 +21,20 @@ export default function HomeHeroCard({ hero, onAction }) {
       <div className="flex min-h-[158px] flex-col justify-center px-5 pb-5 pt-[22px] pr-14 text-white">
         {hero.eyebrow ? (
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <p className="flex items-center gap-1.5 text-[11.5px] font-bold tracking-[0.6px] text-white/70">
+            <p className="flex items-center gap-1.5 text-[11.5px] font-bold tracking-[0.6px] text-white/85">
               {hero.kind === 'live' ? <span className="size-2 animate-pulse rounded-full bg-[#fbd495]" aria-hidden="true" /> : null}
               {hero.eyebrow}
             </p>
-            {hero.meta ? <p className="text-xs text-white/70">{hero.meta}</p> : null}
+            {hero.meta ? <p className="text-xs text-white/85">{hero.meta}</p> : null}
           </div>
         ) : null}
         <div className="mt-2.5 flex items-start gap-2">
           <h2 className="min-w-0 text-xl font-bold leading-[1.2] md:text-2xl">{title}</h2>
           {resting ? <SparkleAccent /> : null}
         </div>
-        <p className="mt-1.5 text-xs text-white/70 md:text-[13px]">{resting ? resting.detail : hero.detail}</p>
+        <p className="mt-1.5 text-xs text-white/85 md:text-[13px]">{resting ? resting.detail : hero.detail}</p>
         {hero.more > 0 ? (
-          <p className="mt-1 text-xs text-white/70">
+          <p className="mt-1 text-xs text-white/85">
             +{hero.more} more live quiz{hero.more === 1 ? '' : 'zes'} below
           </p>
         ) : null}

@@ -10,6 +10,8 @@ export class LoginFormStore extends ChangeNotifier {
   classNumber = null
   // Field errors show only after a submit attempt, like Form.validate().
   submitted = false
+  // Why the server turned the sign-in down; cleared as soon as a field changes.
+  serverError = null
 
   get isComplete() {
     return this.phone.trim().length === 10 && this.classNumber != null
@@ -27,11 +29,18 @@ export class LoginFormStore extends ChangeNotifier {
   // puts the field back to the digits.
   setPhone(value) {
     this.phone = digitsOnly(value)
+    this.serverError = null
     this.notifyListeners()
   }
 
   setClassNumber(value) {
     this.classNumber = value || null
+    this.serverError = null
+    this.notifyListeners()
+  }
+
+  setServerError(message) {
+    this.serverError = message
     this.notifyListeners()
   }
 
