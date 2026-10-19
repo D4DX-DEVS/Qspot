@@ -308,6 +308,11 @@ const QuizPage = () => {
             <div className="flex flex-col gap-1">
               <p className="text-xs uppercase tracking-[0.35em] text-white/50">Quiz Questions</p>
               <h1 className="text-2xl font-semibold text-white">{scopedQuiz?.title || 'Loading…'}</h1>
+              {!questionsError && !(questionsLoading && questionTotal === 0) && (
+                <p className="text-sm text-white/60">
+                  {questionTotal} {questionTotal === 1 ? 'question' : 'questions'}
+                </p>
+              )}
             </div>
           )}
 
