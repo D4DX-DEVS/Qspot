@@ -26,3 +26,11 @@ export const dayLongMonthYear = (d) => `${d.getDate()} ${MONTHS_LONG[d.getMonth(
 
 export const sameDay = (a, b) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+
+// "today 6:10 pm" / "tomorrow 9:00 am" / "26 Oct".
+export function whenLabel(date, now = new Date()) {
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+  if (sameDay(date, now)) return `today ${clockTime(date)}`
+  if (sameDay(date, tomorrow)) return `tomorrow ${clockTime(date)}`
+  return dayShortMonth(date)
+}
