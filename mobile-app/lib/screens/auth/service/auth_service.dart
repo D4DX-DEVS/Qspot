@@ -8,14 +8,16 @@ import '../../../services/common/storage_service.dart';
 /// Auth API calls, backed by [ApiClient].
 ///
 /// Endpoint contract:
-///  - POST /api/user/register            {name, phone, class, dob, email?, consent?}
+///  - POST /api/user/register            {name, phone, class, email?, consent?}
 ///        -> 201 {message, user}  (no token: registration does not log in)
-///  - POST /api/user/login                {phone, dob} -> {message, token, user}
+///  - POST /api/user/login                {phone, class} (students) or
+///        {phone, dob} (teachers) -> {message, token, user}
 ///  - POST /api/user/login/request-otp    {phone} -> {message, phone, cooldown}
 ///  - POST /api/user/login/verify         {phone, code} -> {message, token, user}
 ///
-/// Signing in uses phone + date of birth. The OTP calls are kept for the
-/// number-verification step, which is not built yet.
+/// Students sign in with phone + class, teachers with phone + date of birth.
+/// The OTP calls are kept for the number-verification step, which is not
+/// built yet.
 class AuthService {
   static const String _userKey = 'user_data';
   static const String _tokenKey = 'auth_token';
@@ -42,13 +44,22 @@ class AuthService {
     }
   }
 
-  /// Sign in with phone number and date of birth ('YYYY-MM-DD') and, on
-  /// success, persist the session (token + user + userId).
-  Future<Map<String, dynamic>> login(String phone, String dob) async {
+  /// Sign in with phone number and either the class (students) or the date
+  /// of birth as 'YYYY-MM-DD' (teachers) and, on success, persist the session
+  /// (token + user + userId).
+  Future<Map<String, dynamic>> login(
+    String phone, {
+    String? classNumber,
+    String? dob,
+  }) async {
     try {
       final data = await ApiClient.post(
         '/api/user/login',
-        body: {'phone': phone, 'dob': dob},
+        body: {
+          'phone': phone,
+          if (classNumber != null) 'class': classNumber,
+          if (dob != null) 'dob': dob,
+        },
       );
       return await _startSession(data);
     } on ApiException catch (e) {
@@ -102,7 +113,6 @@ class AuthService {
     required String phone,
     required String name,
     required String classNumber,
-    required String dob,
     String? email,
     Map<String, dynamic>? consent,
     List<String> courseIds = const [],
@@ -112,7 +122,6 @@ class AuthService {
         'name': name,
         'phone': phone,
         'class': classNumber,
-        'dob': dob,
         if (email != null && email.isNotEmpty) 'email': email,
         if (consent != null) 'consent': consent,
         if (courseIds.isNotEmpty) 'courseIds': courseIds,

@@ -29,6 +29,17 @@ bool _buttonEnabled(WidgetTester tester) =>
         .onPressed !=
     null;
 
+/// Picks a class the way the dropdown reports it. (Tapping through the open
+/// menu is not reliable in the test harness.)
+Future<void> _pickClass(WidgetTester tester, String classNumber) async {
+  tester
+      .widget<DropdownButtonFormField<String>>(
+        find.byType(DropdownButtonFormField<String>),
+      )
+      .onChanged!(classNumber);
+  await tester.pumpAndSettle();
+}
+
 Future<void> _pickDob(WidgetTester tester) async {
   await tester.ensureVisible(find.byType(DatePickerField));
   await tester.tap(find.byType(DatePickerField));
@@ -88,44 +99,42 @@ void main() {
   }
 
   group('LoginScreen', () {
-    testWidgets('asks for a phone number and date of birth, no OTP', (
+    testWidgets('asks a student for a phone number and class, no OTP', (
       tester,
     ) async {
       await pumpHome(tester, const LoginScreen());
 
-      expect(find.text('Date of Birth'), findsOneWidget);
+      expect(find.text('Which Class Are You In?'), findsOneWidget);
+      expect(find.text('Date of Birth'), findsNothing);
       expect(find.text('Sign In'), findsOneWidget);
       expect(find.textContaining('OTP'), findsNothing);
       expect(find.text('Register Now'), findsOneWidget);
+      expect(find.text('Sign in with date of birth'), findsOneWidget);
     });
 
-    testWidgets('Sign In stays off until both phone and date are filled', (
+    testWidgets('Sign In stays off until both phone and class are filled', (
       tester,
     ) async {
       await pumpHome(tester, const LoginScreen());
       expect(_buttonEnabled(tester), isFalse);
 
       await tester.enterText(find.byType(TextField).first, '98765');
-      await tester.pump();
+      await _pickClass(tester, '9');
       expect(_buttonEnabled(tester), isFalse, reason: 'short number');
 
       await tester.enterText(find.byType(TextField).first, '9876543210');
       await tester.pump();
-      expect(_buttonEnabled(tester), isFalse, reason: 'no date yet');
-
-      await _pickDob(tester);
-      expect(find.text(_defaultPickedDob), findsOneWidget);
       expect(_buttonEnabled(tester), isTrue);
     });
 
-    testWidgets('a wrong date shows the server message and stays here', (
+    testWidgets('a wrong class shows the server message and stays here', (
       tester,
     ) async {
       respondWith({
         '/api/user/login': (_) => http.Response(
           jsonEncode({
             'message':
-                'No account matches this phone number and date of birth.',
+                'No student account matches this phone number and class.',
           }),
           404,
         ),
@@ -133,7 +142,43 @@ void main() {
       await pumpHome(tester, const LoginScreen());
 
       await tester.enterText(find.byType(TextField).first, '9876543210');
+      await _pickClass(tester, '9');
+      await tester.tap(find.byType(GradientPillButton));
+      await tester.pumpAndSettle();
+
+      final login = requests.singleWhere(
+        (r) => r.url.path == '/api/user/login',
+      );
+      expect(jsonDecode(login.body), {'phone': '9876543210', 'class': '9'});
+      expect(
+        find.text('No student account matches this phone number and class.'),
+        findsOneWidget,
+      );
+      expect(find.byType(LoginScreen), findsOneWidget);
+    });
+
+    testWidgets('a teacher switches to date of birth and sends only that', (
+      tester,
+    ) async {
+      respondWith({
+        '/api/user/login': (_) => http.Response(
+          jsonEncode({'message': 'No teacher account matches.'}),
+          404,
+        ),
+      });
+      await pumpHome(tester, const LoginScreen());
+      await _pickClass(tester, '9');
+
+      await tester.tap(find.text('Sign in with date of birth'));
+      await tester.pumpAndSettle();
+      expect(find.byType(DatePickerField), findsOneWidget);
+      expect(find.byType(DropdownButtonFormField<String>), findsNothing);
+      expect(find.text('Register Now'), findsNothing);
+
+      await tester.enterText(find.byType(TextField).first, '9876543210');
+      expect(_buttonEnabled(tester), isFalse, reason: 'no date yet');
       await _pickDob(tester);
+      expect(_buttonEnabled(tester), isTrue);
       await tester.tap(find.byType(GradientPillButton));
       await tester.pumpAndSettle();
 
@@ -144,11 +189,45 @@ void main() {
         'phone': '9876543210',
         'dob': _defaultPickedDob,
       });
-      expect(
-        find.text('No account matches this phone number and date of birth.'),
-        findsOneWidget,
+
+      await tester.tap(find.text('Sign in with class'));
+      await tester.pumpAndSettle();
+      expect(find.text('Which Class Are You In?'), findsOneWidget);
+      expect(find.text('Register Now'), findsOneWidget);
+    });
+
+    testWidgets('after registering, signs in with that number and class', (
+      tester,
+    ) async {
+      respondWith({
+        '/api/courses': (_) => http.Response('[]', 200),
+        '/api/user/register': (_) => http.Response(
+          jsonEncode({'message': 'User registered successfully'}),
+          201,
+        ),
+        '/api/user/login': (_) =>
+            http.Response(jsonEncode({'message': 'Server busy'}), 503),
+      });
+      await pumpHome(tester, const LoginScreen());
+
+      await tester.tap(find.text('Register Now'));
+      await tester.pumpAndSettle();
+      final fields = find.byType(TextField);
+      await tester.enterText(fields.at(0), '9876543210');
+      await tester.enterText(fields.at(1), 'Ayesha Khan');
+      await _pickClass(tester, '8');
+      await tester.ensureVisible(find.byType(GradientPillButton));
+      await tester.tap(find.byType(GradientPillButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Number is correct'));
+      await tester.pumpAndSettle();
+
+      final login = requests.singleWhere(
+        (r) => r.url.path == '/api/user/login',
       );
+      expect(jsonDecode(login.body), {'phone': '9876543210', 'class': '8'});
       expect(find.byType(LoginScreen), findsOneWidget);
+      expect(find.text('Class 8'), findsOneWidget);
     });
   });
 
@@ -179,41 +258,40 @@ void main() {
       return pushed;
     }
 
-    Future<void> fillEverythingButDob(WidgetTester tester) async {
+    Future<void> fillEverything(WidgetTester tester) async {
       await tester.tap(find.text('go'));
       await tester.pumpAndSettle();
       final fields = find.byType(TextField);
       await tester.enterText(fields.at(0), '9876543210');
       await tester.enterText(fields.at(1), 'Ayesha Khan');
-      // Picks "Class 8" the way the dropdown reports it. (Tapping through the
-      // open menu is not reliable in the test harness.)
-      tester
-          .widget<DropdownButtonFormField<String>>(
-            find.byType(DropdownButtonFormField<String>),
-          )
-          .onChanged!('8');
-      await tester.pumpAndSettle();
+      await _pickClass(tester, '8');
     }
 
-    testWidgets('the date of birth is required, not optional', (tester) async {
+    testWidgets('no date of birth is asked: number, name and class do', (
+      tester,
+    ) async {
       respondWith({'/api/courses': (_) => http.Response('[]', 200)});
       await openRegistration(tester);
-      await fillEverythingButDob(tester);
+      await tester.tap(find.text('go'));
+      await tester.pumpAndSettle();
 
-      expect(find.textContaining('Optional'), findsNothing);
-      expect(
-        _buttonEnabled(tester),
-        isFalse,
-        reason: 'everything but the date is filled',
-      );
+      expect(find.text('Date of Birth'), findsNothing);
+      expect(find.byType(DatePickerField), findsNothing);
+      expect(_buttonEnabled(tester), isFalse);
 
-      await _pickDob(tester);
+      final fields = find.byType(TextField);
+      await tester.enterText(fields.at(0), '9876543210');
+      await tester.enterText(fields.at(1), 'Ayesha Khan');
+      await tester.pump();
+      expect(_buttonEnabled(tester), isFalse, reason: 'no class yet');
+
+      await _pickClass(tester, '8');
       expect(_buttonEnabled(tester), isTrue);
     });
 
     testWidgets(
       'Create Account warns about OTP verification; Edit number goes back, '
-      'confirming registers and hands back phone + dob',
+      'confirming registers and hands back phone + class',
       (tester) async {
         respondWith({
           '/api/courses': (_) => http.Response('[]', 200),
@@ -223,8 +301,7 @@ void main() {
           ),
         });
         final pushed = await openRegistration(tester);
-        await fillEverythingButDob(tester);
-        await _pickDob(tester);
+        await fillEverything(tester);
 
         // First try: the student chooses to edit the number.
         await tester.ensureVisible(find.byType(GradientPillButton));
@@ -255,12 +332,12 @@ void main() {
         expect(body['phone'], '9876543210');
         expect(body['name'], 'Ayesha Khan');
         expect(body['class'], '8');
-        expect(body['dob'], _defaultPickedDob);
+        expect(body.containsKey('dob'), isFalse);
 
         expect(pushed.done, isTrue);
         final account = pushed.account;
         expect(account?.phone, '9876543210');
-        expect(formatDobForApi(account!.dob), _defaultPickedDob);
+        expect(account?.classNumber, '8');
         expect(find.byType(RegistrationScreen), findsNothing);
       },
     );

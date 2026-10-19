@@ -109,13 +109,13 @@ void main() {
     expect(find.byType(LoginScreen), findsOneWidget);
   });
 
-  testWidgets('a student with no date of birth is asked for one', (
+  testWidgets('a student with no date of birth goes straight to the app', (
     tester,
   ) async {
     await openSplash(tester, storage: signedIn());
 
-    expect(find.byType(DobRequiredScreen), findsOneWidget);
-    expect(find.byType(MainNavigationScreen), findsNothing);
+    expect(find.byType(MainNavigationScreen), findsOneWidget);
+    expect(find.byType(DobRequiredScreen), findsNothing);
   });
 
   testWidgets('a student with a date of birth goes to the app', (tester) async {

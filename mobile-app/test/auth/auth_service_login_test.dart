@@ -37,7 +37,7 @@ void main() {
   };
 
   test(
-    'sends phone and dob to /api/user/login and saves the session',
+    'sends phone and class to /api/user/login and saves the session',
     () async {
       http.Request? seen;
       ApiClient.clientOverride = MockClient((request) async {
@@ -45,14 +45,11 @@ void main() {
         return http.Response(jsonEncode(okBody), 200);
       });
 
-      final result = await AuthService().login('9876543210', '2010-05-03');
+      final result = await AuthService().login('9876543210', classNumber: '8');
 
       expect(seen!.url.path, '/api/user/login');
       expect(seen!.method, 'POST');
-      expect(jsonDecode(seen!.body), {
-        'phone': '9876543210',
-        'dob': '2010-05-03',
-      });
+      expect(jsonDecode(seen!.body), {'phone': '9876543210', 'class': '8'});
       expect(result['success'], isTrue);
       expect(await AuthService().isLoggedIn(), isTrue);
       expect(await AuthService().getSavedToken(), 'tok-abc');
@@ -62,22 +59,37 @@ void main() {
     },
   );
 
-  test('a wrong date gives the server message and saves nothing', () async {
+  test('a teacher sends phone and date of birth only', () async {
+    http.Request? seen;
+    ApiClient.clientOverride = MockClient((request) async {
+      seen = request;
+      return http.Response(jsonEncode(okBody), 200);
+    });
+
+    await AuthService().login('9876543210', dob: '1985-04-12');
+
+    expect(jsonDecode(seen!.body), {
+      'phone': '9876543210',
+      'dob': '1985-04-12',
+    });
+  });
+
+  test('a wrong class gives the server message and saves nothing', () async {
     ApiClient.clientOverride = MockClient(
       (_) async => http.Response(
         jsonEncode({
-          'message': 'No account matches this phone number and date of birth.',
+          'message': 'No student account matches this phone number and class.',
         }),
         404,
       ),
     );
 
-    final result = await AuthService().login('9876543210', '2010-05-04');
+    final result = await AuthService().login('9876543210', classNumber: '9');
 
     expect(result['success'], isFalse);
     expect(
       result['message'],
-      'No account matches this phone number and date of birth.',
+      'No student account matches this phone number and class.',
     );
     expect(await AuthService().isLoggedIn(), isFalse);
     expect(await StorageService.getString('auth_token'), isEmpty);
@@ -96,7 +108,7 @@ void main() {
         ),
       );
 
-      final result = await AuthService().login('9111111111', '2010-05-03');
+      final result = await AuthService().login('9111111111', dob: '1985-04-12');
 
       expect(result['success'], isFalse);
       expect(
@@ -117,7 +129,7 @@ void main() {
       ),
     );
 
-    final result = await AuthService().login('9876543210', '2010-05-04');
+    final result = await AuthService().login('9876543210', classNumber: '9');
 
     expect(result['success'], isFalse);
     expect(result['message'], contains('Too many failed attempts'));
@@ -128,7 +140,7 @@ void main() {
       (_) async => throw http.ClientException('offline'),
     );
 
-    final result = await AuthService().login('9876543210', '2010-05-03');
+    final result = await AuthService().login('9876543210', classNumber: '8');
 
     expect(result['success'], isFalse);
     expect(result['message'], 'Network error. Please try again.');
@@ -140,7 +152,7 @@ void main() {
     );
     final auth = AuthProvider();
 
-    final result = await auth.login('9876543210', '2010-05-03');
+    final result = await auth.login('9876543210', classNumber: '8');
 
     expect(result['success'], isTrue);
     expect(auth.isAuthenticated, isTrue);
@@ -155,14 +167,14 @@ void main() {
     );
     final auth = AuthProvider();
 
-    final result = await auth.login('9876543210', '2010-05-04');
+    final result = await auth.login('9876543210', classNumber: '9');
 
     expect(result['success'], isFalse);
     expect(auth.isAuthenticated, isFalse);
     expect(auth.errorMessage, 'No account matches.');
   });
 
-  test('registration sends the date of birth', () async {
+  test('registration sends no date of birth', () async {
     http.Request? seen;
     ApiClient.clientOverride = MockClient((request) async {
       seen = request;
@@ -176,11 +188,12 @@ void main() {
       phone: '9876543210',
       name: 'Ayesha',
       classNumber: '8',
-      dob: '2010-05-03',
     );
 
     expect(result['success'], isTrue);
-    expect(jsonDecode(seen!.body)['dob'], '2010-05-03');
+    final body = jsonDecode(seen!.body) as Map<String, dynamic>;
+    expect(body['class'], '8');
+    expect(body.containsKey('dob'), isFalse);
     expect(
       await AuthService().isLoggedIn(),
       isFalse,
