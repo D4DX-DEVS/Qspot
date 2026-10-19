@@ -1,0 +1,29 @@
+# Netlify settings for the student web app (a separate Netlify site from the
+# admin panel, whose settings are in the repository-root netlify.toml).
+# In the site's settings, set "Base directory" to webapp so this file is used.
+
+[build]
+  base = "webapp"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Vite 7 and the dev tools need Node 22.
+  NODE_VERSION = "22"
+  # The API address, without /api on the end (the app adds it). These are
+  # written into the built site and readable by anyone: never put a secret here.
+  VITE_API_BASE_URL = "https://qspot-app-vcbgp.ondigitalocean.app"
+  # Set to "true" to show the hidden registration screen.
+  VITE_ENABLE_REGISTRATION = "false"
+
+# Every page is served by index.html, so refreshing a quiz page works.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Opt out of Google's FLoC tracking
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Permissions-Policy = "interest-cohort=()"
