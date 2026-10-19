@@ -4,6 +4,7 @@ import { ApiClient, ApiException } from '../../../services/apiClient'
 import { renewIfNeeded } from '../../../services/sessionRenewal'
 import { Storage } from '../../../services/storage'
 import { jsonInt } from '../../../utils/jsonParsing'
+import { userFriendlyError } from '../../../utils/userFriendlyError'
 import { quizListItemFromJson, quizQuestionFromJson } from '../models/quizModels'
 import { QuizProgressRecord } from '../models/quizProgressRecord'
 import { QuizTimingTracker } from '../models/quizTimingTracker'
@@ -47,6 +48,10 @@ class QuizStore extends ChangeNotifier {
   listState = 'idle' // 'idle' | 'loading' | 'loaded' | 'error'
   listError = ''
   quizList = []
+  // A refresh failed while an earlier list is on screen: that list stays,
+  // with this message above it.
+  refreshError = ''
+  #loadedAt = 0
 
   get isListLoading() {
     return this.listState === 'loading'
@@ -56,7 +61,8 @@ class QuizStore extends ChangeNotifier {
     return this.listState === 'error'
   }
 
-  // GET /api/user-quizzes. Empty is normal (no live quiz right now).
+  // GET /api/user-quizzes. Empty is normal (no live quiz right now). A failed
+  // refresh keeps the list already shown.
   async fetchQuizList() {
     this.listState = 'loading'
     this.listError = ''
@@ -68,13 +74,28 @@ class QuizStore extends ChangeNotifier {
       const data = await ApiClient.get('/api/user-quizzes')
       this.quizList = (Array.isArray(data) ? data : []).map(quizListItemFromJson)
       this.listState = 'loaded'
+      this.refreshError = ''
+      this.#loadedAt = clock.now()
     } catch (e) {
-      this.listState = 'error'
-      this.listError = e instanceof ApiException ? e.message : 'Failed to load quizzes'
+      const message = e instanceof ApiException ? e.message : userFriendlyError(e)
+      if (this.#loadedAt > 0) {
+        this.listState = 'loaded'
+        this.refreshError = message
+      } else {
+        this.listState = 'error'
+        this.listError = message
+      }
     }
     this.notifyListeners()
     // A waiting submission was just accepted: reload so its score shows.
     if (await flushing) await this.fetchQuizList()
+  }
+
+  // Reloads the list when it is older than [maxAgeMs], e.g. when the student
+  // comes back to the tab, so a quiz that went live meanwhile shows up.
+  refreshIfStale(maxAgeMs = 30000) {
+    if (this.isListLoading || clock.now() - this.#loadedAt < maxAgeMs) return
+    this.fetchQuizList()
   }
 
   // ---- Active quiz session ----
@@ -495,6 +516,8 @@ class QuizStore extends ChangeNotifier {
     this.quizList = []
     this.listState = 'idle'
     this.listError = ''
+    this.refreshError = ''
+    this.#loadedAt = 0
     this.pendingSubmissions = []
     this.refusedSubmissions = []
     this.inProgressQuizzes = []

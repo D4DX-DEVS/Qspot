@@ -36,7 +36,8 @@ export default function LoginPage() {
         noValidate
         onSubmit={(e) => {
           e.preventDefault()
-          if (form.isComplete && !auth.isLoading) signIn(form, navigate, from || '/quizzes')
+          // Always pressable: a press on an incomplete form says what is missing.
+          if (!auth.isLoading) signIn(form, navigate, from || '/quizzes')
         }}
       >
         <Entrance index={0}>
@@ -59,7 +60,7 @@ export default function LoginPage() {
           <LoginForm form={form} />
         </Entrance>
         <Entrance index={2} className="mt-5">
-          <GradientPillButton type="submit" label="Sign In" enabled={form.isComplete} loading={auth.isLoading} />
+          <GradientPillButton type="submit" label="Sign In" enabled loading={auth.isLoading} />
         </Entrance>
         {REGISTRATION_ENABLED ? (
           <Entrance index={3} className="mt-4">

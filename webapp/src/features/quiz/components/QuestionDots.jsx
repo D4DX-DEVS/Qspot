@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react'
+import { Check } from 'lucide-react'
 
-// Numbered dots for every question: current filled brand, answered tinted.
-// Tapping jumps there unless the quiz is one-way. The current dot scrolls
-// into view when the question changes.
+// Numbered dots for every question: current filled brand, answered ringed
+// with a small tick, unanswered outlined. Each has a 44px tap area. In a
+// one-way quiz (no [onJump]) they only show progress. The current dot
+// scrolls into view when the question changes.
 export default function QuestionDots({ quiz, onJump }) {
   const current = quiz.currentQuestionIndex
   const strip = useRef(null)
@@ -20,26 +22,46 @@ export default function QuestionDots({ quiz, onJump }) {
   }, [current])
 
   return (
-    <div ref={strip} className="relative flex min-w-0 flex-1 items-center overflow-x-auto px-4 [scrollbar-width:none]" role="list" aria-label="Questions">
+    <ul ref={strip} aria-label="Questions" className="relative flex min-w-0 flex-1 items-center overflow-x-auto px-2 py-1 [scrollbar-width:none]">
       {quiz.sessionQuestions.map((q, index) => {
         const isCurrent = index === current
         const answered = quiz.selectedAnswer(q.id) != null
-        const colors = isCurrent ? 'bg-brand text-white' : answered ? 'bg-brand-soft text-brand' : 'bg-line text-muted'
-        return (
-          <button
-            key={q.id}
-            type="button"
-            role="listitem"
-            disabled={!onJump}
-            aria-current={isCurrent ? 'step' : undefined}
-            aria-label={`Question ${index + 1}${answered ? ', answered' : ''}`}
-            onClick={() => onJump?.(index)}
-            className={`qs-press mx-1 grid size-8 shrink-0 place-items-center rounded-full text-xs font-bold [--qs-press:0.88] ${colors}`}
-          >
+        const look = isCurrent
+          ? 'bg-brand text-on-brand'
+          : answered
+            ? 'bg-brand-soft text-brand ring-2 ring-brand/70'
+            : 'border border-field-line bg-card text-muted'
+        const dot = (
+          <span className={`relative grid size-8 place-items-center rounded-full text-xs font-bold ${look}`}>
             {index + 1}
-          </button>
+            {answered && !isCurrent ? (
+              <span className="absolute -right-1 -top-1 grid size-3.5 place-items-center rounded-full bg-brand text-on-brand" aria-hidden="true">
+                <Check size={9} strokeWidth={3.5} />
+              </span>
+            ) : null}
+          </span>
+        )
+        const label = `Question ${index + 1}${answered ? ', answered' : ', not answered'}`
+        return (
+          <li key={q.id} className="shrink-0">
+            {onJump ? (
+              <button
+                type="button"
+                aria-label={label}
+                aria-current={isCurrent ? 'step' : undefined}
+                onClick={() => onJump(index)}
+                className="qs-press grid size-11 place-items-center rounded-full [--qs-press:0.88]"
+              >
+                {dot}
+              </button>
+            ) : (
+              <span role="img" aria-label={label} aria-current={isCurrent ? 'step' : undefined} className="grid size-11 place-items-center">
+                {dot}
+              </span>
+            )}
+          </li>
         )
       })}
-    </div>
+    </ul>
   )
 }

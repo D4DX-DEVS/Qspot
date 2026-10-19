@@ -36,7 +36,7 @@ export default function CertificatePage() {
         {/* On a short laptop screen the full-width sheet pushes the buttons
             out of view, so it is narrowed to leave room for them. */}
         <div className="w-full" style={{ maxWidth: `max(280px, calc((100dvh - 250px) * ${SHEET_WIDTH / SHEET_HEIGHT}))` }}>
-          <CertificatePreview certificate={certificate} sheetRef={sheet} />
+          <CertificatePreview certificate={certificate} sheetRef={sheet} zoomed={store.zoomed} onToggleZoom={() => store.toggleZoom()} />
         </div>
         <div className="flex w-full max-w-[480px] flex-col gap-3">
           <FilledButton icon={Download} label={store.isDownloading ? 'Preparing PDF…' : 'Download PDF'} loading={store.isDownloading} onClick={download} />

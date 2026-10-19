@@ -11,7 +11,7 @@ export default function FilterChipBar({ options, selected, onSelect, labelFor })
             role="tab"
             aria-selected={active}
             onClick={() => onSelect(option)}
-            className={`qs-press h-8 shrink-0 rounded-lg border border-line px-4 text-xs font-semibold ${active ? 'bg-brand-soft text-brand' : 'bg-card text-muted'}`}
+            className={`qs-press h-8 shrink-0 rounded-lg border border-field-line px-4 text-xs font-semibold ${active ? 'bg-brand-soft text-brand' : 'bg-card text-muted'}`}
           >
             {labelFor(option)}
           </button>

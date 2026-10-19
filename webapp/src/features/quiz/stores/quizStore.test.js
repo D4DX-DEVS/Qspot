@@ -201,3 +201,36 @@ describe('QuizTimerStore', () => {
     expect(timer.closingWarning).toBe(null)
   })
 })
+
+describe('QuizStore list refresh', () => {
+  it('keeps the last list when a refresh fails, and refreshes only when stale', async () => {
+    const live = { _id: 'q1', title: 'Quran Quiz', status: 'live', questionCount: 2 }
+    fakeServer(() => ({ status: 200, body: [live] }))
+    const store = new QuizStore()
+    await store.fetchQuizList()
+    expect(store.quizList).toHaveLength(1)
+
+    fakeServer(offline)
+    await store.fetchQuizList()
+    expect(store.hasListError).toBe(false)
+    expect(store.quizList).toHaveLength(1)
+    expect(store.refreshError).toContain("Can't reach the server")
+
+    const calls = fakeServer(() => ({ status: 200, body: [live] }))
+    now += 10_000
+    store.refreshIfStale(30_000)
+    expect(calls).toHaveLength(0)
+    now += 60_000
+    store.refreshIfStale(30_000)
+    await new Promise((r) => setTimeout(r, 0))
+    expect(calls.some((c) => c.path === '/api/user-quizzes')).toBe(true)
+  })
+
+  it('shows a friendly message when the first load fails', async () => {
+    fakeServer(offline)
+    const store = new QuizStore()
+    await store.fetchQuizList()
+    expect(store.hasListError).toBe(true)
+    expect(store.listError).toContain("Can't reach the server")
+  })
+})

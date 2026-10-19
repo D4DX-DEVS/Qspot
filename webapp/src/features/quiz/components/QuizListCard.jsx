@@ -10,8 +10,9 @@ const statusOf = (quiz) =>
   quiz.isEnded ? ['Ended', 'slate'] : quiz.hasAttempted ? ['Attempted', 'rose'] : quiz.isLive ? ['Live', 'mint'] : quiz.isUpcoming ? ['Upcoming', 'amber'] : ['Ended', 'slate']
 
 // One quiz in the list: tinted icon, title, type, question count, a status
-// chip, then when it ends or opens, or the student's score with a bar.
-export default function QuizListCard({ quiz, onOpen }) {
+// chip, then when it ends or opens, or the student's score with a bar. A
+// quiz started on this device ([record]) offers to continue.
+export default function QuizListCard({ quiz, record, onOpen }) {
   const [status, tone] = statusOf(quiz)
   const practical = quiz.assessmentType === 'practical'
   const count = `${quiz.questionCount} Question${quiz.questionCount === 1 ? '' : 's'}`
@@ -32,8 +33,10 @@ export default function QuizListCard({ quiz, onOpen }) {
           {quiz.isUpcoming && quiz.startDate ? <p className="mt-1 text-xs text-muted">Starts {dayMonthYear(quiz.startDate)}</p> : null}
           {toTake ? (
             <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs text-muted">{quiz.endDate ? `Ends ${whenLabel(quiz.endDate)}` : 'Open now'}</p>
-              <TintedPillLink label="Start" tone="mint" />
+              <p className="text-xs text-muted">
+                {record ? `${record.answeredCount} of ${record.questionIds.length} answered` : quiz.endDate ? `Ends ${whenLabel(quiz.endDate)}` : 'Open now'}
+              </p>
+              <TintedPillLink label={record ? 'Continue' : 'Start'} tone="mint" />
             </div>
           ) : null}
           {attempt ? (

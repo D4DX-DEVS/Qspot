@@ -11,6 +11,8 @@ export class CertificatesStore extends ChangeNotifier {
   isLoading = false
   error = null
   isDownloading = false
+  // The preview at full size (scrollable) instead of fitted to the screen.
+  zoomed = false
   #loaded = false
 
   // [initial] shows a certificate handed over by the page before, without
@@ -18,10 +20,18 @@ export class CertificatesStore extends ChangeNotifier {
   constructor({ fetch = fetchMyCertificates, initial = null } = {}) {
     super()
     this.fetch = fetch
+    // Counts as loading until the first answer, so the page never flashes
+    // "No Certificate Yet" before the list has been asked for.
+    this.isLoading = initial == null
     if (initial) {
       this.items = [initial]
       this.#loaded = true
     }
+  }
+
+  toggleZoom() {
+    this.zoomed = !this.zoomed
+    this.notifyListeners()
   }
 
   // The certificate issued for [quizId], or null when there is none.

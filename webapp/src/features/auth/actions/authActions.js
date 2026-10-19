@@ -16,8 +16,9 @@ export async function signIn(form, navigate, to = '/quizzes') {
   if (!form.validate()) return
   // Only the 10 digits, no country code, matching registration.
   const result = await authStore.login(form.phone.trim(), form.classNumber)
+  // Shown under the fields, where it stays until the student edits them.
   if (result.success) navigate(to, { replace: true })
-  else toastStore.show(result.message || SIGN_IN_FAILED, 'danger')
+  else form.setServerError(result.message || SIGN_IN_FAILED)
 }
 
 export async function register(form, navigate) {

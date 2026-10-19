@@ -12,7 +12,7 @@ export default function ResultHeroCard({ title, percentage }) {
   return (
     <GradientCard className="px-6 py-9 text-center text-white">
       <Icon size={72} className="mx-auto" aria-hidden="true" />
-      <p className="mt-4 text-[15px] font-medium text-white/70">{title}</p>
+      <p className="mt-4 text-[15px] font-medium text-white/85">{title}</p>
       <p className="mt-2 text-[44px] font-extrabold leading-tight">
         <CountUpText text={pct} />
       </p>

@@ -7,7 +7,7 @@ export default function FilledButton({ icon: Icon, label, onClick, loading = fal
       type="button"
       onClick={onClick}
       disabled={disabled || loading}
-      className="qs-press flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 text-base font-bold text-white disabled:opacity-60"
+      className="qs-press flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 text-base font-bold text-on-brand disabled:opacity-60"
     >
       {loading ? <Spinner size={20} stroke={2.5} /> : <Icon size={22} aria-hidden="true" />}
       {label}
