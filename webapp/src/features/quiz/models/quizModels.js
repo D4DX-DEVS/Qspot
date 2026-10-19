@@ -40,6 +40,7 @@ export function quizListItemFromJson(json) {
     startDate: parseDate(json.startDate),
     endDate: parseDate(json.endDate),
     timerMode: typeof json.timerMode === 'string' ? json.timerMode : 'none',
+    overallTimeLimit: jsonInt(json.overallTimeLimit),
     status,
     questionCount: jsonInt(json.questionCount) ?? 0,
     myAttempt,
