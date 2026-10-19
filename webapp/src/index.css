@@ -23,17 +23,23 @@
   --qs-error: #b3261e;
   --qs-rose: #740c3b;
   --qs-rose-soft: #faedef;
-  --qs-coral: #be3f45;
+  /* Amber, mint and coral are a shade darker than the app's so small text on
+     their tints reads at 4.5:1 or more. */
+  --qs-coral: #ba3e44;
   --qs-coral-soft: #fde8e6;
-  --qs-amber: #a8660f;
+  --qs-amber: #9b5e0e;
   --qs-amber-soft: #fcefda;
   --qs-teal: #1f6f6b;
   --qs-teal-soft: #e0f0ee;
-  --qs-mint: #2e7d57;
+  --qs-mint: #2c7854;
   --qs-mint-soft: #e2f2e9;
   --qs-slate: #3c5a7a;
   --qs-slate-soft: #edf1f6;
   --qs-hero: linear-gradient(to bottom right, #720b3a, #a9365b);
+  /* Text and icons on a brand fill. */
+  --qs-on-brand: #ffffff;
+  /* Outline of controls (fields, answer options, chips): 3:1 on page and card. */
+  --qs-field-border: #968a8e;
   --qs-hero-shadow: rgb(116 12 59 / 0.24);
   --qs-card-shadow: rgb(0 0 0 / 0.04);
   --qs-bar-shadow: rgb(0 0 0 / 0.06);
@@ -70,6 +76,9 @@
     --qs-slate: #9db4d6;
     --qs-slate-soft: #1a2131;
     --qs-hero: linear-gradient(to bottom right, #3e0720, #65113a, #8a2a4a);
+    /* White on the light pink brand is only 3.4:1; the page navy reads 5.1:1. */
+    --qs-on-brand: #151926;
+    --qs-field-border: #636473;
     --qs-hero-shadow: rgb(228 88 154 / 0.18);
     --qs-bar-shadow: rgb(0 0 0 / 0.3);
     --qs-appbar-shadow: rgb(0 0 0 / 0.6);
@@ -90,6 +99,8 @@
   --color-muted: var(--qs-text-muted);
   --color-brand: var(--qs-brand);
   --color-brand-soft: var(--qs-brand-soft);
+  --color-on-brand: var(--qs-on-brand);
+  --color-field-line: var(--qs-field-border);
   --color-soft-fill: var(--qs-soft-fill);
   --color-danger: var(--qs-error);
   --color-rose: var(--qs-rose);

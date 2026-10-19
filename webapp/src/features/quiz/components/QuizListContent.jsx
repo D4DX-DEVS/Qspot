@@ -11,6 +11,8 @@ export default function QuizListContent({ quiz, navigate, onOpen }) {
   const upcoming = quiz.quizList.filter((q) => q.isUpcoming)
   const ended = quiz.quizList.filter((q) => q.isEnded)
   const pending = quiz.pendingSubmissions
+  // Quizzes started on this device, so their cards say "Continue".
+  const started = new Map(quiz.inProgressQuizzes.map((r) => [r.quizId, r]))
   return (
     <div className="flex flex-col gap-2">
       {quiz.refusedSubmissions.map((record) => (
@@ -22,7 +24,7 @@ export default function QuizListContent({ quiz, navigate, onOpen }) {
         />
       ))}
       {pending.length ? <QuizPendingBanner message={pendingMessage(pending)} sending={quiz.isFlushing} onSend={() => quiz.fetchQuizList()} /> : null}
-      {live.length ? <QuizSection emoji="⚡" title="Live Now" quizzes={live} onOpen={onOpen} /> : null}
+      {live.length ? <QuizSection emoji="⚡" title="Live Now" quizzes={live} started={started} onOpen={onOpen} /> : null}
       {upcoming.length ? <QuizSection emoji="🗓️" title="Coming Up" quizzes={upcoming} onOpen={onOpen} /> : null}
       {ended.length ? <QuizSection emoji="🏆" title="Past Quizzes" quizzes={ended} onOpen={onOpen} /> : null}
     </div>

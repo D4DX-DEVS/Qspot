@@ -4,7 +4,7 @@
 export default function AuthFieldFrame({ error, prefix, children, interactive = false }) {
   const border = error
     ? 'border-danger focus-within:border-[1.6px]'
-    : 'border-line focus-within:border-[1.6px] focus-within:border-brand'
+    : 'border-field-line focus-within:border-[1.6px] focus-within:border-brand'
   return (
     <div>
       <div className={`relative flex min-h-14 items-center rounded-2xl border-[1.2px] bg-card ${border} ${interactive ? 'qs-press [--qs-press:0.98]' : ''}`}>

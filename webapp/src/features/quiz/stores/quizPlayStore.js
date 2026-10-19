@@ -3,6 +3,8 @@ import { ChangeNotifier } from '../../../lib/ChangeNotifier'
 import { ApiException } from '../../../services/apiClient'
 import { dialogStore } from '../../../stores/dialogStore'
 import { toastStore } from '../../../stores/toastStore'
+import { authStore } from '../../auth/stores/authStore'
+import QuizLeaveDialog from '../components/QuizLeaveDialog'
 import QuizSubmitDialog from '../components/QuizSubmitDialog'
 import QuizSubmitFailedDialog from '../components/QuizSubmitFailedDialog'
 import QuizTooLateDialog from '../components/QuizTooLateDialog'
@@ -21,6 +23,7 @@ export class QuizPlayStore extends ChangeNotifier {
   #navigate = () => {}
   #interval = null
   #pendingReset = null
+  #warned = false
 
   constructor(quizId) {
     super()
@@ -98,7 +101,9 @@ export class QuizPlayStore extends ChangeNotifier {
   #onTick() {
     // Paused while a submit is in flight, so it can't fire a second one.
     if (this.timer.submitting) return
-    switch (this.timer.tick()) {
+    const expired = this.timer.tick()
+    this.#warnBeforeTimeUp()
+    switch (expired) {
       case Expiry.overall:
       case Expiry.closing:
         this.submit()
@@ -112,6 +117,40 @@ export class QuizPlayStore extends ChangeNotifier {
       default:
         break
     }
+  }
+
+  // One heads-up, a minute before the quiz submits by itself (its time limit
+  // or its closing time, whichever comes first).
+  #warnBeforeTimeUp() {
+    if (this.#warned) return
+    const overall = this.timer.overallRemaining
+    const closing = this.timer.closingWarning
+    if (overall != null && overall > 0 && overall <= 60) {
+      this.#warned = true
+      toastStore.show('1 minute left. Your quiz will be submitted automatically when time is up.', 'warning')
+    } else if (closing != null && closing > 0 && closing <= 60) {
+      this.#warned = true
+      toastStore.show('This quiz closes in 1 minute. Your answers will be submitted automatically then.', 'warning')
+    }
+  }
+
+  // Leaving a timed quiz asks first: the answers are kept, but its clock keeps
+  // running. Never asked while submitting or once the sign-in is gone.
+  get shouldConfirmLeave() {
+    return (
+      quizStore.isQuizActive &&
+      quizStore.quizId === this.#quizId &&
+      !this.timer.submitting &&
+      authStore.isAuthenticated &&
+      (quizStore.hasOverallTimer || quizStore.hasPerQuestionTimer)
+    )
+  }
+
+  // [blocker] is React Router's held navigation: carried on or cancelled.
+  async confirmLeave(blocker) {
+    const leave = await dialogStore.show((close) => createElement(QuizLeaveDialog, { onClose: close }), { dismissValue: false })
+    if (leave) blocker.proceed()
+    else blocker.reset()
   }
 
   // In the background the question stops counting time on screen, but every

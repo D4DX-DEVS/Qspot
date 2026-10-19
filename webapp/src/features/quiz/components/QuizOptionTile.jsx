@@ -9,14 +9,14 @@ export default function QuizOptionTile({ label, selected, onPick }) {
       aria-checked={selected}
       onClick={onPick}
       className={`qs-press flex w-full items-center gap-4 rounded-2xl p-4 text-left ${
-        selected ? 'border-2 border-brand bg-brand text-white' : 'border border-line bg-card text-ink hover:border-brand/40'
+        selected ? 'border-2 border-brand bg-brand text-on-brand' : 'border border-field-line bg-card text-ink hover:border-brand'
       }`}
     >
       <span
         aria-hidden="true"
-        className={`grid size-6 shrink-0 place-items-center rounded-full border ${selected ? 'qs-pop border-white bg-white/25' : 'border-line bg-brand-soft'}`}
+        className={`grid size-6 shrink-0 place-items-center rounded-full border ${selected ? 'qs-pop border-on-brand bg-on-brand/25' : 'border-field-line bg-brand-soft'}`}
       >
-        {selected ? <Check size={15} className="text-white" /> : null}
+        {selected ? <Check size={15} className="text-on-brand" /> : null}
       </span>
       <span className={`min-w-0 flex-1 text-base ${selected ? 'font-semibold' : ''}`}>{label}</span>
     </button>

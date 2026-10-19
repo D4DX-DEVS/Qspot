@@ -62,6 +62,9 @@ export async function openQuizFromList(quiz, navigate) {
     quizStore.fetchQuizList()
     return undefined
   }
+  // Started on this device: carry on in the language it was started in.
+  const saved = quizStore.savedProgress(quiz.id)
+  if (saved && !saved.submitPending && !saved.isRefused) return continueQuiz(saved, navigate)
   return chooseLanguageAndOpen(quiz.id, navigate)
 }
 

@@ -42,20 +42,26 @@ describe('signIn', () => {
     expect(navigate).not.toHaveBeenCalled()
   })
 
-  it('shows the server message and stays put when the phone or class is wrong', async () => {
+  it('shows the server message under the fields and stays put when the phone or class is wrong', async () => {
     fakeServer(() => ({ status: 404, body: { message: 'No student found with that phone number and class' } }))
     const navigate = vi.fn()
-    await signIn(filledLogin(), navigate)
+    const form = filledLogin()
+    await signIn(form, navigate)
 
     expect(navigate).not.toHaveBeenCalled()
-    expect(toastStore.show).toHaveBeenCalledWith('No student found with that phone number and class', 'danger')
+    expect(form.serverError).toBe('No student found with that phone number and class')
+    expect(toastStore.show).not.toHaveBeenCalled()
+    // Editing a field clears it.
+    form.setPhone('888888888')
+    expect(form.serverError).toBe(null)
   })
 
   it('shows the too-many-tries message', async () => {
     fakeServer(() => ({ status: 429, body: { message: 'Too many attempts. Try again later.' } }))
-    await signIn(filledLogin(), vi.fn())
+    const form = filledLogin()
+    await signIn(form, vi.fn())
 
-    expect(toastStore.show).toHaveBeenCalledWith('Too many attempts. Try again later.', 'danger')
+    expect(form.serverError).toBe('Too many attempts. Try again later.')
   })
 })
 
