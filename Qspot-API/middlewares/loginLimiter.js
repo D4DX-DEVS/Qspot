@@ -1,6 +1,7 @@
 const rateLimit = require('express-rate-limit');
 
-// A date of birth can be guessed, so sign-in must not allow unlimited tries.
+// A class or a date of birth can be guessed, so sign-in must not allow
+// unlimited tries.
 // Only failed attempts count (status 400 and up), so a class of students
 // signing in correctly from one school network never uses the allowance up.
 const WINDOW_MS = 15 * 60 * 1000;

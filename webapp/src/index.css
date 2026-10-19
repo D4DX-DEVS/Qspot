@@ -1,0 +1,272 @@
+@import "tailwindcss";
+
+/* Colours copied from mobile-app/lib/themes/app_colors.dart (auth + home
+   palettes). Light and dark follow the device setting, like the app. */
+
+@font-face { font-family: 'Manrope'; font-weight: 400; font-display: swap; src: url('/fonts/Manrope-Regular.ttf') format('truetype'); }
+@font-face { font-family: 'Manrope'; font-weight: 500; font-display: swap; src: url('/fonts/Manrope-Medium.ttf') format('truetype'); }
+@font-face { font-family: 'Manrope'; font-weight: 600; font-display: swap; src: url('/fonts/Manrope-SemiBold.ttf') format('truetype'); }
+@font-face { font-family: 'Manrope'; font-weight: 700; font-display: swap; src: url('/fonts/Manrope-Bold.ttf') format('truetype'); }
+@font-face { font-family: 'Manrope'; font-weight: 800; font-display: swap; src: url('/fonts/Manrope-ExtraBold.ttf') format('truetype'); }
+
+:root {
+  color-scheme: light;
+  --qs-bg: #fbf7f3;
+  --qs-card: #ffffff;
+  --qs-border: #ede3e5;
+  --qs-field-icon: #6a0f35;
+  --qs-text: #141c2a;
+  --qs-text-muted: #5e646c;
+  --qs-brand: #740c3b;
+  --qs-brand-soft: #f8e9ee;
+  --qs-soft-fill: #faedef;
+  --qs-error: #b3261e;
+  --qs-rose: #740c3b;
+  --qs-rose-soft: #faedef;
+  --qs-coral: #be3f45;
+  --qs-coral-soft: #fde8e6;
+  --qs-amber: #a8660f;
+  --qs-amber-soft: #fcefda;
+  --qs-teal: #1f6f6b;
+  --qs-teal-soft: #e0f0ee;
+  --qs-mint: #2e7d57;
+  --qs-mint-soft: #e2f2e9;
+  --qs-slate: #3c5a7a;
+  --qs-slate-soft: #edf1f6;
+  --qs-hero: linear-gradient(to bottom right, #720b3a, #a9365b);
+  --qs-hero-shadow: rgb(116 12 59 / 0.24);
+  --qs-card-shadow: rgb(0 0 0 / 0.04);
+  --qs-bar-shadow: rgb(0 0 0 / 0.06);
+  --qs-appbar-shadow: rgb(0 0 0 / 0.25);
+  --qs-scrim: rgb(0 0 0 / 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --qs-bg: #0c0e1a;
+    --qs-card: #151926;
+    --qs-border: #23253a;
+    --qs-field-icon: #f0eef4;
+    --qs-text: #f6f5f8;
+    --qs-text-muted: #9ca0b4;
+    --qs-brand: #e4589a;
+    --qs-brand-soft: #1d1b2b;
+    --qs-soft-fill: #1d1b2b;
+    --qs-error: #f2b8b5;
+    --qs-rose: #e4589a;
+    --qs-rose-soft: #1d1b2b;
+    --qs-coral: #f2877f;
+    --qs-coral-soft: #2e1a1d;
+    --qs-amber: #f0b35b;
+    --qs-amber-soft: #2b2216;
+    --qs-teal: #6cc5bd;
+    --qs-teal-soft: #12262a;
+    --qs-mint: #6fcb9c;
+    --qs-mint-soft: #13261d;
+    --qs-slate: #9db4d6;
+    --qs-slate-soft: #1a2131;
+    --qs-hero: linear-gradient(to bottom right, #3e0720, #65113a, #8a2a4a);
+    --qs-hero-shadow: rgb(228 88 154 / 0.18);
+    --qs-bar-shadow: rgb(0 0 0 / 0.3);
+    --qs-appbar-shadow: rgb(0 0 0 / 0.6);
+    --qs-scrim: rgb(0 0 0 / 0.6);
+  }
+}
+
+@theme inline {
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --color-bg: var(--qs-bg);
+  --color-card: var(--qs-card);
+  --color-line: var(--qs-border);
+  --color-field-icon: var(--qs-field-icon);
+  --color-ink: var(--qs-text);
+  --color-muted: var(--qs-text-muted);
+  --color-brand: var(--qs-brand);
+  --color-brand-soft: var(--qs-brand-soft);
+  --color-soft-fill: var(--qs-soft-fill);
+  --color-danger: var(--qs-error);
+  --color-rose: var(--qs-rose);
+  --color-rose-soft: var(--qs-rose-soft);
+  --color-coral: var(--qs-coral);
+  --color-coral-soft: var(--qs-coral-soft);
+  --color-amber: var(--qs-amber);
+  --color-amber-soft: var(--qs-amber-soft);
+  --color-teal: var(--qs-teal);
+  --color-teal-soft: var(--qs-teal-soft);
+  --color-mint: var(--qs-mint);
+  --color-mint-soft: var(--qs-mint-soft);
+  --color-slate: var(--qs-slate);
+  --color-slate-soft: var(--qs-slate-soft);
+  /* Snack bars: same in light and dark (app_snack_bar.dart). */
+  --color-toast-success: #1f7a4d;
+  --color-toast-danger: #b3261e;
+  --color-toast-warning: #c75000;
+}
+
+@layer base {
+  html {
+    background-color: var(--qs-bg);
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: var(--qs-bg);
+    color: var(--qs-text);
+    font-family: var(--font-sans);
+    overflow-wrap: anywhere;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: default;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--qs-brand);
+    outline-offset: 2px;
+  }
+}
+
+/* ---- Motion (mobile-app/lib/widgets/animation) ---- */
+
+/* StaggeredEntrance: fade in and rise 20px, 60ms apart. */
+@keyframes qs-enter {
+  from { opacity: 0; transform: translateY(var(--qs-rise, 20px)); }
+  to { opacity: 1; transform: none; }
+}
+
+.qs-enter {
+  animation: qs-enter 420ms cubic-bezier(0.215, 0.61, 0.355, 1) both;
+  animation-delay: var(--qs-delay, 0ms);
+}
+
+/* FadeOnChange: a new question fades in. */
+@keyframes qs-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.qs-fade {
+  animation: qs-fade 260ms cubic-bezier(0.215, 0.61, 0.355, 1) both;
+}
+
+/* PopOnChange: a quick bounce when an option is picked. */
+@keyframes qs-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.25); }
+  65% { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+
+.qs-pop {
+  animation: qs-pop 420ms ease-out both;
+}
+
+/* PressableScale: squish on press, spring back on release. */
+.qs-press {
+  transition: transform 260ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.qs-press:active:not(:disabled):not([aria-disabled='true']) {
+  transform: scale(var(--qs-press, 0.96));
+  transition: transform 120ms ease-out;
+}
+
+/* LoadingSkeleton shimmer. */
+@keyframes qs-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
+.qs-skeleton {
+  background: linear-gradient(110deg, var(--qs-card) 30%, var(--qs-border) 50%, var(--qs-card) 70%);
+  background-size: 300% 100%;
+  animation: qs-shimmer 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes qs-spin {
+  to { transform: rotate(360deg); }
+}
+
+.qs-spin {
+  animation: qs-spin 0.8s linear infinite;
+}
+
+/* Confetti on a good score (confetti_burst.dart, 2.2s). */
+@keyframes qs-confetti {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--qs-dx), var(--qs-dy)) rotate(var(--qs-rot)); }
+}
+
+.qs-confetti {
+  animation: qs-confetti 2200ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  animation-delay: var(--qs-delay, 0ms);
+}
+
+@keyframes qs-toast-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+.qs-toast {
+  animation: qs-toast-in 220ms ease-out both;
+}
+
+@keyframes qs-sheet-in {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+
+.qs-sheet {
+  animation: qs-sheet-in 260ms cubic-bezier(0.215, 0.61, 0.355, 1) both;
+}
+
+@keyframes qs-dialog-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+
+.qs-dialog {
+  animation: qs-dialog-in 200ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qs-enter,
+  .qs-fade,
+  .qs-pop,
+  .qs-confetti,
+  .qs-toast,
+  .qs-sheet,
+  .qs-dialog {
+    animation: none;
+  }
+
+  .qs-confetti {
+    display: none;
+  }
+
+  .qs-press,
+  .qs-press:active:not(:disabled) {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* Hides a native control but keeps it usable (the date picker). */
+.qs-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

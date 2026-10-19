@@ -170,9 +170,9 @@ router.put('/users/:id', authenticateAdmin, async (req, res) => {
             return res.status(400).json({ message: 'Name, phone, and class are required' });
         }
 
-        // The date of birth is how the account signs in. Learners and teachers
-        // can't change it themselves, so the admin adds it for an account that
-        // has none or corrects a wrong one. Left empty, the saved date stays.
+        // The date of birth is how a teacher signs in. Teachers can't change it
+        // themselves, so the admin adds it for an account that has none or
+        // corrects a wrong one. Left empty, the saved date stays.
         let dobValue = null;
         if (dob !== undefined && dob !== null && String(dob).trim() !== '') {
             dobValue = parseDob(dob);

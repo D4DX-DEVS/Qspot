@@ -2,14 +2,12 @@ import 'package:flutter/foundation.dart';
 
 import '../../../services/course_service.dart';
 
-/// Screen-local state for the registration form: typed phone/name, class and
-/// date of birth (all needed for the completeness check), consent and course
-/// selection.
+/// Screen-local state for the registration form: typed phone/name and class
+/// (all needed for the completeness check), consent and course selection.
 class RegistrationFormProvider extends ChangeNotifier {
   String _phone = '';
   String _name = '';
   String? _classNumber;
-  DateTime? _dob;
   bool _hasConsent = false;
   String _consentBy = 'parent';
   List<CourseModel> _courses = const [];
@@ -18,7 +16,6 @@ class RegistrationFormProvider extends ChangeNotifier {
   bool _disposed = false;
 
   String? get classNumber => _classNumber;
-  DateTime? get dob => _dob;
   bool get hasConsent => _hasConsent;
   String get consentBy => _consentBy;
   List<CourseModel> get courses => _courses;
@@ -28,8 +25,7 @@ class RegistrationFormProvider extends ChangeNotifier {
   bool get isComplete =>
       _phone.trim().length == 10 &&
       _name.trim().length >= 3 &&
-      _classNumber != null &&
-      _dob != null;
+      _classNumber != null;
 
   Future<void> loadCourses() async {
     final courses = await CourseService.fetchActive();
@@ -60,11 +56,6 @@ class RegistrationFormProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setDob(DateTime value) {
-    _dob = value;
-    notifyListeners();
-  }
-
   void setHasConsent(bool value) {
     _hasConsent = value;
     notifyListeners();
@@ -82,11 +73,5 @@ class RegistrationFormProvider extends ChangeNotifier {
       _selectedCourseIds.remove(id);
     }
     notifyListeners();
-  }
-
-  String formatDob(DateTime date) {
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-    return '${date.year}-$month-$day';
   }
 }

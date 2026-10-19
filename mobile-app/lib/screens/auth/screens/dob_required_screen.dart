@@ -13,9 +13,8 @@ import '../widgets/auth_page_layout.dart';
 import '../widgets/auth_theme_scope.dart';
 import '../widgets/dob_required_form.dart';
 
-/// Shown once to a signed-in student or teacher whose account has no date of
-/// birth. Sign-in now needs one, so the app asks for it before going any
-/// further.
+/// Shown once to a signed-in teacher whose account has no date of birth.
+/// Teachers sign in with it, so the app asks for it before going any further.
 class DobRequiredScreen extends StatelessWidget {
   const DobRequiredScreen({super.key});
 

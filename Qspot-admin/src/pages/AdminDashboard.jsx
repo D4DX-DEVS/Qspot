@@ -172,11 +172,9 @@ const AdminDashboard = () => {
                                   <div className="max-w-[10rem] truncate text-sm font-medium text-white sm:max-w-[16rem]" title={user.name}>
                                     {user.name || 'No Name'}
                                   </div>
-                                  {(user.role === 'faculty' || !user.dob) && (
+                                  {user.role === 'faculty' && (
                                     <div className="mt-1 flex flex-wrap gap-1">
-                                      {user.role === 'faculty' && (
-                                        <span className="rounded-full border border-sky-300/30 bg-sky-400/10 px-2 py-0.5 text-[10px] font-semibold text-sky-200">Teacher</span>
-                                      )}
+                                      <span className="rounded-full border border-sky-300/30 bg-sky-400/10 px-2 py-0.5 text-[10px] font-semibold text-sky-200">Teacher</span>
                                       {!user.dob && (
                                         <span title="Can't sign in to the app until a date of birth is added" className="rounded-full border border-amber-300/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold text-amber-200">No date of birth</span>
                                       )}
@@ -358,20 +356,23 @@ const EditUserModal = ({ user, onClose, onSave }) => {
                 required
               />
             </div>
-            <div>
-              <label htmlFor="edit-user-dob" className="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">Date of birth</label>
-              <input
-                id="edit-user-dob"
-                type="date"
-                value={formData.dob}
-                min={dobLimits.min}
-                max={dobLimits.max}
-                onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                className="mt-2 block w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white [color-scheme:dark] focus:border-[#EFB078]/60 focus:outline-none"
-                required={Boolean(dobInputValue(user.dob))}
-              />
-              <p className={`mt-1.5 text-xs ${hint.warn ? 'text-amber-200' : 'text-white/50'}`}>{hint.text}</p>
-            </div>
+            {/* Only teachers sign in with a date of birth; students use their class. */}
+            {user.role === 'faculty' && (
+              <div>
+                <label htmlFor="edit-user-dob" className="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">Date of birth</label>
+                <input
+                  id="edit-user-dob"
+                  type="date"
+                  value={formData.dob}
+                  min={dobLimits.min}
+                  max={dobLimits.max}
+                  onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                  className="mt-2 block w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white [color-scheme:dark] focus:border-[#EFB078]/60 focus:outline-none"
+                  required={Boolean(dobInputValue(user.dob))}
+                />
+                <p className={`mt-1.5 text-xs ${hint.warn ? 'text-amber-200' : 'text-white/50'}`}>{hint.text}</p>
+              </div>
+            )}
 
             <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4">
               <button

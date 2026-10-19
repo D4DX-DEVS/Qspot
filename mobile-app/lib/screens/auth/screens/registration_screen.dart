@@ -15,7 +15,6 @@ import '../widgets/art/corner_wave_painter.dart';
 import '../widgets/art/mosque_skyline_painter.dart';
 import '../widgets/auth_back_button.dart';
 import '../widgets/auth_brand_mark.dart';
-import '../widgets/auth_dob_picker.dart';
 import '../widgets/auth_headline.dart';
 import '../widgets/auth_page_layout.dart';
 import '../widgets/auth_phone_field.dart';
@@ -24,7 +23,6 @@ import '../widgets/auth_theme_scope.dart';
 import '../widgets/class_dropdown_field.dart';
 import '../widgets/consent_card.dart';
 import '../widgets/course_picker_card.dart';
-import '../widgets/date_picker_field.dart';
 import '../widgets/gradient_pill_button.dart';
 import '../widgets/phone_verification_alert.dart';
 
@@ -67,13 +65,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _consentNameController.dispose();
     _form.dispose();
     super.dispose();
-  }
-
-  Future<void> _pickDob() async {
-    final picked = await showAuthDobPicker(context, initial: _form.dob);
-    if (picked != null && mounted) {
-      _form.setDob(picked);
-    }
   }
 
   @override
@@ -119,7 +110,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               title: 'Create Your ',
               accent: 'Account',
               subtitle:
-                  'Your number and date of birth sign you in, so there is no password to remember.',
+                  'Your number and class sign you in, so there is no password to remember.',
               fontSize: 28,
             ),
           ),
@@ -175,17 +166,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   const SizedBox(height: 14),
                 StaggeredEntrance(
                   index: 5,
-                  child: DatePickerField(
-                    hint: 'Date of Birth',
-                    valueText: form.dob != null
-                        ? form.formatDob(form.dob!)
-                        : null,
-                    onTap: _pickDob,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                StaggeredEntrance(
-                  index: 6,
                   child: ConsentCard(
                     value: form.hasConsent,
                     onChanged: form.setHasConsent,
@@ -196,7 +176,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 24),
                 StaggeredEntrance(
-                  index: 7,
+                  index: 6,
                   child: Consumer<AuthProvider>(
                     builder: (context, authProvider, child) =>
                         GradientPillButton(
@@ -210,10 +190,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 ),
                 const SizedBox(height: 16),
                 StaggeredEntrance(
-                  index: 7,
+                  index: 6,
                   child: Builder(
                     builder: (context) => Text(
-                      'We only use your number and date of birth to sign you in.',
+                      'We only use your number and class to sign you in.',
                       textAlign: TextAlign.center,
                       style: AppFonts.regular(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -249,12 +229,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     final confirmed = await PhoneVerificationAlert.show(context, phone: phone);
     if (!confirmed || !mounted) return;
 
-    final dob = _form.dob!;
+    final classNumber = _form.classNumber!;
     final result = await authProvider.register(
       phone: phone,
       name: _nameController.text.trim(),
-      classNumber: _form.classNumber!,
-      dob: _form.formatDob(dob),
+      classNumber: classNumber,
       consent: _form.hasConsent
           ? {
               'by': _form.consentBy,
@@ -274,9 +253,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         color: AppColors.success,
       );
 
-      // Registration does not return a token - hand the phone number and date
-      // of birth back to the login screen so it can sign the new account in.
-      final RegisteredAccount account = (phone: phone, dob: dob);
+      // Registration does not return a token - hand the phone number and
+      // class back to the login screen so it can sign the new account in.
+      final RegisteredAccount account = (
+        phone: phone,
+        classNumber: classNumber,
+      );
       Navigator.pop(context, account);
     } else {
       AppSnackBar.show(

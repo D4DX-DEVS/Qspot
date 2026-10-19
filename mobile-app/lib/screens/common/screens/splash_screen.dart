@@ -105,12 +105,12 @@ class _SplashScreenState extends State<SplashScreen>
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
             authProvider.isAuthenticated
-            // Sign-in needs a date of birth: ask a student or teacher who
-            // has none.
-            ? (authProvider.user?.hasDob == false
-                  ? const DobRequiredScreen()
-                  : authProvider.user?.role == 'faculty'
-                  ? const FacultyHomeScreen()
+            // Teachers sign in with a date of birth: ask one who has none.
+            // Students sign in with their class, so they never need one.
+            ? (authProvider.user?.role == 'faculty'
+                  ? (authProvider.user?.hasDob == false
+                        ? const DobRequiredScreen()
+                        : const FacultyHomeScreen())
                   : const MainNavigationScreen())
             : const LoginScreen(),
         transitionDuration: const Duration(milliseconds: 500),

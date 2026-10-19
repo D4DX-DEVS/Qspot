@@ -393,7 +393,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final fields = <String, String>{
         'name': nameController.text.trim(),
-        'class': classController.text.trim(),
+        // The class signs the student in, so "08" or "+8" is saved as "8"
+        // to match the sign-in list (the validator already checked it).
+        'class': int.parse(classController.text.trim()).toString(),
         'language': language,
         if (removePhoto) 'removeProfileImage': 'true',
       };

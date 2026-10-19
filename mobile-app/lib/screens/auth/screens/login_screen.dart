@@ -17,13 +17,15 @@ import '../widgets/auth_link_row.dart';
 import '../widgets/auth_page_layout.dart';
 import '../widgets/auth_phone_field.dart';
 import '../widgets/auth_theme_scope.dart';
+import '../widgets/class_dropdown_field.dart';
 import '../widgets/date_picker_field.dart';
 import '../widgets/gradient_pill_button.dart';
 import 'registration_screen.dart';
 import '../../common/screens/main_navigation_screen.dart';
 import '../../faculty/screens/faculty_home_screen.dart';
 
-/// Sign-in screen: phone number + date of birth.
+/// Sign-in screen: phone number + class for students, phone number + date of
+/// birth for teachers.
 ///
 /// Logo and headline sit inside a pointed arch over a mosque skyline; light
 /// or dark follows the phone's setting (see [AuthThemeScope]).
@@ -85,19 +87,20 @@ class _LoginScreenState extends State<LoginScreen> {
         bottomArtOverlap: artHeight * 0.4,
         centerContent: true,
         children: [
-          const StaggeredEntrance(
+          StaggeredEntrance(
             index: 0,
             child: ArchHeader(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  AuthBrandMark(size: 150),
+                  const AuthBrandMark(size: 150),
                   AuthHeadline(
                     title: 'Learn the ',
                     accent: 'Qur’ān',
                     trailing: ',\none episode at a time.',
-                    subtitle:
-                        'Sign in with your phone number and date of birth to continue.',
+                    subtitle: form.isTeacher
+                        ? 'Sign in with your phone number and date of birth to continue.'
+                        : 'Sign in with your phone number and class to continue.',
                     textAlign: TextAlign.center,
                     fontSize: 26,
                     subtitleFontSize: 13.5,
@@ -115,11 +118,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   AuthPhoneField(controller: _phoneController),
                   const SizedBox(height: 14),
-                  DatePickerField(
-                    hint: 'Date of Birth',
-                    valueText: form.dobForApi,
-                    onTap: _pickDob,
-                  ),
+                  if (form.isTeacher)
+                    DatePickerField(
+                      hint: 'Date of Birth',
+                      valueText: form.dobForApi,
+                      onTap: _pickDob,
+                    )
+                  else
+                    ClassDropdownField(
+                      value: form.classNumber,
+                      onChanged: form.setClassNumber,
+                    ),
                 ],
               ),
             ),
@@ -138,12 +147,24 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           const SizedBox(height: 16),
+          // Only students register, so a teacher sees just the way back.
+          if (!form.isTeacher)
+            StaggeredEntrance(
+              index: 3,
+              child: AuthLinkRow(
+                prompt: "Don't Have an Account?",
+                action: 'Register Now',
+                onTap: _navigateToRegistration,
+              ),
+            ),
           StaggeredEntrance(
-            index: 3,
+            index: 4,
             child: AuthLinkRow(
-              prompt: "Don't Have an Account?",
-              action: 'Register Now',
-              onTap: _navigateToRegistration,
+              prompt: form.isTeacher ? 'Student?' : 'Teacher?',
+              action: form.isTeacher
+                  ? 'Sign in with class'
+                  : 'Sign in with date of birth',
+              onTap: form.toggleTeacher,
             ),
           ),
         ],
@@ -153,15 +174,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) return;
+    await _submit();
+  }
 
-    final dob = _form.dobForApi;
-    if (dob == null) return;
+  /// Sends whichever of class or date of birth is on screen; the other one is
+  /// always null (see [LoginFormProvider.toggleTeacher]).
+  Future<void> _submit() async {
+    if (!_form.isComplete) return;
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     // Send only 10 digits without country code to match registration format
     final phone = _phoneController.text.trim();
 
-    final result = await authProvider.login(phone, dob);
+    final result = await authProvider.login(
+      phone,
+      classNumber: _form.classNumber,
+      dob: _form.dobForApi,
+    );
 
     if (!mounted) return;
 
@@ -193,10 +222,11 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted || registered == null) return;
 
     // Registration never authenticates the user (no token is returned), so
-    // sign the new account in with the number and date of birth they just
-    // registered with.
+    // sign the new account in with the number and class they just registered
+    // with. The class field shows it from the next frame, so the form is not
+    // validated again here: registration already checked both.
     _phoneController.text = registered.phone;
-    _form.setDob(registered.dob);
-    await _signIn();
+    _form.setClassNumber(registered.classNumber);
+    await _submit();
   }
 }
