@@ -22,6 +22,7 @@ const { learnerSubjects } = require('../services/learnerScope');
 const { parseUpcomingLimit } = require('../services/upcomingLimit');
 const { buildProgressSummary } = require('../services/progressSummary');
 const { parseDob, sameDob } = require('../services/dob');
+const { sameClass } = require('../services/classKey');
 const { examAnswersAt, revealFields } = require('../services/answerReveal');
 const { publicUser } = require('../services/publicUser');
 const { shapeVideo } = require('../services/videoShape');
@@ -169,7 +170,7 @@ const removeUploadedProfileFile = async (file) => {
 // POST /api/user/register
 router.post('/register', async (req, res) => {
   try {
-    const { name, phone, class: userClass, email, dob, consent, courseIds } = req.body || {};
+    const { name, phone, class: userClass, email, consent, courseIds } = req.body || {};
 
     if (!String(name || '').trim() || !String(phone || '').trim() || !String(userClass || '').trim()) {
       return res.status(400).json({ message: 'Name, phone, and class are required' });
@@ -203,15 +204,6 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ message: 'User with this phone number already exists' });
     }
 
-    // The date of birth is the student's sign-in secret, so it is required.
-    if (!String(dob || '').trim()) {
-      return res.status(400).json({ message: 'Date of birth is required' });
-    }
-    const dobValue = parseDob(dob);
-    if (!dobValue) {
-      return res.status(400).json({ message: 'dob must be a valid date (YYYY-MM-DD)' });
-    }
-
     let consentValue = undefined;
     if (consent && consent.by) {
       if (!['parent', 'school'].includes(consent.by)) {
@@ -230,7 +222,6 @@ router.post('/register', async (req, res) => {
       class: normalizedClass,
       courseIds: selectedCourseIds,
       email: email || '',
-      dob: dobValue,
       // The number is confirmed with a one-time code later, not at sign-up.
       phoneVerified: false,
       consent: consentValue
@@ -260,34 +251,49 @@ router.post('/refresh-token', authenticateUser, (req, res) => {
 });
 
 // POST /api/user/login
-// Sign in with phone number + date of birth. Failed attempts are limited per
-// phone number and per IP in server.js. A wrong date and an unknown number get
-// the same answer, so the endpoint does not reveal which numbers have accounts.
+// Students sign in with phone number + class, teachers with phone number +
+// date of birth; a date never signs a student in, a class never a teacher.
+// Failed attempts are limited per phone number and per IP in server.js. A
+// wrong class and an unknown number get the same answer, so the endpoint does
+// not reveal which numbers have accounts.
 router.post('/login', async (req, res) => {
   try {
-    const { phone, dob } = req.body || {};
-    if (!phone || !String(dob || '').trim()) {
-      return res.status(400).json({ message: 'Phone and date of birth are required' });
+    const { phone, class: userClass, dob } = req.body || {};
+    const hasClass = String(userClass ?? '').trim() !== '';
+    if (!phone || (!hasClass && !String(dob || '').trim())) {
+      return res.status(400).json({ message: 'Phone and class are required' });
     }
 
     const normalizedPhone = normalizePhone(phone);
     if (normalizedPhone.length !== 10) {
       return res.status(400).json({ message: 'Enter a valid 10-digit phone number' });
     }
+
+    const user = await User.findOne({ phone: normalizedPhone });
+    const isStudent = Boolean(user) && (user.role || 'student') === 'student';
+
+    if (hasClass) {
+      if (!isStudent || !sameClass(user.class, userClass)) {
+        return res.status(404).json({ message: 'No student account matches this phone number and class.' });
+      }
+      return res.json({ message: 'Login successful', token: signUserToken(user), user: publicUser(user) });
+    }
+
     const dobValue = parseDob(dob);
     if (!dobValue) {
       return res.status(400).json({ message: 'dob must be a valid date (YYYY-MM-DD)' });
     }
-
-    const user = await User.findOne({ phone: normalizedPhone });
-    if (user && !user.dob) {
+    if (user && !isStudent && !user.dob) {
       return res.status(409).json({
         code: 'DOB_MISSING',
         message: 'No date of birth is saved for this number yet, so it cannot sign in this way. Please contact support to add it.'
       });
     }
-    if (!user || !sameDob(user.dob, dobValue)) {
-      return res.status(404).json({ message: 'No account matches this phone number and date of birth.' });
+    // An app from before the class sign-in still sends a student's date.
+    if (!user || isStudent || !sameDob(user.dob, dobValue)) {
+      return res.status(404).json({
+        message: 'No teacher account matches this phone number and date of birth. Students: please update the app and sign in with your class.'
+      });
     }
 
     return res.json({ message: 'Login successful', token: signUserToken(user), user: publicUser(user) });

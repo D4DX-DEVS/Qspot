@@ -522,9 +522,43 @@ describe('quiz routes', { skip }, () => {
         assert.equal((await put('/api/faculty/me/dob', learner.token, { dob: '2010-01-01' })).status, 403);
     });
 
-    it('the admin adds a missing date of birth and can correct it', async () => {
+    it('a student signs in with phone and class, never with a date of birth', async () => {
+        const mongoose = require('mongoose');
+        const phone = `7${String(Math.floor(Math.random() * 1e9)).padStart(9, '0')}`;
+        await student({ phone, class: '9', dob: new Date('2010-05-03') });
+        const login = (body) => call('/api/user/login', null, { phone, ...body });
+
+        const signedIn = await login({ class: '9' });
+        assert.equal(signedIn.status, 200);
+        assert.equal(jwt.decode(signedIn.body.token).role, 'student');
+        assert.equal(signedIn.body.user.class, '9');
+        assert.equal((await login({ class: 'Class 9' })).status, 200, 'written as on screen');
+        assert.equal((await login({ class: ' 9 ' })).status, 200);
+
+        assert.equal((await login({ class: '8' })).status, 404, 'wrong class');
+        assert.equal((await login({ dob: '2010-05-03' })).status, 404, 'the date no longer signs a student in');
+        assert.equal((await login({})).status, 400);
+        assert.equal((await call('/api/user/login', null, { phone: `6${phone.slice(1)}`, class: '9' })).status, 404, 'unknown number');
+
+        const teacherPhone = `4${String(Math.floor(Math.random() * 1e9)).padStart(9, '0')}`;
+        await student({ phone: teacherPhone, class: 'Faculty', role: 'faculty', facultyProfile: new mongoose.Types.ObjectId(), dob: new Date('1985-04-12') });
+        assert.equal((await call('/api/user/login', null, { phone: teacherPhone, class: 'Faculty' })).status, 404, 'a class never signs a teacher in');
+        assert.equal((await call('/api/user/login', null, { phone: teacherPhone, dob: '1985-04-12' })).status, 200);
+    });
+
+    it('registration no longer asks for a date of birth', async () => {
+        const phone = `5${String(Math.floor(Math.random() * 1e9)).padStart(9, '0')}`;
+        const registered = await call('/api/user/register', null, { name: 'New Learner', phone, class: '7' });
+        assert.equal(registered.status, 201);
+        created.users.push(registered.body.user.id);
+        assert.equal(registered.body.user.dob, null);
+        assert.equal((await call('/api/user/login', null, { phone, class: '7' })).status, 200);
+    });
+
+    it('the admin adds a missing teacher date of birth and can correct it', async () => {
+        const mongoose = require('mongoose');
         const phone = `8${String(Math.floor(Math.random() * 1e9)).padStart(9, '0')}`;
-        const { user } = await student({ phone });
+        const { user } = await student({ phone, role: 'faculty', facultyProfile: new mongoose.Types.ObjectId() });
         const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
         const route = `/api/admin/users/${user._id}`;
         const fields = { name: 'Integration', phone, class: '8' };
@@ -634,7 +668,7 @@ describe('quiz routes', { skip }, () => {
 
     it('a phone number the admin types with +91 or spaces still signs the student in', async () => {
         const digits = `8${String(Math.floor(Math.random() * 1e9)).padStart(9, '0')}`;
-        const { user } = await student({ phone: digits, dob: new Date('2010-05-03') });
+        const { user } = await student({ phone: digits });
         const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
         const route = `/api/admin/users/${user._id}`;
         const fields = { name: 'Integration', class: '8' };
@@ -642,7 +676,7 @@ describe('quiz routes', { skip }, () => {
         const typed = `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
         assert.equal((await put(route, admin, { ...fields, phone: typed })).status, 200);
         assert.equal((await models.User.findById(user._id).lean()).phone, digits, 'saved as the 10 digits');
-        assert.equal((await call('/api/user/login', null, { phone: digits, dob: '2010-05-03' })).status, 200);
+        assert.equal((await call('/api/user/login', null, { phone: digits, class: '8' })).status, 200);
 
         assert.equal((await put(route, admin, { ...fields, phone: '12345' })).status, 400, 'not a 10-digit number');
         const { user: other } = await student({ phone: `7${digits.slice(1)}` });

@@ -1,5 +1,5 @@
-// Date of birth in the Users page. It is how a learner or teacher signs in to
-// the app, so the form explains what a change does. The server checks the
+// Date of birth in the Users page. It is how a teacher signs in to the app
+// (students use their class), so the form explains what a change does. The server checks the
 // same limits (Qspot-API/services/dob.js).
 
 // A saved date (ISO string from the API) as the YYYY-MM-DD a date box uses.
