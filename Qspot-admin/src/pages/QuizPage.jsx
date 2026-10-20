@@ -48,6 +48,13 @@ const formatPreview = (value, limit = 160) => {
   return trimmed.length <= limit ? trimmed : `${trimmed.slice(0, limit)}…`;
 };
 
+// The correct option in Malayalam (`correct_answer` is stored as English text).
+const correctAnswerMl = (question) => {
+  const { options, correctIndex } = questionToFormShape(question);
+  if (correctIndex === null) return question.correct_answer;
+  return options[correctIndex].ml || options[correctIndex].en;
+};
+
 const QuizPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -183,15 +190,18 @@ const QuizPage = () => {
   const handleSaveQuestion = async (event) => {
     event.preventDefault();
 
-    const questionEn = questionForm.question_en.trim();
+    // Only Malayalam is entered for now. The server still needs the English
+    // fields (and grades by option position), so an empty English text is
+    // filled with the Malayalam one; English already saved is kept.
     const questionMl = questionForm.question_ml.trim();
-    if (!questionEn || !questionMl) {
-      setQuestionFormError('Please enter the question in both English and Malayalam.');
+    const questionEn = questionForm.question_en.trim() || questionMl;
+    if (!questionMl) {
+      setQuestionFormError('Please enter the question in Malayalam.');
       return;
     }
 
     const trimmedOptions = questionForm.options.map((option) => ({
-      en: option.en.trim(),
+      en: option.en.trim() || option.ml.trim(),
       ml: option.ml.trim()
     }));
 
@@ -199,18 +209,21 @@ const QuizPage = () => {
       setQuestionFormError('Add at least two answer choices.');
       return;
     }
-    if (trimmedOptions.some((option) => !option.en || !option.ml)) {
-      setQuestionFormError('Every option needs both an English and a Malayalam answer.');
+    if (trimmedOptions.some((option) => !option.ml)) {
+      setQuestionFormError('Every option needs a Malayalam answer.');
       return;
     }
-    const seen = new Set();
+    const seenEn = new Set();
+    const seenMl = new Set();
     for (const option of trimmedOptions) {
-      const key = option.en.toLowerCase();
-      if (seen.has(key)) {
+      const keyEn = option.en.toLowerCase();
+      const keyMl = option.ml.toLowerCase();
+      if (seenEn.has(keyEn) || seenMl.has(keyMl)) {
         setQuestionFormError('Each option must be different from the others.');
         return;
       }
-      seen.add(key);
+      seenEn.add(keyEn);
+      seenMl.add(keyMl);
     }
     if (questionForm.correctIndex === null || !trimmedOptions[questionForm.correctIndex]) {
       setQuestionFormError('Select the correct answer.');
@@ -283,6 +296,8 @@ const QuizPage = () => {
       return matchesSearch && matchesDifficulty;
     });
   }, [questionSearch, difficultyFilter, questions]);
+
+  const detailOptionsMl = parseOptionsList(activeQuestionDetail?.options_ml).slice(0, 6);
 
   if (!quizId) {
     return <Navigate to="/admin/quizzes" replace />;
@@ -398,10 +413,9 @@ const QuizPage = () => {
                       </span>
                     </div>
                     <div className="flex items-start justify-between gap-2">
-                      <div className="space-y-1">
-                        <p className="text-base font-semibold text-white line-clamp-2">{question.question_en}</p>
-                        <p className="text-sm text-white/65 line-clamp-2">{question.question_ml}</p>
-                      </div>
+                      <p className="text-base font-semibold text-white line-clamp-2">
+                        {question.question_ml || question.question_en}
+                      </p>
                       <FiChevronRight className="flex-none text-white/40 transition group-hover:translate-x-1" />
                     </div>
                   </button>
@@ -491,26 +505,15 @@ const QuizPage = () => {
               </label>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60 flex flex-col gap-2">
-                Question (English) *
-                <textarea
-                  value={questionForm.question_en}
-                  onChange={(event) => handleQuestionFieldChange('question_en', event.target.value)}
-                  className="h-28 w-full resize-none rounded-2xl border border-white/15 bg-transparent px-4 py-3 text-white placeholder:text-white/40 focus:border-[#EFB078] focus:outline-none"
-                  required
-                />
-              </label>
-              <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60 flex flex-col gap-2">
-                Question (Malayalam) *
-                <textarea
-                  value={questionForm.question_ml}
-                  onChange={(event) => handleQuestionFieldChange('question_ml', event.target.value)}
-                  className="h-28 w-full resize-none rounded-2xl border border-white/15 bg-transparent px-4 py-3 text-white placeholder:text-white/40 focus:border-[#EFB078] focus:outline-none"
-                  required
-                />
-              </label>
-            </div>
+            <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60 flex flex-col gap-2">
+              Question (Malayalam) *
+              <textarea
+                value={questionForm.question_ml}
+                onChange={(event) => handleQuestionFieldChange('question_ml', event.target.value)}
+                className="h-28 w-full resize-none rounded-2xl border border-white/15 bg-transparent px-4 py-3 text-white placeholder:text-white/40 focus:border-[#EFB078] focus:outline-none"
+                required
+              />
+            </label>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -552,30 +555,17 @@ const QuizPage = () => {
                         </button>
                       )}
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <label className="flex flex-col gap-1.5 text-[11px] font-medium text-white/50">
-                        English
-                        <input
-                          type="text"
-                          value={option.en}
-                          disabled={isTrueFalseType(questionForm.type)}
-                          onChange={(event) => handleOptionTextChange(index, 'en', event.target.value)}
-                          className="w-full rounded-xl border border-white/12 bg-transparent px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-[#EFB078] focus:outline-none disabled:text-white/60"
-                          placeholder="Answer choice"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1.5 text-[11px] font-medium text-white/50">
-                        Malayalam *
-                        <input
-                          type="text"
-                          value={option.ml}
-                          onChange={(event) => handleOptionTextChange(index, 'ml', event.target.value)}
-                          className="w-full rounded-xl border border-white/12 bg-transparent px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-[#EFB078] focus:outline-none"
-                          placeholder="Answer choice"
-                          required
-                        />
-                      </label>
-                    </div>
+                    <label className="flex flex-col gap-1.5 text-[11px] font-medium text-white/50">
+                      Malayalam *
+                      <input
+                        type="text"
+                        value={option.ml}
+                        onChange={(event) => handleOptionTextChange(index, 'ml', event.target.value)}
+                        className="w-full rounded-xl border border-white/12 bg-transparent px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-[#EFB078] focus:outline-none"
+                        placeholder={isTrueFalseType(questionForm.type) ? option.en : 'Answer choice'}
+                        required
+                      />
+                    </label>
                   </div>
                 ))}
               </div>
@@ -605,7 +595,7 @@ const QuizPage = () => {
 
       {activeQuestionDetail && (
         <Modal
-          title={formatPreview(activeQuestionDetail.question_en, 60) || 'Question'}
+          title={formatPreview(activeQuestionDetail.question_ml || activeQuestionDetail.question_en, 60) || 'Question'}
           subtitle="Question Detail"
           icon={brandIcon}
           onClose={closeQuestionDetail}
@@ -640,37 +630,26 @@ const QuizPage = () => {
               </button>
             </div>
             <div className="rounded-2xl border border-white/12 bg-black/25 p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/55 mb-3">Question (English)</p>
-              <p className="text-base text-white/90">{activeQuestionDetail.question_en}</p>
-              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-white/55">Question (Malayalam)</p>
-              <p className="mt-2 text-sm text-white/85">{activeQuestionDetail.question_ml}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/55 mb-3">Question (Malayalam)</p>
+              <p className="text-base text-white/90">{activeQuestionDetail.question_ml}</p>
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              {['options_en', 'options_ml'].map((key) => {
-                const options = parseOptionsList(activeQuestionDetail[key]).slice(0, 6);
-                return (
-                  <div key={key} className="rounded-2xl border border-white/10 bg-black/30 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.3em] text-white/40 mb-2">
-                      {key === 'options_en' ? 'Options English' : 'Options Malayalam'}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {options.length === 0 ? (
-                        <span className="text-xs text-white/40">NA</span>
-                      ) : (
-                        options.map((option) => (
-                          <span key={option} className="rounded-xl border border-white/10 px-3 py-1 text-xs text-white/80">
-                            {formatPreview(option, 50)}
-                          </span>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+              <p className="text-[11px] uppercase tracking-[0.3em] text-white/40 mb-2">Options Malayalam</p>
+              <div className="flex flex-wrap gap-2">
+                {detailOptionsMl.length === 0 ? (
+                  <span className="text-xs text-white/40">NA</span>
+                ) : (
+                  detailOptionsMl.map((option) => (
+                    <span key={option} className="rounded-xl border border-white/10 px-3 py-1 text-xs text-white/80">
+                      {formatPreview(option, 50)}
+                    </span>
+                  ))
+                )}
+              </div>
             </div>
             <div className="rounded-2xl border border-white/12 bg-black/30 p-4 text-sm text-white/80">
               <span className="text-white/40 text-[11px] uppercase tracking-[0.3em] block mb-2">Correct Answer</span>
-              <p className="text-white font-semibold">{activeQuestionDetail.correct_answer}</p>
+              <p className="text-white font-semibold">{correctAnswerMl(activeQuestionDetail)}</p>
             </div>
           </div>
         </Modal>

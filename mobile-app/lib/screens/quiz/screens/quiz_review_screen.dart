@@ -31,10 +31,13 @@ class QuizReviewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Burgundy home theme; the page reads colours from the context inside it.
-    return HomeThemeScope(
-      child: ChangeNotifierProvider(
-        create: (_) => QuizReviewFilterProvider(results),
-        child: Builder(builder: _buildPage),
+    // The questions and answers can never be selected, so they can't be copied.
+    return SelectionContainer.disabled(
+      child: HomeThemeScope(
+        child: ChangeNotifierProvider(
+          create: (_) => QuizReviewFilterProvider(results),
+          child: Builder(builder: _buildPage),
+        ),
       ),
     );
   }

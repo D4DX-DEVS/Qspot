@@ -22,12 +22,12 @@ import '../model/quiz_model.dart';
 import '../model/quiz_progress_record.dart';
 import '../model/quiz_refusal.dart';
 import '../provider/quiz_provider.dart';
-import '../widgets/quiz_language_dialog.dart';
 import '../widgets/quiz_list_card.dart';
 import '../widgets/quiz_offline_continue_list.dart';
 import '../widgets/quiz_pending_banner.dart';
 import '../widgets/quiz_refused_banner.dart';
 import '../widgets/quiz_reminder_permission_dialog.dart';
+import '../widgets/quiz_submitted_notice.dart';
 import 'quiz_question_screen.dart';
 import 'quiz_results_screen.dart';
 
@@ -99,6 +99,14 @@ class _QuizListScreenState extends State<QuizListScreen> {
 
   void _showAttemptSummary(QuizListItem quiz) {
     final attempt = quiz.myAttempt!;
+    if (!attempt.answersRevealed) {
+      // Score held back until the quiz closes for everyone.
+      QuizSubmittedNotice.show(
+        context,
+        availableAt: attempt.answersAvailableAt,
+      );
+      return;
+    }
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -120,15 +128,14 @@ class _QuizListScreenState extends State<QuizListScreen> {
   }
 
   Future<void> _startQuiz(QuizListItem quiz) async {
-    final language = await QuizLanguageDialog.show(context);
-    if (language == null || !mounted) return;
+    // Only Malayalam questions for now, so the language dialog is skipped.
     // First quiz only: offer the "quiz closes soon" reminder.
     await QuizReminderService.askPermissionOnce(() async {
       if (!mounted) return false;
       return QuizReminderPermissionDialog.show(context);
     });
     if (!mounted) return;
-    await _openQuiz(quiz.id, language);
+    await _openQuiz(quiz.id, 'ml');
   }
 
   /// Carries on with a quiz started on this phone, in the language it was

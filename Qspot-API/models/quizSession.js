@@ -20,6 +20,17 @@ const quizSessionSchema = new mongoose.Schema({
         type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'QuizQuestion' }],
         default: []
     },
+    // This student's option order per question (positions in the stored
+    // options list, see services/optionOrder.js). Questions left out are
+    // shown in the stored order.
+    optionOrders: {
+        type: [{
+            _id: false,
+            questionId: { type: mongoose.Schema.Types.ObjectId, ref: 'QuizQuestion' },
+            order: [Number]
+        }],
+        default: []
+    },
     startedAt: {
         type: Date,
         default: Date.now
