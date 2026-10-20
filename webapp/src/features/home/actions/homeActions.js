@@ -6,3 +6,10 @@ export function openHeroQuiz(hero, navigate) {
   if (hero.record) return continueQuiz(hero.record, navigate)
   return openQuizFromList(hero.quiz, navigate)
 }
+
+// Brings a home section (by its id) into view, e.g. Past Quizzes from the
+// stat tiles.
+export function scrollToSection(id) {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  document.getElementById(id)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
+}

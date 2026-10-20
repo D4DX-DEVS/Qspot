@@ -1,8 +1,11 @@
 # Qspot web app
 
-Sign-in and Quiz from the mobile app, for the browser. Same API, same rules,
-same look (colours, Manrope font, artwork and wording copied from
-`mobile-app/lib`). Mobile-first; it widens into a centred column on desktop.
+Sign-in and Quiz from the mobile app, for the browser. Same API, same rules
+and wording (copied from `mobile-app/lib`). The look follows the 2026-10-20
+night-scene designs: glass cards on a patterned wall and drawn night
+pictures (mosque, moon, lanterns, the Qur'ān on its stand) that stay at night
+in light mode too. Mobile-first; sign-in splits into picture + form and the
+quiz page gets pictures in its margins on wide screens.
 
 Stack: Vite 7, React 19, React Router 7, Tailwind CSS 4, lucide-react (the
 icon set the app uses). Matches `Qspot-admin`.
@@ -57,8 +60,9 @@ src/
   lib/         ChangeNotifier store base + hooks (the app's Provider pattern)
   services/    API client, storage, sign-in renewal
   stores/      toasts and dialogs
-  components/  shared UI (one component per file)
-  theme/       artwork palette, accent tones (page colours live in index.css)
+  art/         canvas painters for the night scenes (sky, city, arch window)
+  components/  shared UI (one component per file); scene/ draws the art
+  theme/       artwork palettes, accent tones (page colours live in index.css)
   features/
     auth/         sign-in, registration, logout, canvas artwork
     quiz/         models, offline store, submission, stores, pages

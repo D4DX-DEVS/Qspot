@@ -24,7 +24,7 @@ export default function DialogHost() {
   return stack.map((dialog) => (
     <div
       key={dialog.id}
-      className={`fixed inset-0 z-50 flex bg-[var(--qs-scrim)] ${dialog.kind === 'sheet' ? 'items-end justify-center' : 'items-center justify-center p-6'}`}
+      className={`fixed inset-0 z-50 flex bg-[var(--qs-scrim)] backdrop-blur-[3px] ${dialog.kind === 'sheet' ? 'items-end justify-center' : 'items-center justify-center p-6'}`}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && dialog.dismissible) dialog.dismiss()
       }}

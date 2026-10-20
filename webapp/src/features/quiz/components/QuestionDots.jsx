@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { Check } from 'lucide-react'
 
-// Numbered dots for every question: current filled brand, answered ringed
-// with a small tick, unanswered outlined. Each has a 44px tap area. In a
+// Numbered dots for every question: current filled pink, answered ringed
+// with a small tick, unanswered outlined. Each has a 44px+ tap area. In a
 // one-way quiz (no [onJump]) they only show progress. The current dot
 // scrolls into view when the question changes.
 export default function QuestionDots({ quiz, onJump }) {
@@ -22,20 +22,23 @@ export default function QuestionDots({ quiz, onJump }) {
   }, [current])
 
   return (
-    <ul ref={strip} aria-label="Questions" className="relative flex min-w-0 flex-1 items-center overflow-x-auto px-2 py-1 [scrollbar-width:none]">
+    <ul ref={strip} aria-label="Questions" className="relative flex min-w-0 items-center overflow-x-auto px-1 py-0.5 [scrollbar-width:none] sm:py-1">
       {quiz.sessionQuestions.map((q, index) => {
         const isCurrent = index === current
         const answered = quiz.selectedAnswer(q.id) != null
         const look = isCurrent
-          ? 'bg-brand text-on-brand'
+          ? 'qs-pop text-white shadow-[0_4px_12px_var(--qs-cta-shadow)]'
           : answered
-            ? 'bg-brand-soft text-brand ring-2 ring-brand/70'
-            : 'border border-field-line bg-card text-muted'
+            ? 'border-[1.5px] border-brand/80 bg-brand-soft text-ink'
+            : 'border-[1.5px] border-field-line text-muted'
         const dot = (
-          <span className={`relative grid size-8 place-items-center rounded-full text-xs font-bold ${look}`}>
+          <span
+            className={`relative grid size-9 place-items-center rounded-full text-sm font-semibold sm:size-10 ${look}`}
+            style={isCurrent ? { backgroundImage: 'var(--qs-cta)' } : undefined}
+          >
             {index + 1}
             {answered && !isCurrent ? (
-              <span className="absolute -right-1 -top-1 grid size-3.5 place-items-center rounded-full bg-brand text-on-brand" aria-hidden="true">
+              <span className="qs-pop absolute -right-1 -top-1 grid size-3.5 place-items-center rounded-full bg-brand text-on-brand" aria-hidden="true">
                 <Check size={9} strokeWidth={3.5} />
               </span>
             ) : null}
@@ -50,12 +53,12 @@ export default function QuestionDots({ quiz, onJump }) {
                 aria-label={label}
                 aria-current={isCurrent ? 'step' : undefined}
                 onClick={() => onJump(index)}
-                className="qs-press grid size-11 place-items-center rounded-full [--qs-press:0.88]"
+                className="qs-press grid size-11 place-items-center rounded-full [--qs-press:0.88] sm:size-12"
               >
                 {dot}
               </button>
             ) : (
-              <span role="img" aria-label={label} aria-current={isCurrent ? 'step' : undefined} className="grid size-11 place-items-center">
+              <span role="img" aria-label={label} aria-current={isCurrent ? 'step' : undefined} className="grid size-11 place-items-center sm:size-12">
                 {dot}
               </span>
             )}

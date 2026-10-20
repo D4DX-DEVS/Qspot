@@ -48,6 +48,23 @@
   /* Warm glow at the top of the home screen (homeLightSkyTop). */
   --qs-sky-top: #fffbf6;
   --qs-skyline-opacity: 0.08;
+  /* Night-scene redesign: see-through cards over the patterned wall, the
+     pink-to-coral and green action pills, and the wall's lattice. */
+  --qs-glass: rgb(255 255 255 / 0.86);
+  --qs-glass-strong: rgb(255 255 255 / 0.94);
+  --qs-glass-border: #eadcdf;
+  --qs-glass-glow: rgb(116 12 59 / 0.1);
+  --qs-card-rim: rgb(116 12 59 / 0.18);
+  --qs-focus-ring: rgb(116 12 59 / 0.12);
+  --qs-field-bg: #ffffff;
+  --qs-lattice: rgb(116 12 59 / 0.07);
+  --qs-wall-glow: rgb(217 137 79 / 0.14);
+  --qs-cta: linear-gradient(to right, #9c1457, #c42d63, #e8616a);
+  --qs-cta-shadow: rgb(156 20 87 / 0.28);
+  --qs-go: linear-gradient(to right, #17804a, #22a25e);
+  --qs-go-shadow: rgb(23 128 74 / 0.25);
+  --qs-bar: rgb(255 255 255 / 0.92);
+  --qs-option-picked: linear-gradient(to right, rgb(196 45 99 / 0.12), rgb(196 45 99 / 0.04));
 }
 
 @media (prefers-color-scheme: dark) {
@@ -86,6 +103,19 @@
     --qs-sky-top: #2a1522;
     /* The night skyline's lit windows are loud; keep it further back. */
     --qs-skyline-opacity: 0.1;
+    --qs-glass: rgb(19 21 38 / 0.82);
+    --qs-glass-strong: rgb(19 21 38 / 0.94);
+    --qs-glass-border: rgb(255 255 255 / 0.09);
+    --qs-glass-glow: rgb(217 137 79 / 0.16);
+    --qs-card-rim: rgb(217 137 79 / 0.42);
+    --qs-focus-ring: rgb(228 88 154 / 0.2);
+    --qs-field-bg: rgb(255 255 255 / 0.03);
+    --qs-field-icon: #e4589a;
+    --qs-lattice: rgb(217 137 79 / 0.11);
+    --qs-wall-glow: rgb(217 137 79 / 0.16);
+    --qs-cta-shadow: rgb(228 88 154 / 0.22);
+    --qs-bar: rgb(11 12 24 / 0.94);
+    --qs-option-picked: linear-gradient(to right, rgb(228 88 154 / 0.26), rgb(228 88 154 / 0.08));
   }
 }
 
@@ -115,6 +145,13 @@
   --color-mint-soft: var(--qs-mint-soft);
   --color-slate: var(--qs-slate);
   --color-slate-soft: var(--qs-slate-soft);
+  --color-glass: var(--qs-glass);
+  --color-glass-strong: var(--qs-glass-strong);
+  --color-glass-line: var(--qs-glass-border);
+  --color-card-rim: var(--qs-card-rim);
+  --color-field: var(--qs-field-bg);
+  --color-lattice: var(--qs-lattice);
+  --color-bar: var(--qs-bar);
   /* Snack bars: same in light and dark (app_snack_bar.dart). */
   --color-toast-success: #1f7a4d;
   --color-toast-danger: #b3261e;
@@ -163,16 +200,6 @@
 .qs-enter {
   animation: qs-enter 420ms cubic-bezier(0.215, 0.61, 0.355, 1) both;
   animation-delay: var(--qs-delay, 0ms);
-}
-
-/* FadeOnChange: a new question fades in. */
-@keyframes qs-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.qs-fade {
-  animation: qs-fade 260ms cubic-bezier(0.215, 0.61, 0.355, 1) both;
 }
 
 /* PopOnChange: a quick bounce when an option is picked. */
@@ -276,17 +303,183 @@
   animation: qs-sparkle 700ms cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 
+/* ---- Micro-interactions and ambient art ---- */
+
+/* QuestionSlide: a new question slides in from the right as it fades in. */
+@keyframes qs-slide-in {
+  from { opacity: 0; transform: translateX(18px); }
+  to { opacity: 1; transform: none; }
+}
+
+.qs-slide-in {
+  animation: qs-slide-in 320ms cubic-bezier(0.215, 0.61, 0.355, 1) both;
+}
+
+/* Lift: a clickable card rises a little and glows while hovered. */
+.qs-lift {
+  transition:
+    transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 240ms ease,
+    border-color 240ms ease;
+}
+
+@media (hover: hover) {
+  .qs-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 32px var(--qs-card-shadow), 0 0 0 1px var(--qs-glass-glow), 0 0 28px var(--qs-glass-glow);
+  }
+}
+
+/* Shine: a soft light sweeps across an action button on hover (or when its
+   card is hovered). */
+.qs-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.qs-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.32) 50%, transparent 70%);
+  transform: translateX(-130%);
+}
+
+@media (hover: hover) {
+  .qs-shine:hover::after,
+  .group:hover .qs-shine::after {
+    transform: translateX(130%);
+    transition: transform 750ms ease;
+  }
+}
+
+/* Wash: the pink tint of a picked answer fills in from the left. */
+@keyframes qs-wash {
+  from { background-size: 0% 100%; }
+  to { background-size: 100% 100%; }
+}
+
+.qs-wash {
+  background-repeat: no-repeat;
+  animation: qs-wash 380ms cubic-bezier(0.215, 0.61, 0.355, 1) both;
+}
+
+/* The dot inside a picked radio grows in with a little overshoot. */
+@keyframes qs-dot-in {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+
+.qs-dot-in {
+  animation: qs-dot-in 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+/* Gleam: a highlight runs along the progress bar's fill. */
+@keyframes qs-gleam {
+  0% { transform: translateX(-100%); }
+  60%, 100% { transform: translateX(260%); }
+}
+
+.qs-gleam {
+  position: relative;
+  overflow: hidden;
+}
+
+.qs-gleam::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.45), transparent);
+  animation: qs-gleam 2.6s ease-in-out infinite;
+}
+
+/* Heartbeat: a countdown in its last seconds beats once a second. */
+@keyframes qs-heartbeat {
+  0%, 100% { transform: scale(1); }
+  15% { transform: scale(1.12); }
+  30% { transform: scale(1); }
+}
+
+.qs-heartbeat {
+  display: inline-block;
+  animation: qs-heartbeat 1s ease-in-out infinite;
+}
+
+/* A dialog's icon pops in just after the dialog itself. */
+@keyframes qs-icon-pop {
+  0% { opacity: 0; transform: scale(0.4) rotate(-12deg); }
+  70% { opacity: 1; transform: scale(1.08) rotate(3deg); }
+  100% { opacity: 1; transform: none; }
+}
+
+.qs-icon-pop {
+  animation: qs-icon-pop 480ms cubic-bezier(0.215, 0.61, 0.355, 1) 120ms both;
+}
+
+/* Lanterns sway gently from their chains and their light flickers. */
+@keyframes qs-sway {
+  0%, 100% { transform: rotate(-2.4deg); }
+  50% { transform: rotate(2.4deg); }
+}
+
+@keyframes qs-flicker {
+  0%, 100% { opacity: 1; }
+  40% { opacity: 0.86; }
+  45% { opacity: 0.97; }
+  70% { opacity: 0.9; }
+}
+
+.qs-sway {
+  transform-origin: 50% 0;
+  animation: qs-sway var(--qs-sway-time, 4.8s) ease-in-out var(--qs-delay, 0ms) infinite;
+}
+
+.qs-flicker {
+  animation: qs-flicker 3.2s ease-in-out var(--qs-delay, 0ms) infinite;
+}
+
+/* Stars twinkle in the night skies. */
+@keyframes qs-twinkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.7); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+.qs-twinkle {
+  animation: qs-twinkle var(--qs-twinkle-time, 3s) ease-in-out var(--qs-delay, 0ms) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .qs-breathe,
   .qs-sparkle,
   .qs-enter,
-  .qs-fade,
   .qs-pop,
   .qs-confetti,
   .qs-toast,
   .qs-sheet,
-  .qs-dialog {
+  .qs-dialog,
+  .qs-slide-in,
+  .qs-wash,
+  .qs-dot-in,
+  .qs-gleam::after,
+  .qs-heartbeat,
+  .qs-icon-pop,
+  .qs-sway,
+  .qs-flicker,
+  .qs-twinkle {
     animation: none;
+  }
+
+  .qs-gleam::after,
+  .qs-shine::after {
+    display: none;
+  }
+
+  .qs-lift,
+  .qs-lift:hover {
+    transition: none;
+    transform: none;
   }
 
   .qs-confetti {
