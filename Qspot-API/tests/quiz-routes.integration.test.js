@@ -14,6 +14,9 @@ const LOCAL_TEST_DB = /^mongodb:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/[^?]*test/i
 const skip = LOCAL_TEST_DB ? false : 'set TEST_MONGODB_URI to a local *test* database to run';
 
 const SECRET = 'integration-secret';
+// The documented test login, so one-time-code sign-in can be checked without WhatsApp.
+const OTP_PHONE = '6999000111';
+const OTP_CODE = '424242';
 const PORT = 5098;
 const BASE = `http://127.0.0.1:${PORT}`;
 const MINUTE = 60 * 1000;
@@ -125,7 +128,7 @@ describe('quiz routes', { skip }, () => {
         };
         await mongoose.connect(URI);
         server = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], {
-            env: { ...process.env, MONGODB_URI: URI, JWT_SECRET: SECRET, PORT: String(PORT), QUIZ_SUBMIT_GRACE_MINUTES: '5', NOTIFICATION_JOBS_SECONDS: '0' },
+            env: { ...process.env, MONGODB_URI: URI, JWT_SECRET: SECRET, PORT: String(PORT), QUIZ_SUBMIT_GRACE_MINUTES: '5', NOTIFICATION_JOBS_SECONDS: '0', TEST_LOGIN: OTP_PHONE, TEST_OTP: OTP_CODE },
             stdio: ['ignore', 'pipe', 'pipe']
         });
         await new Promise((resolve, reject) => {
@@ -603,6 +606,57 @@ describe('quiz routes', { skip }, () => {
         await student({ phone: teacherPhone, name: 'Teacher T', class: 'Faculty', role: 'faculty', facultyProfile: new mongoose.Types.ObjectId(), dob: new Date('1985-04-12') });
         assert.equal((await call('/api/user/login', null, { phone: teacherPhone, name: 'Teacher T' })).status, 404, 'a name never signs a teacher in');
         assert.equal((await call('/api/user/login', null, { phone: teacherPhone, dob: '1985-04-12' })).status, 200);
+    });
+
+    it('brothers and sisters share a phone number and are told apart by name', async () => {
+        const mongoose = require('mongoose');
+        const phone = `9${String(Math.floor(Math.random() * 1e9)).padStart(9, '0')}`;
+        const nafisa = await student({ phone, name: 'Nafisa shafees', class: '8' });
+        const mariyam = await student({ phone, name: 'Mariyam shafees', class: '10' });
+        const login = (body) => call('/api/user/login', null, { phone, ...body });
+
+        const first = await login({ name: 'nafisa SHAFEES' });
+        assert.equal(first.status, 200);
+        assert.equal(first.body.user.id, String(nafisa.user._id));
+        const second = await login({ name: 'Mariyam shafees' });
+        assert.equal(second.status, 200);
+        assert.equal(second.body.user.id, String(mariyam.user._id), 'each name opens its own account');
+        assert.equal((await login({ name: 'Fathima shafees' })).status, 404, 'an unknown name on the number');
+
+        const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+        const sameName = await call('/api/admin/users', admin, { role: 'student', name: 'Nafisa  Shafees', phone, class: '9' });
+        assert.equal(sameName.status, 409, 'the same name twice on one number');
+        assert.match(sameName.body.message, /already has an account named Nafisa shafees/);
+        const third = await call('/api/admin/users', admin, { role: 'student', name: 'Hiba shafees', phone, class: '6' });
+        assert.equal(third.status, 201, 'a third child with another name');
+        created.users.push(third.body.user._id);
+
+        const renamed = await put(`/api/admin/users/${third.body.user._id}`, admin, { name: 'Mariyam Shafees', phone, class: '6' });
+        assert.equal(renamed.status, 409, 'the admin cannot give a sibling\'s name');
+        assert.equal((await put(`/api/admin/users/${third.body.user._id}`, admin, { name: 'Hiba Shafees K', phone, class: '6' })).status, 200);
+        assert.equal((await put('/api/user/me', mariyam.token, { name: 'NAFISA shafees' })).status, 409, 'nor can a student');
+        assert.equal((await put('/api/user/me', mariyam.token, { name: 'mariyam  shafees' })).status, 200, 'their own name in other capitals is fine');
+
+        await student({ phone, name: 'Shafees K', class: 'Teacher', role: 'faculty', facultyProfile: new mongoose.Types.ObjectId(), dob: new Date('1980-02-14') });
+        const teacher = await login({ dob: '1980-02-14' });
+        assert.equal(teacher.status, 200, 'a parent who teaches signs in with the date');
+        assert.equal(jwt.decode(teacher.body.token).role, 'faculty');
+        assert.equal((await login({ name: 'Shafees K' })).status, 404, 'a name never signs a teacher in');
+        assert.equal((await login({ name: 'Nafisa shafees' })).body.user.role, 'student');
+    });
+
+    it('a one-time code signs in only a number with a single account', async () => {
+        await models.User.deleteMany({ phone: OTP_PHONE });
+        const only = await student({ phone: OTP_PHONE, name: 'Code Learner' });
+        const verify = () => call('/api/user/login/verify', null, { phone: OTP_PHONE, code: OTP_CODE });
+        const single = await verify();
+        assert.equal(single.status, 200);
+        assert.equal(single.body.user.id, String(only.user._id));
+
+        await student({ phone: OTP_PHONE, name: 'Code Sibling' });
+        const shared = await verify();
+        assert.equal(shared.status, 409, 'a code cannot tell which sibling it is');
+        assert.match(shared.body.message, /sign in with your name/);
     });
 
     it('registration is turned away while it is closed', { skip: REGISTRATION_OPEN && 'registration is open' }, async () => {
