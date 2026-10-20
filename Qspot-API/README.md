@@ -27,7 +27,7 @@ Migrate a pre-contract-v2 database (titles legacy quiz, reattaches orphaned quiz
 
 ### Auth / user
 - `POST /api/admin/login`
-- `POST /api/user/register` — needs `dob` (`YYYY-MM-DD`); the account starts with `phoneVerified: false`
+- `POST /api/user/register` — needs `dob` (`YYYY-MM-DD`); the account starts with `phoneVerified: false`; refused with 403 while `REGISTRATION_OPEN` in `services/registration.js` is `false`
 - `POST /api/user/login` — students: `phone` + `name` (spaces and capitals ignored); teachers: `phone` + `dob`; failed attempts are limited per number and per IP
 - `POST /api/user/login/request-otp`
 - `POST /api/user/login/verify` — a correct code also sets `phoneVerified: true`

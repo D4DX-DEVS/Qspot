@@ -28,6 +28,7 @@ const { publicUser } = require('../services/publicUser');
 const { shapeVideo } = require('../services/videoShape');
 const { normalizePhone, phoneError } = require('../services/phone');
 const { isAccessible } = require('../services/quizAccess');
+const { REGISTRATION_OPEN } = require('../services/registration');
 const {
   profileUpload,
   CDN_ENABLED,
@@ -169,6 +170,9 @@ const removeUploadedProfileFile = async (file) => {
 
 // POST /api/user/register
 router.post('/register', async (req, res) => {
+  if (!REGISTRATION_OPEN) {
+    return res.status(403).json({ message: 'Registration is closed for now. Please try again later.' });
+  }
   try {
     const { name, phone, class: userClass, email, consent, courseIds } = req.body || {};
 
