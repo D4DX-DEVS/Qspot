@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiEdit2, FiTrash2, FiSearch, FiUsers, FiEye } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiSearch, FiUsers, FiEye, FiUserPlus } from 'react-icons/fi';
 import Sidebar from '../components/Sidebar';
 import ConfirmDialog from '../components/dialogs/ConfirmDialog';
+import AddUserModal from '../components/users/AddUserModal';
 import PageHeader from '../components/ui/PageHeader';
 import Spinner from '../components/ui/Spinner';
 import ErrorState from '../components/ui/ErrorState';
@@ -25,6 +26,7 @@ const AdminDashboard = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
@@ -79,6 +81,11 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleUserCreated = () => {
+    setShowAddModal(false);
+    fetchUsers();
+  };
+
   const handleDeleteUser = async (userId) => {
     try {
       await apiClient.delete(`/admin/users/${userId}`);
@@ -101,16 +108,25 @@ const AdminDashboard = () => {
             title="Users"
             description="Manage and view all registered students."
             actions={
-              <div className="relative w-full sm:w-80">
-                <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input
-                  type="text"
-                  placeholder="Search by name, email, phone, class…"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-[#f3c5a0]/55 focus:outline-none focus:border-[#701845]/50 focus:ring-2 focus:ring-[#701845]/30 transition-all"
-                />
-              </div>
+              <>
+                <div className="relative w-full sm:w-80">
+                  <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Search by name, email, phone, class…"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-[#f3c5a0]/55 focus:outline-none focus:border-[#701845]/50 focus:ring-2 focus:ring-[#701845]/30 transition-all"
+                  />
+                </div>
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="inline-flex w-full sm:w-auto sm:min-w-[140px] items-center justify-center space-x-2 rounded-2xl border-0 bg-gradient-to-r from-[#701845]/90 via-[#9E4B63]/80 to-[#EFB078]/85 px-6 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(112,24,69,0.3)] transition-all hover:from-[#5a1538] hover:to-[#d49a6a] hover:shadow-[0_12px_28px_rgba(112,24,69,0.4)] focus:outline-none"
+                >
+                  <FiUserPlus size={16} />
+                  <span>Add User</span>
+                </button>
+              </>
             }
           />
 
@@ -258,6 +274,10 @@ const AdminDashboard = () => {
           }}
           onSave={handleUpdateUser}
         />
+      )}
+
+      {showAddModal && (
+        <AddUserModal onClose={() => setShowAddModal(false)} onCreated={handleUserCreated} />
       )}
 
       {deleteConfirm && (
