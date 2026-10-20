@@ -64,7 +64,8 @@ router.get('/admin', authenticateAdmin, async (req, res) => {
             Question.find(filter)
                 .populate('faculty', 'name designation')
                 .populate('user', 'name class')
-                .sort({ createdAt: -1 })
+                // _id breaks ties so pages never repeat or skip questions asked together.
+                .sort({ createdAt: -1, _id: -1 })
                 .skip((page - 1) * limit)
                 .limit(limit),
             Question.countDocuments(filter),

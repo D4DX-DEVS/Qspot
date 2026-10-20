@@ -60,8 +60,9 @@ router.get('/', authenticateAdmin, async (req, res) => {
         const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
 
         const [items, total] = await Promise.all([
+            // _id breaks ties so pages never repeat or skip quizzes created together.
             QuizConfig.find()
-                .sort({ createdAt: -1 })
+                .sort({ createdAt: -1, _id: -1 })
                 .skip((page - 1) * limit)
                 .limit(limit)
                 .lean(),
