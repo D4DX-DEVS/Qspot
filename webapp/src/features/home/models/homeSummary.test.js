@@ -18,7 +18,8 @@ const quiz = (over) => ({
   myAttempt: null,
   ...over,
 })
-const taken = (id, percentage) => quiz({ id, isEnded: true, hasAttempted: true, myAttempt: { percentage } })
+const taken = (id, percentage, answersRevealed = true) =>
+  quiz({ id, isEnded: true, hasAttempted: true, myAttempt: { percentage, answersRevealed } })
 
 describe('featuredQuiz', () => {
   it('features the live quiz closing first and counts the others', () => {
@@ -57,6 +58,11 @@ describe('home numbers', () => {
   it('averages the server percentages of quizzes taken', () => {
     expect(quizStats([taken('a', 80), taken('b', 65), quiz({ id: 'c', isLive: true })])).toEqual({ taken: 2, average: 73 })
     expect(quizStats([])).toEqual({ taken: 0, average: null })
+  })
+
+  it('leaves a score out of the average until its quiz has closed', () => {
+    expect(quizStats([taken('a', 80), taken('b', 20, false)])).toEqual({ taken: 2, average: 80 })
+    expect(quizStats([taken('b', 20, false)])).toEqual({ taken: 1, average: null })
   })
 
   it('words quiz facts and dates', () => {

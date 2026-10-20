@@ -24,6 +24,7 @@ import '../../common/widgets/home_theme_scope.dart';
 import '../provider/quiz_provider.dart';
 import '../provider/quiz_question_screen_provider.dart';
 import '../widgets/quiz_submit_failed_dialog.dart';
+import '../widgets/quiz_submitted_notice.dart';
 import '../widgets/quiz_too_late_dialog.dart';
 import 'quiz_results_screen.dart';
 
@@ -171,11 +172,14 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen>
   @override
   Widget build(BuildContext context) {
     // Burgundy home theme; the page reads colours from the context inside it.
-    return HomeThemeScope(
-      child: ChangeNotifierProvider.value(
-        value: _q,
-        child: Consumer<QuizQuestionScreenProvider>(
-          builder: (_, q, __) => _buildPage(q),
+    // The quiz text can never be selected, so it can't be copied.
+    return SelectionContainer.disabled(
+      child: HomeThemeScope(
+        child: ChangeNotifierProvider.value(
+          value: _q,
+          child: Consumer<QuizQuestionScreenProvider>(
+            builder: (_, q, __) => _buildPage(q),
+          ),
         ),
       ),
     );
@@ -634,6 +638,18 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen>
     try {
       final attempt = await quizProvider.submitQuiz();
       if (!mounted) return;
+      if (!attempt.answersRevealed) {
+        // The score stays hidden until the quiz closes for everyone: say the
+        // answers are in, then back to the quiz list. The clock behind the
+        // notice has nothing left to count.
+        _timer?.cancel();
+        await QuizSubmittedNotice.show(
+          context,
+          availableAt: attempt.answersAvailableAt,
+        );
+        if (mounted) navigator.pop();
+        return;
+      }
       // Only navigate to results after a genuine server confirmation
       // (201, or the 409-already-attempted case whose body still carries a
       // real attempt) — never speculatively.

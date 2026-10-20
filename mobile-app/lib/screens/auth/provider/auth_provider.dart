@@ -69,22 +69,18 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  /// Sign in with phone number and either the class (students) or the date
+  /// Sign in with phone number and either the name (students) or the date
   /// of birth as 'YYYY-MM-DD' (teachers).
   Future<Map<String, dynamic>> login(
     String phone, {
-    String? classNumber,
+    String? name,
     String? dob,
   }) async {
     try {
       _setLoading(true);
       _errorMessage = null;
 
-      final result = await _authService.login(
-        phone,
-        classNumber: classNumber,
-        dob: dob,
-      );
+      final result = await _authService.login(phone, name: name, dob: dob);
 
       if (result['success']) {
         _user = result['user'];
@@ -138,7 +134,7 @@ class AuthProvider with ChangeNotifier {
   /// Registration never authenticates the app: the API returns no token
   /// for this call, so [_authState] is intentionally left untouched here.
   /// The caller (registration screen) is expected to sign the new account in
-  /// with the same phone number and class on success.
+  /// with the same name and phone number on success.
   Future<Map<String, dynamic>> register({
     required String phone,
     required String name,

@@ -181,7 +181,7 @@ void main() {
       // The first was answered half a second in; the other two ran out, so
       // each took its full 5 s.
       expect(answers.map((a) => a['duration']), [0.5, 5.0, 5.0]);
-      expect(find.text('Quiz Results'), findsOneWidget);
+      expect(find.text('Answers Submitted'), findsOneWidget);
     },
   );
 
@@ -201,7 +201,7 @@ void main() {
   });
 
   testWidgets(
-    'time running out with the Submit dialog open closes it, and X goes to the list',
+    'time running out with the Submit dialog open closes it, and Got It goes to the list',
     (tester) async {
       final provider = await openQuiz(
         tester,
@@ -218,16 +218,16 @@ void main() {
 
       expect(submitted, hasLength(1));
       expect(find.text('Submit Quiz?'), findsNothing);
-      expect(find.text('Quiz Results'), findsOneWidget);
+      expect(find.text('Answers Submitted'), findsOneWidget);
+
+      await tester.tap(find.text('Got It'));
+      await tester.pumpAndSettle();
+      expect(find.text(_listStandIn), findsOneWidget);
       expect(
         find.byType(QuizQuestionScreen, skipOffstage: false),
         findsNothing,
       );
       expect(provider.isQuizActive, isFalse);
-
-      await tester.tap(find.byIcon(LucideIcons.x));
-      await tester.pumpAndSettle();
-      expect(find.text(_listStandIn), findsOneWidget);
     },
   );
 
@@ -246,7 +246,7 @@ void main() {
       holdSubmit!.complete();
       await tester.pumpAndSettle();
       expect(submitted, hasLength(1));
-      expect(find.text('Quiz Results'), findsOneWidget);
+      expect(find.text('Answers Submitted'), findsOneWidget);
 
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();

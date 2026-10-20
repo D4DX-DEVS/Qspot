@@ -4,7 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../themes/app_fonts.dart';
 import '../../../themes/auth_theme.dart';
 
-/// Class picker (1 to 12 by default). Values are the bare numbers the API
+/// Class picker (8 to 12 by default). Values are the bare numbers the API
 /// expects, shown as "Class N".
 class ClassDropdownField extends StatelessWidget {
   const ClassDropdownField({
@@ -16,7 +16,7 @@ class ClassDropdownField extends StatelessWidget {
   });
 
   static const List<String> defaultClasses = [
-    '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', //
+    '8', '9', '10', '11', '12', //
   ];
 
   final String? value;

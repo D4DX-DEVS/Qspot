@@ -10,7 +10,8 @@ import '../../../widgets/common/tone_chip.dart';
 import '../model/quiz_model.dart';
 
 /// One quiz in the list: tinted icon, title, type, question count, start date
-/// or the learner's score, and a status chip (live, upcoming, ended, attempted).
+/// or the learner's score (once the quiz has closed), and a status chip (live,
+/// upcoming, ended, attempted).
 class QuizListCard extends StatelessWidget {
   const QuizListCard({super.key, required this.quiz, required this.onTap});
 
@@ -74,7 +75,11 @@ class QuizListCard extends StatelessWidget {
                   if (attempt != null) ...[
                     const SizedBox(height: 10),
                     Text(
-                      'Your Score: ${attempt.score}/${attempt.totalQuestions} (${attempt.percentage}%)',
+                      // The score stays hidden until the quiz closes for
+                      // everyone, the same moment the answers show.
+                      attempt.answersRevealed
+                          ? 'Your Score: ${attempt.score}/${attempt.totalQuestions} (${attempt.percentage}%)'
+                          : 'Answers submitted',
                       style: AppFonts.semiBold(color: p.brand, fontSize: 13.5),
                     ),
                   ],

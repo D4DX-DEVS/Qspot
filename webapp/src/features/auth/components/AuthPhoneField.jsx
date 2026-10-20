@@ -1,23 +1,23 @@
-import { Phone } from 'lucide-react'
+import { pickCountry } from '../actions/authActions'
 import AuthTextField from './AuthTextField'
 import CountryCodePrefix from './CountryCodePrefix'
 
-// 10-digit Indian mobile number field with the +91 prefix always visible.
+// Mobile number field with the country's flag and calling code always
+// visible; clicking them picks another country. The number may have only as
+// many digits as a mobile number there (India 10, UAE 9…).
 // The label stays short so it is not cut off on 320px-wide phones.
-export default function AuthPhoneField({ value, onChange, error, label = 'Phone Number', showPhoneIcon = false }) {
-  const prefix = (
-    <span className="flex items-center">
-      {showPhoneIcon ? <Phone size={22} className="ml-4 text-field-icon" aria-hidden="true" /> : null}
-      <CountryCodePrefix leftPadding={showPhoneIcon ? 12 : 18} />
-    </span>
-  )
+export default function AuthPhoneField({ value, onChange, country, onCountryChange, error, label = 'Phone Number' }) {
+  const chooseCountry = async () => {
+    const picked = await pickCountry(country)
+    if (picked) onCountryChange(picked)
+  }
   return (
     <AuthTextField
       label={label}
       value={value}
       onChange={onChange}
       error={error}
-      prefix={prefix}
+      prefix={<CountryCodePrefix country={country} onClick={chooseCountry} />}
       type="tel"
       inputMode="numeric"
       autoComplete="tel-national"

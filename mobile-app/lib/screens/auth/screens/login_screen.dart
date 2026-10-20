@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
+import '../model/phone_country.dart';
 import '../model/registered_account.dart';
 import '../provider/auth_provider.dart';
 import '../provider/login_form_provider.dart';
@@ -16,16 +18,17 @@ import '../widgets/auth_headline.dart';
 import '../widgets/auth_link_row.dart';
 import '../widgets/auth_page_layout.dart';
 import '../widgets/auth_phone_field.dart';
+import '../widgets/auth_text_field.dart';
 import '../widgets/auth_theme_scope.dart';
-import '../widgets/class_dropdown_field.dart';
 import '../widgets/date_picker_field.dart';
 import '../widgets/gradient_pill_button.dart';
 import 'registration_screen.dart';
 import '../../common/screens/main_navigation_screen.dart';
 import '../../faculty/screens/faculty_home_screen.dart';
 
-/// Sign-in screen: phone number + class for students, phone number + date of
-/// birth for teachers.
+/// Sign-in screen: name + phone number for students, phone number + date of
+/// birth for teachers. "Sign In" can always be tapped: what is missing or
+/// wrong then shows under its field.
 ///
 /// Logo and headline sit inside a pointed arch over a mosque skyline; light
 /// or dark follows the phone's setting (see [AuthThemeScope]).
@@ -38,6 +41,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final LoginFormProvider _form = LoginFormProvider();
 
@@ -45,14 +49,26 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _phoneController.addListener(_onPhoneChanged);
+    _nameController.addListener(_onNameChanged);
   }
 
   void _onPhoneChanged() => _form.setPhone(_phoneController.text);
 
+  void _onNameChanged() => _form.setName(_nameController.text);
+
+  /// A number typed for the old country is cut to fit the new one.
+  void _onCountryChanged(PhoneCountry country) {
+    _form.setCountry(country);
+    final cleaned = country.cleanNumber(_phoneController.text);
+    if (cleaned != _phoneController.text) _phoneController.text = cleaned;
+  }
+
   @override
   void dispose() {
     _phoneController.removeListener(_onPhoneChanged);
+    _nameController.removeListener(_onNameChanged);
     _phoneController.dispose();
+    _nameController.dispose();
     _form.dispose();
     super.dispose();
   }
@@ -100,7 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     trailing: ',\none episode at a time.',
                     subtitle: form.isTeacher
                         ? 'Sign in with your phone number and date of birth to continue.'
-                        : 'Sign in with your phone number and class to continue.',
+                        : 'Sign in with your name and phone number to continue.',
                     textAlign: TextAlign.center,
                     fontSize: 26,
                     subtitleFontSize: 13.5,
@@ -113,22 +129,39 @@ class _LoginScreenState extends State<LoginScreen> {
             index: 1,
             child: Form(
               key: _formKey,
+              // After the first tap on "Sign In", errors follow the typing.
+              autovalidateMode: form.submitted
+                  ? AutovalidateMode.always
+                  : AutovalidateMode.disabled,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  AuthPhoneField(controller: _phoneController),
-                  const SizedBox(height: 14),
-                  if (form.isTeacher)
+                  if (!form.isTeacher) ...[
+                    AuthTextField(
+                      controller: _nameController,
+                      hint: 'Full Name',
+                      icon: LucideIcons.userRound,
+                      textCapitalization: TextCapitalization.words,
+                      validator: (value) => (value ?? '').trim().isEmpty
+                          ? 'Please enter your name'
+                          : null,
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  AuthPhoneField(
+                    controller: _phoneController,
+                    country: form.country,
+                    onCountryChanged: _onCountryChanged,
+                  ),
+                  if (form.isTeacher) ...[
+                    const SizedBox(height: 14),
                     DatePickerField(
                       hint: 'Date of Birth',
                       valueText: form.dobForApi,
                       onTap: _pickDob,
-                    )
-                  else
-                    ClassDropdownField(
-                      value: form.classNumber,
-                      onChanged: form.setClassNumber,
+                      errorText: form.dobError,
                     ),
+                  ],
                 ],
               ),
             ),
@@ -140,9 +173,7 @@ class _LoginScreenState extends State<LoginScreen> {
               builder: (context, authProvider, child) => GradientPillButton(
                 label: 'Sign In',
                 isLoading: authProvider.isLoading,
-                onPressed: form.isComplete && !authProvider.isLoading
-                    ? _signIn
-                    : null,
+                onPressed: _signIn,
               ),
             ),
           ),
@@ -162,7 +193,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: AuthLinkRow(
               prompt: form.isTeacher ? 'Student?' : 'Teacher?',
               action: form.isTeacher
-                  ? 'Sign in with class'
+                  ? 'Sign in with name'
                   : 'Sign in with date of birth',
               onTap: form.toggleTeacher,
             ),
@@ -173,22 +204,20 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signIn() async {
+    _form.markSubmitted();
     if (!_formKey.currentState!.validate()) return;
     await _submit();
   }
 
-  /// Sends whichever of class or date of birth is on screen; the other one is
-  /// always null (see [LoginFormProvider.toggleTeacher]).
+  /// Sends whichever of name or date of birth is on screen; the other one is
+  /// always null (see [LoginFormProvider.nameForApi]).
   Future<void> _submit() async {
     if (!_form.isComplete) return;
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    // Send only 10 digits without country code to match registration format
-    final phone = _phoneController.text.trim();
-
     final result = await authProvider.login(
-      phone,
-      classNumber: _form.classNumber,
+      _form.phoneForApi,
+      name: _form.nameForApi,
       dob: _form.dobForApi,
     );
 
@@ -222,11 +251,12 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted || registered == null) return;
 
     // Registration never authenticates the user (no token is returned), so
-    // sign the new account in with the number and class they just registered
-    // with. The class field shows it from the next frame, so the form is not
-    // validated again here: registration already checked both.
+    // sign the new account in with the name and number they just registered
+    // with. Registration already checked both, so the form is not validated
+    // again here.
+    _form.setCountry(registered.country);
+    _nameController.text = registered.name;
     _phoneController.text = registered.phone;
-    _form.setClassNumber(registered.classNumber);
     await _submit();
   }
 }

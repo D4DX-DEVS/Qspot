@@ -20,12 +20,27 @@ class AnswersAvailability {
       return "Correct answers aren't shown for this one, so it stays fair "
           'for everyone.';
     }
+    return 'Correct answers show after ${_when(at, now)}, once everyone has '
+        'finished.';
+  }
+
+  /// Shown instead of the score after submitting: the score is held back
+  /// with the answers until the quiz closes for everyone.
+  String submittedMessage({DateTime? now}) {
+    final at = availableAt;
+    final later = at == null
+        ? 'once the quiz has closed.'
+        : 'after ${_when(at, now)}, once everyone has finished.';
+    return 'Your answers have been submitted. Your score will show $later';
+  }
+
+  /// "5:05 pm today" or "5:05 pm on 21 Oct".
+  static String _when(DateTime at, DateTime? now) {
     final today = now ?? DateTime.now();
     final sameDay =
         at.year == today.year && at.month == today.month && at.day == today.day;
     final time = DateFormat('h:mm a').format(at).toLowerCase();
     final day = sameDay ? 'today' : 'on ${DateFormat('d MMM').format(at)}';
-    return 'Correct answers show after $time $day, once everyone has '
-        'finished.';
+    return '$time $day';
   }
 }

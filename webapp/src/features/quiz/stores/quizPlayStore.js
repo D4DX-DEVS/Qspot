@@ -8,6 +8,7 @@ import QuizLeaveDialog from '../components/QuizLeaveDialog'
 import QuizSubmitDialog from '../components/QuizSubmitDialog'
 import QuizSubmitFailedDialog from '../components/QuizSubmitFailedDialog'
 import QuizTooLateDialog from '../components/QuizTooLateDialog'
+import { showSubmittedNotice } from '../actions/submittedNotice'
 import { isDefiniteRejection, isTooLate } from '../services/quizSubmissionService'
 import { quizStore } from './quizStore'
 import { Expiry, QuizTimerStore } from './quizTimerStore'
@@ -198,6 +199,13 @@ export class QuizPlayStore extends ChangeNotifier {
     const quizId = quizStore.quizId
     try {
       const attempt = await quizStore.submitQuiz()
+      if (!attempt.answersRevealed) {
+        // The score stays hidden until the quiz closes for everyone: say the
+        // answers are in, then back to the quiz list.
+        await showSubmittedNotice(attempt.answersAvailableAt)
+        this.#navigate('/quizzes', { replace: true })
+        return
+      }
       // Only after a real server confirmation; stays "submitting" while the
       // page leaves, so the timer can't fire another submit.
       this.#navigate(`/quizzes/${attempt.quizId || quizId}/result`, { replace: true, state: { attempt } })

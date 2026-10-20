@@ -3,6 +3,7 @@ import { ListChecks, Lock } from 'lucide-react'
 import { useBlocker, useNavigate, useParams } from 'react-router-dom'
 import AnimatedProgressBar from '../../../components/common/AnimatedProgressBar'
 import AppBar from '../../../components/common/AppBar'
+import NoCopy from '../../../components/common/NoCopy'
 import OfflineNotice from '../../../components/common/OfflineNotice'
 import Spinner from '../../../components/common/Spinner'
 import StateMessageView from '../../../components/common/StateMessageView'
@@ -16,7 +17,8 @@ import { quizStore } from '../stores/quizStore'
 // One question at a time (quiz_question_screen.dart). The language is locked
 // for the whole quiz; every tap is saved on this device, so a refresh or a
 // dropped connection loses nothing. The title, progress and timers stay
-// pinned at the top; leaving a timed quiz asks first.
+// pinned at the top; leaving a timed quiz asks first. Nothing on it can be
+// copied or pasted.
 export default function QuizPlayPage() {
   const { quizId } = useParams()
   const navigate = useNavigate()
@@ -37,7 +39,7 @@ export default function QuizPlayPage() {
   const showing = ready && total > 0
 
   return (
-    <div className="flex min-h-dvh flex-col bg-bg">
+    <NoCopy className="flex min-h-dvh flex-col bg-bg">
       <div className="sticky top-0 z-20 bg-bg shadow-[0_2px_4px_var(--qs-appbar-shadow)]">
         <AppBar flat title={title} width="max-w-3xl" onBack={() => navigate('/quizzes')} />
         {showing ? (
@@ -86,6 +88,6 @@ export default function QuizPlayPage() {
           />
         </>
       )}
-    </div>
+    </NoCopy>
   )
 }

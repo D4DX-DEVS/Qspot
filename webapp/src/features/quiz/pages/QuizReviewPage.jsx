@@ -4,6 +4,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import AppBar from '../../../components/common/AppBar'
 import Entrance from '../../../components/common/Entrance'
 import FilterChipBar from '../../../components/common/FilterChipBar'
+import NoCopy from '../../../components/common/NoCopy'
 import PageShell from '../../../components/common/PageShell'
 import Spinner from '../../../components/common/Spinner'
 import StateMessageView from '../../../components/common/StateMessageView'
@@ -13,6 +14,7 @@ import ReviewQuestionCard from '../components/ReviewQuestionCard'
 import { QuizReviewStore } from '../stores/quizReviewStore'
 
 // Per-question review, from server-graded results only (quiz_review_screen.dart).
+// The questions and answers can't be copied.
 export default function QuizReviewPage() {
   const { attemptId } = useParams()
   const navigate = useNavigate()
@@ -51,10 +53,10 @@ export default function QuizReviewPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-bg">
+    <NoCopy className="min-h-dvh bg-bg">
       <AppBar title="Questions & Answers" onBack={() => navigate(-1)} />
       {body}
-    </div>
+    </NoCopy>
   )
 }
 

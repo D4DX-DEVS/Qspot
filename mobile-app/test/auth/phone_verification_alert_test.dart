@@ -26,6 +26,7 @@ Future<_Host> _open(WidgetTester tester, {double textScale = 1}) async {
                 host.result = await PhoneVerificationAlert.show(
                   context,
                   phone: '9876543210',
+                  dialCode: '91',
                 );
                 host.resolved = true;
               },

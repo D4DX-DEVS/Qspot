@@ -100,7 +100,7 @@ void main() {
 
     expect(find.text("Couldn't Submit Yet"), findsOneWidget);
     expect(find.textContaining('saved on this phone'), findsOneWidget);
-    expect(find.text('Quiz Results'), findsNothing);
+    expect(find.text('Answers Submitted'), findsNothing);
 
     online = true;
     await tester.tap(find.widgetWithText(ElevatedButton, 'Try Again'));
@@ -109,7 +109,7 @@ void main() {
     expect(posts, hasLength(1));
     expect(posts.single['answers'].first, containsPair('questionId', 'id-0'));
     expect(posts.single['answers'].first, containsPair('attemptedAnswer', 1));
-    expect(find.text('Quiz Results'), findsOneWidget);
+    expect(find.text('Answers Submitted'), findsOneWidget);
   });
 
   testWidgets('Try Again can fail again without losing the dialog or answers', (

@@ -110,7 +110,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(posted, hasLength(1));
-      expect(find.text('Quiz Results'), findsOneWidget);
+      expect(find.text('Answers Submitted'), findsOneWidget);
     });
 
     testWidgets('answers arriving too late get a clear message', (

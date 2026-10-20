@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
+import '../model/phone_country.dart';
 import '../model/registered_account.dart';
 import '../provider/auth_provider.dart';
 import '../provider/registration_form_provider.dart';
@@ -55,6 +56,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   void _onPhoneChanged() => _form.setPhone(_phoneController.text);
 
   void _onNameChanged() => _form.setName(_nameController.text);
+
+  /// A number typed for the old country is cut to fit the new one.
+  void _onCountryChanged(PhoneCountry country) {
+    _form.setCountry(country);
+    final cleaned = country.cleanNumber(_phoneController.text);
+    if (cleaned != _phoneController.text) _phoneController.text = cleaned;
+  }
 
   @override
   void dispose() {
@@ -110,7 +118,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               title: 'Create Your ',
               accent: 'Account',
               subtitle:
-                  'Your number and class sign you in, so there is no password to remember.',
+                  'Your name and number sign you in, so there is no password to remember.',
               fontSize: 28,
             ),
           ),
@@ -124,8 +132,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   index: 2,
                   child: AuthPhoneField(
                     controller: _phoneController,
+                    country: form.country,
+                    onCountryChanged: _onCountryChanged,
                     hint: 'Phone Number',
-                    showPhoneIcon: true,
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -193,7 +202,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   index: 6,
                   child: Builder(
                     builder: (context) => Text(
-                      'We only use your number and class to sign you in.',
+                      'We only use your name and number to sign you in.',
                       textAlign: TextAlign.center,
                       style: AppFonts.regular(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -216,24 +225,23 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    // Remove any country code or non-digit characters, send only 10 digits
-    String phone = _phoneController.text.trim().replaceAll(
-      RegExp(r'[^\d]'),
-      '',
-    );
-    if (phone.startsWith('91') && phone.length > 10) {
-      phone = phone.substring(2); // Remove country code if present
-    }
+    // The field only takes digits, as many as a number in the country has.
+    final phone = _phoneController.text.trim();
+    final country = _form.country;
 
     // The last chance to fix a mistyped number: it is verified by OTP later.
-    final confirmed = await PhoneVerificationAlert.show(context, phone: phone);
+    final confirmed = await PhoneVerificationAlert.show(
+      context,
+      phone: phone,
+      dialCode: country.dialCode,
+    );
     if (!confirmed || !mounted) return;
 
-    final classNumber = _form.classNumber!;
+    final name = _nameController.text.trim();
     final result = await authProvider.register(
-      phone: phone,
-      name: _nameController.text.trim(),
-      classNumber: classNumber,
+      phone: country.forApi(phone),
+      name: name,
+      classNumber: _form.classNumber!,
       consent: _form.hasConsent
           ? {
               'by': _form.consentBy,
@@ -253,11 +261,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         color: AppColors.success,
       );
 
-      // Registration does not return a token - hand the phone number and
-      // class back to the login screen so it can sign the new account in.
+      // Registration does not return a token - hand the name and phone
+      // number back to the login screen so it can sign the new account in.
       final RegisteredAccount account = (
+        name: name,
         phone: phone,
-        classNumber: classNumber,
+        country: country,
       );
       Navigator.pop(context, account);
     } else {

@@ -49,9 +49,11 @@ export function featuredQuiz({ quizList, inProgress = [], waiting = [] }, now = 
   return quizList.some((q) => q.hasAttempted) ? { kind: 'caughtUp' } : { kind: 'empty' }
 }
 
-// Quizzes taken and the average of their server-given percentages.
+// Quizzes taken and the average of their server-given percentages. A score
+// counts once its quiz has closed for everyone; until then it is hidden.
 export function quizStats(quizList) {
   const taken = quizList.filter((q) => q.hasAttempted)
-  const average = taken.length ? Math.round(taken.reduce((sum, q) => sum + q.myAttempt.percentage, 0) / taken.length) : null
+  const scored = taken.filter((q) => q.myAttempt.answersRevealed)
+  const average = scored.length ? Math.round(scored.reduce((sum, q) => sum + q.myAttempt.percentage, 0) / scored.length) : null
   return { taken: taken.length, average }
 }

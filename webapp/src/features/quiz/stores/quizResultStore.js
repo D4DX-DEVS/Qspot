@@ -1,5 +1,6 @@
 import { ChangeNotifier } from '../../../lib/ChangeNotifier'
 import { userFriendlyError } from '../../../utils/userFriendlyError'
+import { submittedMessage } from '../models/answersAvailability'
 import { localeOf } from '../models/quizModels'
 import { fetchAttempt, fetchQuiz } from '../services/quizAttemptService'
 
@@ -31,7 +32,14 @@ export class QuizResultStore extends ChangeNotifier {
   constructor(quizId, initial) {
     super()
     this.quizId = quizId
-    this.result = initial?.attempt ? resultFromAttempt(initial.attempt) : (initial?.result ?? null)
+    this.#show(initial?.attempt ? resultFromAttempt(initial.attempt) : (initial?.result ?? null))
+  }
+
+  // The score is held back until the quiz closes for everyone, so a result
+  // reached before then (an old link, the back button) shows a note instead.
+  #show(result) {
+    if (result && !result.answersRevealed) this.error = submittedMessage(result.answersAvailableAt)
+    else this.result = result
   }
 
   get correctCount() {
@@ -49,14 +57,14 @@ export class QuizResultStore extends ChangeNotifier {
   }
 
   async loadIfNeeded() {
-    if (this.result) return
+    if (this.result || this.error) return
     try {
       const quiz = await fetchQuiz(this.quizId)
       const a = quiz.myAttempt
       if (!a) {
         this.error = 'There is no result for this quiz yet.'
       } else {
-        this.result = {
+        this.#show({
           title: quiz.title,
           score: a.score,
           totalQuestions: a.totalQuestions,
@@ -68,7 +76,7 @@ export class QuizResultStore extends ChangeNotifier {
           answersRevealed: a.answersRevealed,
           answersAvailableAt: a.answersAvailableAt,
           attemptId: a.attemptId || null,
-        }
+        })
       }
     } catch (e) {
       this.error = userFriendlyError(e)

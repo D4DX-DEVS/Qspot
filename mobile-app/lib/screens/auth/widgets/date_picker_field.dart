@@ -6,7 +6,8 @@ import '../../../themes/auth_theme.dart';
 import '../../../widgets/animation/pressable_scale.dart';
 
 /// Tappable field that shows a picked date ([valueText]) or the [hint].
-/// Opening the picker is left to [onTap].
+/// Opening the picker is left to [onTap]. With [errorText] the border turns
+/// red and the message shows underneath, like a text field's.
 class DatePickerField extends StatelessWidget {
   const DatePickerField({
     super.key,
@@ -14,20 +15,23 @@ class DatePickerField extends StatelessWidget {
     required this.onTap,
     this.valueText,
     this.icon = LucideIcons.calendarDays,
+    this.errorText,
   });
 
   final String hint;
   final VoidCallback onTap;
   final String? valueText;
   final IconData icon;
+  final String? errorText;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final inputTheme = Theme.of(context).inputDecorationTheme;
     final radius = BorderRadius.circular(AuthTheme.fieldRadius);
     // The fill lives on the Material (not the decorator) so the tap ripple
     // shows above it.
-    return PressableScale(
+    final field = PressableScale(
       pressedScale: 0.98,
       child: Material(
         color: Theme.of(context).inputDecorationTheme.fillColor,
@@ -41,6 +45,7 @@ class DatePickerField extends StatelessWidget {
               hintText: hint,
               filled: false,
               prefixIcon: Icon(icon, size: 22),
+              enabledBorder: errorText == null ? null : inputTheme.errorBorder,
             ),
             child: valueText == null
                 ? null
@@ -54,6 +59,18 @@ class DatePickerField extends StatelessWidget {
           ),
         ),
       ),
+    );
+    if (errorText == null) return field;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        field,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 6, 18, 0),
+          child: Text(errorText!, style: inputTheme.errorStyle),
+        ),
+      ],
     );
   }
 }

@@ -7,6 +7,7 @@ const Quiz = require('../models/quiz');
 const { isAccessible, completedVideoCheck } = require('../services/quizAccess');
 const { authenticateUser } = require('../middlewares/auth');
 const { examAnswersAt, answersRevealed } = require('../services/answerReveal');
+const { canShuffle, shuffledOrder, savedOrder, inShownOrder } = require('../services/optionOrder');
 
 const router = express.Router();
 
@@ -25,6 +26,15 @@ const readOptions = (value) => {
     }
     return [];
 };
+
+// A random option order of this student's own for every question that can
+// be shuffled.
+const newOptionOrders = (questions) => questions.flatMap((q) => {
+    const optionsEn = readOptions(q.options_en);
+    return canShuffle(q.type, optionsEn, readOptions(q.options_ml))
+        ? [{ questionId: q._id, order: shuffledOrder(optionsEn.length) }]
+        : [];
+});
 
 const statusOf = (quiz, now = new Date()) => {
     if (now < new Date(quiz.startDate)) return 'upcoming';
@@ -210,22 +220,25 @@ router.get('/:id/questions', authenticateUser, async (req, res) => {
                 }
             }
             selected = selected.slice(0, quiz.numberOfQuestions);
+            questions = await QuizQuestion.find({ _id: { $in: selected } }).select(QUESTION_FIELDS).lean();
 
             try {
                 session = await QuizSession.create({
                     userId: req.user.id,
                     quizId: id,
                     questionIds: selected,
+                    optionOrders: newOptionOrders(questions),
                     startedAt: now
                 });
             } catch (error) {
                 if (error && error.code === 11000) {
+                    // Another request saved this student's session first; serve that one.
                     session = await QuizSession.findOne({ userId: req.user.id, quizId: id }).lean();
+                    questions = await QuizQuestion.find({ _id: { $in: session.questionIds } }).select(QUESTION_FIELDS).lean();
                 } else {
                     throw error;
                 }
             }
-            questions = await QuizQuestion.find({ _id: { $in: session.questionIds } }).select(QUESTION_FIELDS).lean();
         }
 
         const byId = new Map(questions.map((q) => [String(q._id), q]));
@@ -245,15 +258,20 @@ router.get('/:id/questions', authenticateUser, async (req, res) => {
             overallTimeLimit: quiz.overallTimeLimit,
             perQuestionTimeLimit: quiz.perQuestionTimeLimit,
             timerMode: quiz.timerMode || 'none',
-            questions: ordered.map((q) => ({
-                _id: q._id,
-                type: q.type,
-                question_en: q.question_en,
-                question_ml: q.question_ml,
-                options_en: readOptions(q.options_en),
-                options_ml: readOptions(q.options_ml),
-                difficulty: q.difficulty
-            }))
+            questions: ordered.map((q) => {
+                const optionsEn = readOptions(q.options_en);
+                const optionsMl = readOptions(q.options_ml);
+                const order = savedOrder(session, q._id, optionsEn, optionsMl);
+                return {
+                    _id: q._id,
+                    type: q.type,
+                    question_en: q.question_en,
+                    question_ml: q.question_ml,
+                    options_en: inShownOrder(optionsEn, order),
+                    options_ml: inShownOrder(optionsMl, order),
+                    difficulty: q.difficulty
+                };
+            })
         });
     } catch (error) {
         console.error('Error fetching user quiz questions:', error);

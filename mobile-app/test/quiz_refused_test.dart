@@ -130,10 +130,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // The old answers are gone and the quiz starts afresh (language first).
+      // The old answers are gone and the quiz starts afresh, in Malayalam
+      // without asking for a language.
       expect(provider.refusedSubmissions, isEmpty);
       expect(find.byType(QuizRefusedBanner), findsNothing);
-      expect(find.text('Select Quiz Language'), findsOneWidget);
+      expect(find.text('Select Quiz Language'), findsNothing);
+      expect(provider.sessionLanguage, 'ml');
     });
 
     testWidgets('switched off: the reason and OK only', (tester) async {
