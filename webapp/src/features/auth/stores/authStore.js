@@ -20,11 +20,11 @@ class AuthStore extends ChangeNotifier {
     return this.#user != null && AuthService.isLoggedIn()
   }
 
-  // Sign in with phone number and class ('1'..'12').
-  async login(phone, classNumber) {
+  // Sign in with name and phone number.
+  async login(phone, name) {
     this.#setLoading(true)
     try {
-      const result = await AuthService.login(phone, classNumber)
+      const result = await AuthService.login(phone, name)
       if (result.success) this.#user = result.user
       return result
     } catch (e) {
@@ -35,7 +35,7 @@ class AuthStore extends ChangeNotifier {
   }
 
   // Registration never signs in (the API returns no token); the caller signs
-  // the new account in with the same phone number and class.
+  // the new account in with the same name and phone number.
   async register(details) {
     this.#setLoading(true)
     try {

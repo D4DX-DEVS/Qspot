@@ -4,6 +4,7 @@ import { toastStore } from '../../../stores/toastStore'
 import { quizStore } from '../../quiz/stores/quizStore'
 import QuizLogoutWarningDialog from '../../quiz/components/QuizLogoutWarningDialog'
 import LogoutConfirmDialog from '../components/LogoutConfirmDialog'
+import CountryPickerSheet from '../components/CountryPickerSheet'
 import PhoneCheckDialog from '../components/PhoneCheckDialog'
 import { authStore } from '../stores/authStore'
 
@@ -14,8 +15,7 @@ const SIGN_IN_FAILED = "We couldn't sign you in. Please check your details and t
 
 export async function signIn(form, navigate, to = '/quizzes') {
   if (!form.validate()) return
-  // Only the 10 digits, no country code, matching registration.
-  const result = await authStore.login(form.phone.trim(), form.classNumber)
+  const result = await authStore.login(form.phoneForApi, form.name.trim())
   // Shown under the fields, where it stays until the student edits them.
   if (result.success) navigate(to, { replace: true })
   else form.setServerError(result.message || SIGN_IN_FAILED)
@@ -23,11 +23,12 @@ export async function signIn(form, navigate, to = '/quizzes') {
 
 export async function register(form, navigate) {
   if (!form.validate()) return
-  const phone = form.phone.trim()
+  const phone = form.phoneForApi
   // The last chance to fix a mistyped number: it is verified by OTP later.
-  const confirmed = await dialogStore.show((close) => createElement(PhoneCheckDialog, { phone, onClose: close }), {
-    dismissible: false,
-  })
+  const confirmed = await dialogStore.show(
+    (close) => createElement(PhoneCheckDialog, { phone: form.phone.trim(), dialCode: form.country.dial, onClose: close }),
+    { dismissible: false },
+  )
   if (!confirmed) return
 
   const result = await authStore.register({
@@ -42,10 +43,16 @@ export async function register(form, navigate) {
     return
   }
   toastStore.show('Your account is ready! Signing you in…', 'success')
-  // Registration returns no token: sign in with the same number and class.
-  const signedIn = await authStore.login(phone, form.classNumber)
+  // Registration returns no token: sign in with the same name and number.
+  const signedIn = await authStore.login(phone, form.name.trim())
   if (signedIn.success) navigate('/quizzes', { replace: true })
   else navigate('/login', { replace: true })
+}
+
+// Opens the country list; resolves to the country picked, or null when the
+// sheet is closed without choosing.
+export function pickCountry(selected) {
+  return dialogStore.show((close) => createElement(CountryPickerSheet, { selected, onClose: close }), { kind: 'sheet' })
 }
 
 // Asks before logging out. With quiz answers here that never reached the

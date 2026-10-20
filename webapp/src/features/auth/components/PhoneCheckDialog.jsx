@@ -6,7 +6,7 @@ import TextButton from '../../../components/common/TextButton'
 // Asks the student to be sure the typed number is real before the account is
 // created: it is verified by a one-time code later, and an account whose
 // number cannot be verified loses access to its data.
-export default function PhoneCheckDialog({ phone, onClose }) {
+export default function PhoneCheckDialog({ phone, dialCode, onClose }) {
   return (
     <AlertDialog
       centered
@@ -19,7 +19,9 @@ export default function PhoneCheckDialog({ phone, onClose }) {
         </>
       }
     >
-      <p className="text-xl font-bold text-brand">+91 {phone}</p>
+      <p className="text-xl font-bold text-brand">
+        +{dialCode} {phone}
+      </p>
       <p className="mt-3 text-[14.5px] leading-[1.45] text-muted">
         Please enter a valid number that you can use. We will verify it by sending a one-time code (OTP) later. If the
         number cannot be verified, your data will become inaccessible.

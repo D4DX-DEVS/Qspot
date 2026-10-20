@@ -1,4 +1,5 @@
 const rateLimit = require('express-rate-limit');
+const { normalizePhone } = require('../services/phone');
 
 // A class or a date of birth can be guessed, so sign-in must not allow
 // unlimited tries.
@@ -27,7 +28,7 @@ const failedAttempts = (limit, keyGenerator) => rateLimit({
 });
 
 // Same number written differently (+91, spaces, leading 0) shares one allowance.
-const phoneKey = (req) => `phone:${String(req.body?.phone || '').replace(/\D/g, '').slice(-10)}`;
+const phoneKey = (req) => `phone:${normalizePhone(req.body?.phone)}`;
 
 // Stops one number's guesses; also what a single guesser hits first.
 const loginPhoneLimiter = () => failedAttempts(MAX_FAILED_PER_PHONE, phoneKey);

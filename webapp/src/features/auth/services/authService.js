@@ -5,8 +5,8 @@ import { userFromJson, userToJson } from '../models/userModel'
 // Auth API calls (mobile-app/lib/screens/auth/service/auth_service.dart).
 //  - POST /api/user/register  {name, phone, class, email?, consent?, courseIds?}
 //        -> 201 {message, user}  (no token: registration does not sign in)
-//  - POST /api/user/login     {phone, class} -> {message, token, user}
-//        (class is the bare number string '1'..'12'; 404 wrong details, 429 too many tries)
+//  - POST /api/user/login     {phone, name} -> {message, token, user}
+//        (spaces and capitals in the name are ignored; 404 wrong details, 429 too many tries)
 const USER_KEY = 'user_data'
 const TOKEN_KEY = 'auth_token'
 const USER_ID_KEY = 'userId'
@@ -17,11 +17,11 @@ const failure = (e) =>
     : { success: false, message: 'Network error. Please try again.' }
 
 export const AuthService = {
-  // Sign in with phone number and class ('1'..'12'); on success the session
+  // Sign in with name and phone number; on success the session
   // (token + user + userId) is saved.
-  async login(phone, classNumber) {
+  async login(phone, name) {
     try {
-      const data = await ApiClient.post('/api/user/login', { body: { phone, class: classNumber } })
+      const data = await ApiClient.post('/api/user/login', { body: { phone, name } })
       const user = userFromJson({ ...(data?.user || {}), token: data?.token ?? null })
       this.saveUser(user)
       return { success: true, user, message: data?.message ?? 'Login successful' }

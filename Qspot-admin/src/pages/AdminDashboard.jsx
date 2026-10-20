@@ -334,6 +334,7 @@ const EditUserModal = ({ user, onClose, onSave }) => {
                 placeholder="Enter phone number"
                 required
               />
+              <p className="mt-1.5 text-xs text-white/45">Outside India, start with + and the country code, e.g. +44 7400 123456.</p>
             </div>
             <div>
               <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">Email</label>

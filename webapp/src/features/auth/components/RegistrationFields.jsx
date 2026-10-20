@@ -11,7 +11,14 @@ export default function RegistrationFields({ form }) {
   return (
     <div className="flex flex-col gap-3.5">
       <Entrance index={2}>
-        <AuthPhoneField label="Phone Number" showPhoneIcon value={form.phone} onChange={(v) => form.setPhone(v)} error={form.phoneError} />
+        <AuthPhoneField
+          label="Phone Number"
+          value={form.phone}
+          onChange={(v) => form.setPhone(v)}
+          country={form.country}
+          onCountryChange={(c) => form.setCountry(c)}
+          error={form.phoneError}
+        />
       </Entrance>
       <Entrance index={3}>
         <AuthTextField

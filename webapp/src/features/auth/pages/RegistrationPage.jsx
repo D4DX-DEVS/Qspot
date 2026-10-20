@@ -54,7 +54,7 @@ export default function RegistrationPage() {
           <AuthHeadline
             title="Create Your "
             accent="Account"
-            subtitle="Your number and class sign you in, so there is no password to remember."
+            subtitle="Your name and number sign you in, so there is no password to remember."
           />
         </Entrance>
         <div className="mt-6">
@@ -64,7 +64,7 @@ export default function RegistrationPage() {
           <GradientPillButton type="submit" label="Create Account" enabled={form.isComplete} loading={auth.isLoading} />
         </Entrance>
         <Entrance index={6} as="p" className="mt-4 text-center text-[12.5px] leading-[1.4] text-muted">
-          We only use your number and class to sign you in.
+          We only use your name and number to sign you in.
         </Entrance>
       </form>
     </AuthPageLayout>

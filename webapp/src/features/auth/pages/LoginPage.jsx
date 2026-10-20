@@ -15,7 +15,7 @@ import LoginForm from '../components/LoginForm'
 import { authStore } from '../stores/authStore'
 import { LoginFormStore } from '../stores/loginFormStore'
 
-// Sign-in: phone number + class, under a pointed arch over a mosque
+// Sign-in: name + phone number, under a pointed arch over a mosque
 // skyline (mobile-app/lib/screens/auth/screens/login_screen.dart).
 export default function LoginPage() {
   const form = useLocalNotifier(() => new LoginFormStore())
@@ -50,7 +50,7 @@ export default function LoginPage() {
               title="Learn the "
               accent="Qur’ān"
               trailing={',\none episode at a time.'}
-              subtitle="Sign in with your phone number and class to continue."
+              subtitle="Sign in with your name and phone number to continue."
               fontSize={26}
               subtitleFontSize={13.5}
             />
