@@ -7,6 +7,7 @@ const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
+const { REGISTRATION_OPEN } = require('../services/registration');
 
 const URI = process.env.TEST_MONGODB_URI || '';
 const LOCAL_TEST_DB = /^mongodb:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/[^?]*test/i.test(URI);
@@ -604,7 +605,15 @@ describe('quiz routes', { skip }, () => {
         assert.equal((await call('/api/user/login', null, { phone: teacherPhone, dob: '1985-04-12' })).status, 200);
     });
 
-    it('registration no longer asks for a date of birth', async () => {
+    it('registration is turned away while it is closed', { skip: REGISTRATION_OPEN && 'registration is open' }, async () => {
+        const phone = `5${String(Math.floor(Math.random() * 1e9)).padStart(9, '0')}`;
+        const refused = await call('/api/user/register', null, { name: 'New Learner', phone, class: '7' });
+        assert.equal(refused.status, 403);
+        assert.match(refused.body.message, /closed/);
+        assert.equal(await models.User.countDocuments({ phone }), 0, 'no account is made');
+    });
+
+    it('registration no longer asks for a date of birth', { skip: !REGISTRATION_OPEN && 'registration is closed' }, async () => {
         const phone = `5${String(Math.floor(Math.random() * 1e9)).padStart(9, '0')}`;
         const registered = await call('/api/user/register', null, { name: 'New Learner', phone, class: '7' });
         assert.equal(registered.status, 201);
@@ -613,7 +622,7 @@ describe('quiz routes', { skip }, () => {
         assert.equal((await call('/api/user/login', null, { phone, name: 'new learner' })).status, 200);
     });
 
-    it('a number from another country registers and signs in with its country code', async () => {
+    it('a number from another country registers and signs in with its country code', { skip: !REGISTRATION_OPEN && 'registration is closed' }, async () => {
         const number = `7400${String(Math.floor(Math.random() * 1e6)).padStart(6, '0')}`;
         const registered = await call('/api/user/register', null, { name: 'Global Learner', phone: `+44 0${number}`, class: '7' });
         assert.equal(registered.status, 201);
