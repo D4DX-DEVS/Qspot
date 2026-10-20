@@ -285,8 +285,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     if (classNumber == null) {
                                       return 'Class is required';
                                     }
-                                    if (classNumber < 1 || classNumber > 12) {
-                                      return 'Enter a class from 1 to 12';
+                                    if (classNumber < 8 || classNumber > 12) {
+                                      return 'Enter a class from 8 to 12';
                                     }
                                     return null;
                                   },

@@ -1,9 +1,9 @@
 import { ChevronDown, GraduationCap } from 'lucide-react'
 import AuthFieldFrame from './AuthFieldFrame'
 
-const CLASSES = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
+const CLASSES = ['8', '9', '10', '11', '12']
 
-// Class picker, 1 to 12. Values are the bare numbers the API expects, shown
+// Class picker, 8 to 12. Values are the bare numbers the API expects, shown
 // as "Class N".
 export default function ClassSelectField({ value, onChange, error, label = 'Which Class Are You In?' }) {
   return (
