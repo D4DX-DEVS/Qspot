@@ -1,6 +1,6 @@
 import { createElement } from 'react'
 import { CircleCheck } from 'lucide-react'
-import NoticeSheet from '../../../components/common/NoticeSheet'
+import NoticeDialog from '../../../components/common/NoticeDialog'
 import { dialogStore } from '../../../stores/dialogStore'
 import { submittedMessage } from '../models/answersAvailability'
 
@@ -8,14 +8,12 @@ import { submittedMessage } from '../models/answersAvailability'
 // shown right after submitting, and when a taken quiz is tapped in the list
 // (quiz_submitted_notice.dart).
 export const showSubmittedNotice = (availableAt) =>
-  dialogStore.show(
-    (close) =>
-      createElement(NoticeSheet, {
-        icon: CircleCheck,
-        tone: 'mint',
-        title: 'Answers Submitted',
-        message: submittedMessage(availableAt),
-        onClose: () => close(),
-      }),
-    { kind: 'sheet' },
+  dialogStore.show((close) =>
+    createElement(NoticeDialog, {
+      icon: CircleCheck,
+      tone: 'mint',
+      title: 'Answers Submitted',
+      message: submittedMessage(availableAt),
+      onClose: () => close(),
+    }),
   )

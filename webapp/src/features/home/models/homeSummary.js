@@ -1,4 +1,5 @@
 import { whenLabel } from '../../../utils/formatDate'
+import { minutesLabel, questionsLabel } from '../../quiz/models/quizFacts'
 
 // What the home screen shows above the quiz list: the one quiz to feature in
 // the hero card and the student's numbers. Read only from the quiz list the
@@ -8,11 +9,7 @@ const byEndThenTitle = (a, b) => (a.endDate?.getTime() ?? Infinity) - (b.endDate
 const byStart = (a, b) => (a.startDate?.getTime() ?? Infinity) - (b.startDate?.getTime() ?? Infinity)
 
 // "10 Questions · 10 min" (minutes only when the whole quiz has a limit).
-export function quizFacts(quiz) {
-  const count = `${quiz.questionCount} Question${quiz.questionCount === 1 ? '' : 's'}`
-  const timed = (quiz.timerMode === 'overall' || quiz.timerMode === 'both') && (quiz.overallTimeLimit ?? 0) > 0
-  return timed ? `${count} · ${Math.max(1, Math.round(quiz.overallTimeLimit / 60))} min` : count
-}
+export const quizFacts = (quiz) => [questionsLabel(quiz), minutesLabel(quiz)].filter(Boolean).join(' · ')
 
 // The hero card: a live quiz still to take (the one closing first; carried
 // on from this device when it was started here), else the next one to open,

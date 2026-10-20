@@ -5,7 +5,7 @@ import { blurred } from './canvasTools'
 // sign-in screens, optionally with an open Qur'ān on a stand in front
 // (mosque_skyline_painter.dart).
 
-function dome(ctx, x, baseY, halfWidth, height) {
+export function dome(ctx, x, baseY, halfWidth, height) {
   ctx.beginPath()
   ctx.moveTo(x - halfWidth, baseY)
   ctx.bezierCurveTo(x - halfWidth * 1.2, baseY - height * 0.6, x - halfWidth * 0.25, baseY - height * 0.75, x, baseY - height)
@@ -16,7 +16,7 @@ function dome(ctx, x, baseY, halfWidth, height) {
 
 const rect = (ctx, l, t, r, b) => ctx.fillRect(l, t, r - l, b - t)
 
-function minaret(ctx, x, ground, height, width) {
+export function minaret(ctx, x, ground, height, width) {
   const top = ground - height
   rect(ctx, x - width / 2, top, x + width / 2, ground)
   rect(ctx, x - width * 0.85, top + height * 0.28, x + width * 0.85, top + height * 0.32)
@@ -39,7 +39,7 @@ function archWindow(ctx, x, bottom, halfWidth, height) {
   ctx.fill()
 }
 
-function mosque(ctx, w, g, cx, palette) {
+export function mosque(ctx, w, g, cx, palette) {
   ctx.fillStyle = palette.skylineFar
   for (const side of [-1, 1]) {
     minaret(ctx, cx + side * w * 0.36, g, g * 0.55, w * 0.026)
@@ -59,7 +59,7 @@ function mosque(ctx, w, g, cx, palette) {
 }
 
 // Palm leaning away from the centre ([side] -1 left, 1 right).
-function palm(ctx, baseX, baseY, side, ground, palette) {
+export function palm(ctx, baseX, baseY, side, ground, palette) {
   const height = ground * 0.55
   const top = { x: baseX + side * height * 0.1, y: baseY - height }
 
@@ -90,7 +90,7 @@ function palm(ctx, baseX, baseY, side, ground, palette) {
   }
 }
 
-function crescent(ctx, cx, cy, radius, palette) {
+export function crescent(ctx, cx, cy, radius, palette) {
   blurred(ctx, radius, () => {
     ctx.fillStyle = withAlpha(palette.moon, 0.25)
     ctx.beginPath()
@@ -119,7 +119,7 @@ function crescent(ctx, cx, cy, radius, palette) {
 }
 
 // Open book on a cross-legged wooden stand, centred on [cx].
-function bookStand(ctx, cx, ground, bw, h, palette) {
+export function bookStand(ctx, cx, ground, bw, h, palette) {
   const bh = bw * 0.22
   const y = ground + (h - ground) * 0.25
 

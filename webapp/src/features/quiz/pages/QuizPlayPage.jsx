@@ -1,24 +1,23 @@
 import { useEffect } from 'react'
 import { ListChecks, Lock } from 'lucide-react'
 import { useBlocker, useNavigate, useParams } from 'react-router-dom'
-import AnimatedProgressBar from '../../../components/common/AnimatedProgressBar'
-import AppBar from '../../../components/common/AppBar'
 import NoCopy from '../../../components/common/NoCopy'
 import OfflineNotice from '../../../components/common/OfflineNotice'
 import Spinner from '../../../components/common/Spinner'
 import StateMessageView from '../../../components/common/StateMessageView'
 import { useLocalNotifier, useNotifier } from '../../../lib/useNotifier'
 import QuizBottomBar from '../components/QuizBottomBar'
+import QuizPlayBackdrop from '../components/QuizPlayBackdrop'
+import QuizPlayHeader from '../components/QuizPlayHeader'
 import QuizQuestionView from '../components/QuizQuestionView'
-import QuizTimerChips from '../components/QuizTimerChips'
 import { QuizPlayStore } from '../stores/quizPlayStore'
 import { quizStore } from '../stores/quizStore'
 
-// One question at a time (quiz_question_screen.dart). The language is locked
-// for the whole quiz; every tap is saved on this device, so a refresh or a
-// dropped connection loses nothing. The title, progress and timers stay
-// pinned at the top; leaving a timed quiz asks first. Nothing on it can be
-// copied or pasted.
+// One question at a time on a glass card over the night wall
+// (quiz_question_screen.dart). The language is locked for the whole quiz;
+// every tap is saved on this device, so a refresh or a dropped connection
+// loses nothing. The title, progress and timers stay pinned at the top;
+// leaving a timed quiz asks first. Nothing on it can be copied or pasted.
 export default function QuizPlayPage() {
   const { quizId } = useParams()
   const navigate = useNavigate()
@@ -39,34 +38,27 @@ export default function QuizPlayPage() {
   const showing = ready && total > 0
 
   return (
-    <NoCopy className="flex min-h-dvh flex-col bg-bg">
-      <div className="sticky top-0 z-20 bg-bg shadow-[0_2px_4px_var(--qs-appbar-shadow)]">
-        <AppBar flat title={title} width="max-w-3xl" onBack={() => navigate('/quizzes')} />
-        {showing ? (
-          <div className="mx-auto w-full max-w-3xl">
-            <div className="px-4 pb-2 pt-1">
-              <AnimatedProgressBar value={(quiz.currentQuestionIndex + 1) / total} label={title} />
-            </div>
-            {timer.hasCountdown ? <QuizTimerChips timer={timer} /> : null}
-          </div>
-        ) : null}
+    <NoCopy className="relative flex min-h-dvh flex-col bg-bg">
+      <QuizPlayBackdrop />
+      <div className="sticky top-0 z-20 bg-[color-mix(in_srgb,var(--qs-bg)_82%,transparent)] backdrop-blur-md">
+        <QuizPlayHeader title={title} current={quiz.currentQuestionIndex + 1} total={showing ? total : 0} timer={timer} onBack={() => navigate('/quizzes')} />
       </div>
       {!ready ? (
-        <div className="grid flex-1 place-items-center text-brand" aria-busy="true">
+        <div className="relative grid flex-1 place-items-center text-brand" aria-busy="true">
           {play.resuming || quiz.isSessionLoading ? <Spinner size={36} stroke={3} /> : null}
         </div>
       ) : total === 0 ? (
-        <StateMessageView icon={ListChecks} title="No Questions Available" message="This quiz has no questions right now. Please try again later." />
+        <div className="relative flex-1">
+          <StateMessageView icon={ListChecks} title="No Questions Available" message="This quiz has no questions right now. Please try again later." />
+        </div>
       ) : (
         <>
-          <main className="mx-auto w-full max-w-3xl flex-1">
+          <main className="relative mx-auto flex w-full max-w-[1040px] flex-1 flex-col gap-3 px-4 pb-6 pt-2 sm:pt-4">
             {quiz.openedFromDevice ? (
-              <div className="px-4 pt-3">
-                <OfflineNotice message="You're offline. Your answers are being saved on this device and will be sent when you submit with a connection." />
-              </div>
+              <OfflineNotice message="You're offline. Your answers are being saved on this device and will be sent when you submit with a connection." />
             ) : null}
             {quiz.hasPerQuestionTimer && quiz.currentQuestionIndex === 0 ? (
-              <p className="mx-4 mt-3 flex items-center gap-2 rounded-[14px] bg-slate-soft px-3 py-2.5 text-xs text-ink">
+              <p className="flex items-center gap-2 rounded-[14px] bg-slate-soft px-3 py-2.5 text-xs text-ink">
                 <Lock size={16} className="shrink-0 text-slate" aria-hidden="true" />
                 Each question has its own timer, and you can't go back to earlier questions.
               </p>

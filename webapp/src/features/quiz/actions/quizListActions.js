@@ -1,6 +1,6 @@
 import { createElement } from 'react'
 import { CalendarClock, CalendarX } from 'lucide-react'
-import NoticeSheet from '../../../components/common/NoticeSheet'
+import NoticeDialog from '../../../components/common/NoticeDialog'
 import { ApiException } from '../../../services/apiClient'
 import { dialogStore } from '../../../stores/dialogStore'
 import { toastStore } from '../../../stores/toastStore'
@@ -11,8 +11,7 @@ import { showSubmittedNotice } from './submittedNotice'
 // What tapping things on the Quiz page does (quiz_list_screen.dart's
 // handlers), kept out of the page component.
 
-const notice = (props) =>
-  dialogStore.show((close) => createElement(NoticeSheet, { ...props, onClose: () => close() }), { kind: 'sheet' })
+const notice = (props) => dialogStore.show((close) => createElement(NoticeDialog, { ...props, onClose: () => close() }))
 
 // The result page for a quiz the student already took, from its summary.
 // Until the quiz closes for everyone the score is held back: a notice instead.

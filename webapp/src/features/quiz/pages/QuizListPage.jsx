@@ -2,13 +2,12 @@ import { useEffect } from 'react'
 import { CircleAlert } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import PageShell from '../../../components/common/PageShell'
-import SkyBackdrop from '../../../components/common/SkyBackdrop'
 import StateMessageView from '../../../components/common/StateMessageView'
 import { useLocalNotifier, useNotifier } from '../../../lib/useNotifier'
 import { logout } from '../../auth/actions/authActions'
 import { authStore } from '../../auth/stores/authStore'
 import { CertificatesStore } from '../../certificate/stores/certificatesStore'
-import { openHeroQuiz } from '../../home/actions/homeActions'
+import { openHeroQuiz, scrollToSection } from '../../home/actions/homeActions'
 import HomeIntro from '../../home/components/HomeIntro'
 import HomeTopBar from '../../home/components/HomeTopBar'
 import { featuredQuiz, quizStats } from '../../home/models/homeSummary'
@@ -16,10 +15,12 @@ import { continueQuiz, openQuizFromList } from '../actions/quizListActions'
 import QuizListContent from '../components/QuizListContent'
 import QuizOfflineContinueList from '../components/QuizOfflineContinueList'
 import RefreshFailedNotice from '../components/RefreshFailedNotice'
+import { PAST_SECTION_ID } from '../stores/quizSectionsStore'
 import { quizStore } from '../stores/quizStore'
 
-// Home: a greeting over the sky, the quiz to take next, the student's numbers
-// and every quiz (quiz_list_screen.dart, dressed like the app's Today tab).
+// Home: a greeting, the quiz to take next on a night picture, the student's
+// numbers and every quiz (quiz_list_screen.dart, dressed like the app's
+// Today tab).
 // Answers that could not be sent go out whenever this loads or the
 // connection comes back.
 export default function QuizListPage() {
@@ -53,6 +54,7 @@ export default function QuizListPage() {
   }
   const firstLoad = quiz.isListLoading && quiz.quizList.length === 0
   const hero = featuredQuiz({ quizList: quiz.quizList, inProgress: quiz.inProgressQuizzes, waiting: quiz.pendingSubmissions })
+  const hasPast = quiz.quizList.some((q) => q.isEnded)
 
   let body
   if (quiz.hasListError && quiz.inProgressQuizzes.length) {
@@ -65,12 +67,9 @@ export default function QuizListPage() {
 
   return (
     <div className="relative min-h-dvh overflow-x-hidden bg-bg">
-      <div className="absolute inset-x-0 top-0 h-[300px] md:h-[340px]">
-        <SkyBackdrop />
-      </div>
       <div className="relative">
-        <HomeTopBar onLogout={() => logout(navigate)} />
-        <PageShell width="max-w-4xl">
+        <HomeTopBar name={auth.user?.name} onLogout={() => logout(navigate)} />
+        <PageShell width="max-w-7xl" className="sm:px-6 lg:px-10">
           {quiz.hasListError ? null : (
             <HomeIntro
               name={auth.user?.name}
@@ -79,6 +78,7 @@ export default function QuizListPage() {
               certificates={certificates.items.length}
               loading={firstLoad}
               onHeroAction={() => openHeroQuiz(hero, navigate)}
+              onStatsOpen={hasPast ? () => scrollToSection(PAST_SECTION_ID) : null}
             />
           )}
           {quiz.refreshError ? (

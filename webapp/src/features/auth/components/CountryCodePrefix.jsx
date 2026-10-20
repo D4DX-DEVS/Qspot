@@ -1,7 +1,7 @@
 import { ChevronDown } from 'lucide-react'
 import { flagOf } from '../models/phoneCountry'
 
-// Flag + country code + divider before a phone number. Always visible, so an
+// Flag + chevron + country code + divider before a phone number. Always visible, so an
 // empty field still reads as a phone input; clicking it picks another country.
 export default function CountryCodePrefix({ country, onClick, leftPadding = 18 }) {
   return (
@@ -15,8 +15,8 @@ export default function CountryCodePrefix({ country, onClick, leftPadding = 18 }
       <span className="text-lg leading-none" aria-hidden="true">
         {flagOf(country)}
       </span>
-      <span className="ml-2 text-base font-medium text-ink">+{country.dial}</span>
-      <ChevronDown size={16} className="ml-0.5 text-muted" aria-hidden="true" />
+      <ChevronDown size={16} className="ml-1 text-muted" aria-hidden="true" />
+      <span className="ml-2 text-base font-medium text-muted">+{country.dial}</span>
       <span className="ml-3 h-[22px] w-px bg-line" aria-hidden="true" />
     </button>
   )
