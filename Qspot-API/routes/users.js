@@ -23,6 +23,7 @@ const { parseUpcomingLimit } = require('../services/upcomingLimit');
 const { buildProgressSummary } = require('../services/progressSummary');
 const { parseDob, sameDob } = require('../services/dob');
 const { sameName } = require('../services/nameKey');
+const { isStudent, studentByName, nameTakenOnPhone } = require('../services/sharedPhone');
 const { examAnswersAt, answersRevealed, revealFields } = require('../services/answerReveal');
 const { publicUser } = require('../services/publicUser');
 const { shapeVideo } = require('../services/videoShape');
@@ -204,9 +205,9 @@ router.post('/register', async (req, res) => {
       }
     }
 
-    const existingUser = await User.findOne({ phone: normalizedPhone });
-    if (existingUser) {
-      return res.status(409).json({ message: 'User with this phone number already exists' });
+    // A shared number is fine; the same name twice on it is not.
+    if (await nameTakenOnPhone(normalizedPhone, normalizedName)) {
+      return res.status(409).json({ message: 'A student with this name is already registered with this phone number' });
     }
 
     let consentValue = undefined;
@@ -281,11 +282,12 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: phoneProblem });
     }
 
-    const user = await User.findOne({ phone: normalizedPhone });
-    const isStudent = Boolean(user) && (user.role || 'student') === 'student';
+    // Brothers and sisters can share a number; the name or date picks the account.
+    const accounts = await User.find({ phone: normalizedPhone });
 
     if (hasName) {
-      if (!isStudent || !sameName(user.name, name)) {
+      const user = studentByName(accounts, name);
+      if (!user) {
         return res.status(404).json({ message: 'No student account matches this name and phone number.' });
       }
       return res.json({ message: 'Login successful', token: signUserToken(user), user: publicUser(user) });
@@ -295,20 +297,22 @@ router.post('/login', async (req, res) => {
     if (!dobValue) {
       return res.status(400).json({ message: 'dob must be a valid date (YYYY-MM-DD)' });
     }
-    if (user && !isStudent && !user.dob) {
+    const teachers = accounts.filter((account) => !isStudent(account));
+    const teacher = teachers.find((account) => sameDob(account.dob, dobValue));
+    if (!teacher && teachers.some((account) => !account.dob)) {
       return res.status(409).json({
         code: 'DOB_MISSING',
         message: 'No date of birth is saved for this number yet, so it cannot sign in this way. Please contact support to add it.'
       });
     }
     // An app from before the name sign-in may still send a student's date.
-    if (!user || isStudent || !sameDob(user.dob, dobValue)) {
+    if (!teacher) {
       return res.status(404).json({
         message: 'No teacher account matches this phone number and date of birth. Students: please update the app and sign in with your name.'
       });
     }
 
-    return res.json({ message: 'Login successful', token: signUserToken(user), user: publicUser(user) });
+    return res.json({ message: 'Login successful', token: signUserToken(teacher), user: publicUser(teacher) });
   } catch (err) {
     console.error('login error:', err?.message || err);
     return res.status(500).json({ message: 'Login failed' });
@@ -380,7 +384,12 @@ router.post('/login/verify', async (req, res) => {
       }
     }
 
-    let user = await User.findOne({ phone: normalizedPhone });
+    // A code proves the number, not which of the accounts sharing it is theirs.
+    const accounts = await User.find({ phone: normalizedPhone }).limit(2);
+    if (accounts.length > 1) {
+      return res.status(409).json({ message: 'Please update the app and sign in with your name and phone number.' });
+    }
+    let user = accounts[0] || null;
     if (!user && isTestLogin) {
       // Dev convenience: the documented test login should work on a fresh
       // database without registering by hand. Gated on TEST_LOGIN/TEST_OTP, so
@@ -477,6 +486,12 @@ router.put('/me', authenticateUser, uploadProfilePhoto, async (req, res) => {
 
     const currentUser = await User.findById(req.user.id);
     if (!currentUser) return res.status(404).json({ message: 'User not found' });
+    // The name tells apart accounts that share a number, so it must stay unique on it.
+    if (update.name !== undefined && !sameName(currentUser.name, update.name)
+      && await nameTakenOnPhone(currentUser.phone, update.name, currentUser._id)) {
+      await removeUploadedProfileFile(req.file);
+      return res.status(409).json({ message: 'Another account on your phone number already has this name.' });
+    }
     if (dobValue) {
       if (currentUser.dob && !sameDob(currentUser.dob, dobValue)) {
         await removeUploadedProfileFile(req.file);

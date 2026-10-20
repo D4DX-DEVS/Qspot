@@ -5,10 +5,12 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    // Not unique: brothers and sisters can share a number. The number + name
+    // pair is kept unique by the routes (services/sharedPhone.js).
     phone: {
         type: String,
         required: true,
-        unique: true
+        index: true
     },
     email: {
         type: String,
