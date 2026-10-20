@@ -14,6 +14,8 @@ const { authenticateAdmin } = require('../middlewares/auth');
 const { parseDob } = require('../services/dob');
 const { normalizePhone, phoneError } = require('../services/phone');
 const { newUserFields } = require('../services/newUser');
+const { sameName } = require('../services/nameKey');
+const { nameTakenOnPhone } = require('../services/sharedPhone');
 const { textMatch } = require('../services/search');
 const router = express.Router();
 
@@ -119,8 +121,10 @@ router.post('/users', authenticateAdmin, async (req, res) => {
             }
         }
 
-        if (await User.exists({ phone: fields.phone })) {
-            return res.status(409).json({ message: 'Phone number already exists' });
+        // A shared number is fine (brothers and sisters); the same name twice on it is not.
+        const taken = await nameTakenOnPhone(fields.phone, fields.name);
+        if (taken) {
+            return res.status(409).json({ message: `This phone number already has an account named ${taken.name}` });
         }
 
         const user = await User.create(fields);
@@ -233,10 +237,10 @@ router.put('/users/:id', authenticateAdmin, async (req, res) => {
             return res.status(400).json({ message: phoneProblem });
         }
 
-        if (cleanPhone !== user.phone) {
-            const existingUser = await User.findOne({ phone: cleanPhone, _id: { $ne: user._id } });
-            if (existingUser) {
-                return res.status(409).json({ message: 'Phone number already exists' });
+        if (cleanPhone !== user.phone || !sameName(user.name, name)) {
+            const taken = await nameTakenOnPhone(cleanPhone, name, user._id);
+            if (taken) {
+                return res.status(409).json({ message: `This phone number already has an account named ${taken.name}` });
             }
         }
 
