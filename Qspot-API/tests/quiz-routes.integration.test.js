@@ -91,6 +91,18 @@ const practiceLesson = async (userId, fields = {}) => {
 
 const practiceAnswers = (items, pick) => items.map((q) => ({ questionId: q._id, attemptedAnswer: String(pick) }));
 
+// Records saved at one moment, then the ids an admin list shows across all its pages.
+const SAME_MOMENT = new Date('2030-01-01T00:00:00Z');
+const idsOnEveryPage = async (route, token, pages, limit) => {
+    const ids = [];
+    for (let page = 1; page <= pages; page++) {
+        const res = await call(`${route}${route.includes('?') ? '&' : '?'}page=${page}&limit=${limit}`, token);
+        assert.equal(res.status, 200);
+        ids.push(...res.body.items.map((item) => String(item._id)));
+    }
+    return ids;
+};
+
 describe('quiz routes', { skip }, () => {
     before(async () => {
         const mongoose = require('mongoose');
@@ -878,5 +890,83 @@ describe('quiz routes', { skip }, () => {
         const item = list.body.items.find((entry) => entry.id === String(assignment._id));
         assert.equal(item.submissionCount, 4);
         assert.equal(item.pendingSubmissions, 2, 'submitted and late work waits for marking; graded and returned do not');
+    });
+
+    it('the admin question list shows every question once across pages, even when saved at the same moment', async () => {
+        const { config, items } = await quiz({ questions: 55 });
+        await models.QuizQuestion.collection.updateMany({ quizId: config._id }, { $set: { createdAt: new Date('2026-10-19T11:10:00Z') } });
+        const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+
+        const seen = [];
+        for (let page = 1; page <= 3; page++) {
+            const res = await call(`/api/quiz-questions?quizId=${config._id}&page=${page}&limit=20`, admin);
+            assert.equal(res.status, 200);
+            assert.equal(res.body.total, 55);
+            seen.push(...res.body.items.map((q) => q._id));
+        }
+        assert.equal(seen.length, 55);
+        assert.equal(new Set(seen).size, 55, 'no question repeats on another page, none is left out');
+        assert.deepEqual([...seen].sort(), items.map((q) => String(q._id)).sort());
+    });
+
+    it('the admin student list shows every student once across pages, even when they joined at the same moment', async () => {
+        const tag = `pg${Date.now()}`;
+        const users = await models.User.insertMany(Array.from({ length: 25 }, (_, i) => ({ name: `Paging ${tag} ${i}`, phone: `${tag}-${i}`, class: '8' })));
+        created.users.push(...users.map((u) => u._id));
+        await models.User.collection.updateMany({ _id: { $in: users.map((u) => u._id) } }, { $set: { createdAt: SAME_MOMENT } });
+        const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+
+        const seen = await idsOnEveryPage(`/api/admin/users?search=${tag}`, admin, 3, 10);
+        assert.equal(seen.length, 25);
+        assert.equal(new Set(seen).size, 25, 'no student repeats on another page, none is left out');
+    });
+
+    it('the admin quiz list shows every quiz once across pages, even when created at the same moment', async () => {
+        const quizzes = await models.QuizConfig.insertMany(Array.from({ length: 25 }, (_, i) => ({
+            title: `Paging Quiz ${i}`, startDate: new Date(), endDate: new Date(Date.now() + 60 * MINUTE), numberOfQuestions: 1
+        })));
+        created.quizzes.push(...quizzes.map((q) => q._id));
+        // Newest first, so these 25 fill the first pages.
+        await models.QuizConfig.collection.updateMany({ _id: { $in: quizzes.map((q) => q._id) } }, { $set: { createdAt: SAME_MOMENT } });
+        const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+
+        const seen = await idsOnEveryPage('/api/quiz-definitions', admin, 3, 10);
+        const ours = seen.filter((id) => quizzes.some((q) => String(q._id) === id));
+        assert.equal(ours.length, 25);
+        assert.equal(new Set(ours).size, 25, 'no quiz repeats on another page, none is left out');
+    });
+
+    it('the admin Q&A list shows every question once across pages, even when asked at the same moment', async () => {
+        const mongoose = require('mongoose');
+        const Question = require('../models/question');
+        const tag = `qapg${Date.now()}`;
+        const made = await Question.insertMany(Array.from({ length: 25 }, (_, i) => ({
+            description: `${tag} question ${i}`, subject: 'Fiqh', user: new mongoose.Types.ObjectId(), faculty: new mongoose.Types.ObjectId()
+        })));
+        try {
+            await Question.collection.updateMany({ _id: { $in: made.map((q) => q._id) } }, { $set: { createdAt: SAME_MOMENT } });
+            const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+
+            const seen = await idsOnEveryPage(`/api/questions/admin?search=${tag}`, admin, 3, 10);
+            assert.equal(seen.length, 25);
+            assert.equal(new Set(seen).size, 25, 'no question repeats on another page, none is left out');
+        } finally {
+            await Question.deleteMany({ _id: { $in: made.map((q) => q._id) } });
+        }
+    });
+
+    it('the submissions list for an assignment shows every submission once across pages, even when sent at the same moment', async () => {
+        const mongoose = require('mongoose');
+        const assignment = await models.Assignment.create({ title: `Paging ${Date.now()}`, maxPoints: 10, isPublished: true });
+        created.assignments.push(assignment._id);
+        await models.AssignmentSubmission.insertMany(Array.from({ length: 25 }, (_, i) => ({
+            assignmentId: assignment._id, userId: new mongoose.Types.ObjectId(), status: 'submitted', text: `work ${i}`
+        })));
+        await models.AssignmentSubmission.collection.updateMany({ assignmentId: assignment._id }, { $set: { submittedAt: SAME_MOMENT } });
+        const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+
+        const seen = await idsOnEveryPage(`/api/admin/assignments/${assignment._id}/submissions`, admin, 3, 10);
+        assert.equal(seen.length, 25);
+        assert.equal(new Set(seen).size, 25, 'no submission repeats on another page, none is left out');
     });
 });

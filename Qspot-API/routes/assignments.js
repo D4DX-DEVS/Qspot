@@ -378,7 +378,8 @@ adminRouter.get('/:id/submissions', authenticateAdmin, async (req, res) => {
         const filter = { assignmentId: req.params.id };
         if (['submitted', 'late', 'graded', 'returned'].includes(req.query.status)) filter.status = req.query.status;
         const [items, total] = await Promise.all([
-            AssignmentSubmission.find(filter).sort({ submittedAt: -1 }).skip((page - 1) * limit).limit(limit).populate('userId', 'name phone email class'),
+            // _id breaks ties so pages never repeat or skip work sent together.
+            AssignmentSubmission.find(filter).sort({ submittedAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit).populate('userId', 'name phone email class'),
             AssignmentSubmission.countDocuments(filter)
         ]);
         res.json({ items, total, page, limit });

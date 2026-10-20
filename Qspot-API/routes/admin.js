@@ -81,8 +81,9 @@ router.get('/users', authenticateAdmin, async (req, res) => {
         }
 
         const [items, total] = await Promise.all([
+            // _id breaks ties so pages never repeat or skip users who joined together.
             User.find(filter)
-                .sort({ createdAt: -1 })
+                .sort({ createdAt: -1, _id: -1 })
                 .skip((page - 1) * limit)
                 .limit(limit),
             User.countDocuments(filter)

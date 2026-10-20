@@ -64,8 +64,10 @@ router.get('/', authenticateAdmin, async (req, res) => {
         const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 20));
 
         const [items, total] = await Promise.all([
+            // _id breaks ties: questions saved together share a createdAt, and
+            // without it pages can repeat some questions and skip others.
             QuizQuestion.find(filter)
-                .sort({ createdAt: -1 })
+                .sort({ createdAt: -1, _id: -1 })
                 .skip((page - 1) * limit)
                 .limit(limit),
             QuizQuestion.countDocuments(filter)
