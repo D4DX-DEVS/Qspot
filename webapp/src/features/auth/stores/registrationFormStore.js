@@ -1,11 +1,13 @@
 import { ChangeNotifier } from '../../../lib/ChangeNotifier'
 import { fetchActiveCourses } from '../services/courseService'
-import { digitsOnly, phoneError } from './phoneRules'
+import { acceptsLength, cleanNumber, INDIA, phoneForApi } from '../models/phoneCountry'
+import { phoneError } from './phoneRules'
 
 // Screen state for the registration form
 // (mobile-app/lib/screens/auth/provider/registration_form_provider.dart).
 export class RegistrationFormStore extends ChangeNotifier {
   phone = ''
+  country = INDIA
   name = ''
   classNumber = null
   hasConsent = false
@@ -18,11 +20,16 @@ export class RegistrationFormStore extends ChangeNotifier {
   submitted = false
 
   get isComplete() {
-    return this.phone.trim().length === 10 && this.name.trim().length >= 3 && this.classNumber != null
+    return acceptsLength(this.country, this.phone.trim().length) && this.name.trim().length >= 3 && this.classNumber != null
+  }
+
+  // The typed number the way the API expects it.
+  get phoneForApi() {
+    return phoneForApi(this.country, this.phone.trim())
   }
 
   get phoneError() {
-    return this.submitted ? phoneError(this.phone) : null
+    return this.submitted ? phoneError(this.phone, this.country) : null
   }
 
   get nameError() {
@@ -55,7 +62,14 @@ export class RegistrationFormStore extends ChangeNotifier {
   }
 
   setPhone(value) {
-    this.phone = digitsOnly(value)
+    this.phone = cleanNumber(this.country, value)
+    this.notifyListeners()
+  }
+
+  // A number typed for the old country is cut to fit the new one.
+  setCountry(country) {
+    this.country = country
+    this.phone = cleanNumber(country, this.phone)
     this.notifyListeners()
   }
 

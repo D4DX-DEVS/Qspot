@@ -9,6 +9,7 @@ const { recordLearningEvent } = require('../services/learningEvents');
 const { submissionWindow } = require('../services/quizWindow');
 const { assessTiming } = require('../services/quizTiming');
 const { examAnswersAt, revealFields } = require('../services/answerReveal');
+const { savedOrder, storedIndex } = require('../services/optionOrder');
 
 const router = express.Router();
 
@@ -144,16 +145,17 @@ router.post('/attempt', authenticateUser, async (req, res) => {
 
             const submitted = answers.find((a) => String(a?.questionId) === String(questionId));
             const optionsEn = readOptions(q.options_en);
+            const optionsMl = readOptions(q.options_ml);
             const expectedIndex = correctIndex(q, optionsEn);
 
             let attemptedIndex = null;
             if (submitted && submitted.attemptedAnswer !== undefined && submitted.attemptedAnswer !== null) {
                 const raw = submitted.attemptedAnswer;
                 if (typeof raw === 'number' || /^-?\d+$/.test(String(raw))) {
-                    attemptedIndex = Number.parseInt(raw, 10);
+                    // The position as shown to this student; graded by its stored position.
+                    attemptedIndex = storedIndex(Number.parseInt(raw, 10), savedOrder(session, questionId, optionsEn, optionsMl));
                 } else {
                     // Accept option text (either language) and resolve it to an index.
-                    const optionsMl = readOptions(q.options_ml);
                     let idx = optionsEn.findIndex((o) => o.toLowerCase() === String(raw).trim().toLowerCase());
                     if (idx < 0) idx = optionsMl.findIndex((o) => o.toLowerCase() === String(raw).trim().toLowerCase());
                     attemptedIndex = idx >= 0 ? idx : null;

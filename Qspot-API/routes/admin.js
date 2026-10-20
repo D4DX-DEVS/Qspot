@@ -11,7 +11,7 @@ const VideoQuizAttempt = require('../models/videoQuizAttempt');
 const Video = require('../models/videos');
 const { authenticateAdmin } = require('../middlewares/auth');
 const { parseDob } = require('../services/dob');
-const { normalizePhone } = require('../services/phone');
+const { normalizePhone, phoneError } = require('../services/phone');
 const { textMatch } = require('../services/search');
 const router = express.Router();
 
@@ -72,10 +72,11 @@ router.get('/users', authenticateAdmin, async (req, res) => {
             const text = String(req.query.search).trim();
             const re = textMatch(text);
             filter.$or = [{ name: re }, { phone: re }, { email: re }];
-            // Phones are saved as 10 digits, so "+91 98765 43210" looks for those.
+            // Phones are saved cleaned (Indian ones as 10 digits, others as
+            // "+447400123456"), so "+91 98765 43210" looks for those.
             if (/^[+\d\s()-]+$/.test(text)) {
-                const digits = normalizePhone(text.replace(/[^\d+]/g, ''));
-                if (/^\d{3,10}$/.test(digits)) filter.$or.push({ phone: textMatch(digits) });
+                const digits = normalizePhone(text);
+                if (/^\+?\d{3,15}$/.test(digits)) filter.$or.push({ phone: textMatch(digits) });
             }
         }
 
@@ -188,8 +189,9 @@ router.put('/users/:id', authenticateAdmin, async (req, res) => {
 
         // Saved the way sign-in looks it up, or the student could not sign in.
         const cleanPhone = normalizePhone(phone);
-        if (!/^\d{10}$/.test(cleanPhone)) {
-            return res.status(400).json({ message: 'Enter a valid 10-digit phone number' });
+        const phoneProblem = phoneError(cleanPhone);
+        if (phoneProblem) {
+            return res.status(400).json({ message: phoneProblem });
         }
 
         if (cleanPhone !== user.phone) {

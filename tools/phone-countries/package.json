@@ -1,0 +1,12 @@
+{
+  "name": "qspot-phone-countries",
+  "private": true,
+  "description": "Builds the country list and mobile number lengths used by the API, web app and mobile app.",
+  "type": "module",
+  "scripts": {
+    "generate": "node generate.mjs"
+  },
+  "devDependencies": {
+    "libphonenumber-js": "1.11.20"
+  }
+}

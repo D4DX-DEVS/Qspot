@@ -57,9 +57,7 @@ void main() {
     expect(prompts, 0);
   });
 
-  testWidgets('the first quiz started offers it after the language', (
-    tester,
-  ) async {
+  testWidgets('the first quiz started offers it', (tester) async {
     const json = {'content-type': 'application/json'};
     ApiClient.clientOverride = MockClient((request) async {
       if (request.url.path.endsWith('/questions')) {
@@ -109,9 +107,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // No language dialog: the quiz goes straight to the reminder prompt.
     await tester.tap(find.text('Weekly Quiz').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('English'));
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 50)),
     );

@@ -5,8 +5,8 @@ import { ApiException } from '../../../services/apiClient'
 import { dialogStore } from '../../../stores/dialogStore'
 import { toastStore } from '../../../stores/toastStore'
 import { dayMonthYear } from '../../../utils/formatDate'
-import QuizLanguageDialog from '../components/QuizLanguageDialog'
 import { SUBMITTED_WAITING_MESSAGE, quizStore } from '../stores/quizStore'
+import { showSubmittedNotice } from './submittedNotice'
 
 // What tapping things on the Quiz page does (quiz_list_screen.dart's
 // handlers), kept out of the page component.
@@ -15,8 +15,10 @@ const notice = (props) =>
   dialogStore.show((close) => createElement(NoticeSheet, { ...props, onClose: () => close() }), { kind: 'sheet' })
 
 // The result page for a quiz the student already took, from its summary.
+// Until the quiz closes for everyone the score is held back: a notice instead.
 export function showAttemptSummary(quiz, navigate) {
   const a = quiz.myAttempt
+  if (!a.answersRevealed) return showSubmittedNotice(a.answersAvailableAt)
   navigate(`/quizzes/${quiz.id}/result`, {
     state: {
       result: {
@@ -65,13 +67,11 @@ export async function openQuizFromList(quiz, navigate) {
   // Started on this device: carry on in the language it was started in.
   const saved = quizStore.savedProgress(quiz.id)
   if (saved && !saved.submitPending && !saved.isRefused) return continueQuiz(saved, navigate)
-  return chooseLanguageAndOpen(quiz.id, navigate)
+  return openFresh(quiz.id, navigate)
 }
 
-async function chooseLanguageAndOpen(quizId, navigate) {
-  const language = await dialogStore.show((close) => createElement(QuizLanguageDialog, { onClose: close }))
-  if (language) await openQuiz(quizId, language, navigate)
-}
+// Only Malayalam questions for now, so the language dialog is skipped.
+const openFresh = (quizId, navigate) => openQuiz(quizId, 'ml', navigate)
 
 // Carries on with a quiz started here, in its language; works offline.
 export const continueQuiz = (record, navigate) => openQuiz(record.quizId, record.language, navigate)
@@ -99,7 +99,7 @@ export function retakeAction(record, navigate) {
   if (!quiz) return null
   return async () => {
     quizStore.dismissRefused(record.quizId)
-    await chooseLanguageAndOpen(quiz.id, navigate)
+    await openFresh(quiz.id, navigate)
   }
 }
 

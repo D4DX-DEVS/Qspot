@@ -33,7 +33,7 @@ Other scripts: `npm test` (quiz logic tests), `npm run lint`, `npm run build`.
 
 ## What is in it
 
-- **Sign in** with phone number + class (`POST /api/user/login`), with
+- **Sign in** with name + phone number (`POST /api/user/login`), with
   the app's checks and messages. The session survives a refresh and renews
   itself when less than a day is left. An expired sign-in returns to sign-in.
 - **Registration** is built but hidden (see the flag above).

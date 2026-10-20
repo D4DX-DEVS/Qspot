@@ -66,6 +66,13 @@ const quiz = async ({ questions = 2, ...fields } = {}) => {
 const answers = (questions, pick = 0, duration = 5) =>
     questions.map((q) => ({ questionId: q._id, attemptedAnswer: pick, duration }));
 
+// Opens the quiz like the app does and picks the option reading `text` in
+// every question, sent as its position in the (shuffled) order shown.
+const openAndAnswer = async (config, token, text = 'A', duration = 5) => {
+    const { body } = await call(`/api/user-quizzes/${config._id}/questions`, token);
+    return body.questions.map((q) => ({ questionId: q._id, attemptedAnswer: q.options_en.indexOf(text), duration }));
+};
+
 // A watched lesson with two practice questions whose right answer is option 0.
 const practiceLesson = async (userId, fields = {}) => {
     const mongoose = require('mongoose');
@@ -151,13 +158,50 @@ describe('quiz routes', { skip }, () => {
         const first = await call(`/api/user-quizzes/${config._id}/questions`, token);
         const again = await call(`/api/user-quizzes/${config._id}/questions`, token);
         assert.deepEqual(again.body.questions.map((q) => q._id), first.body.questions.map((q) => q._id));
+        assert.deepEqual(again.body.questions.map((q) => q.options_en), first.body.questions.map((q) => q.options_en));
+    });
+
+    it('options come shuffled per student and are graded by the option tapped', async () => {
+        const { token } = await student();
+        const { config, items } = await quiz({ questions: 10 });
+        const trueFalse = String(items[0]._id);
+        await models.QuizQuestion.updateOne({ _id: trueFalse }, { type: 'True / False' });
+
+        const { body: served } = await call(`/api/user-quizzes/${config._id}/questions`, token);
+        const shown = served.questions.map((q) => q.options_en.join());
+        assert.ok(served.questions.every((q) => [...q.options_en].sort().join() === 'A,B,C'));
+        assert.ok(served.questions.every((q) => q.options_ml.join() === q.options_en.join()));
+        assert.equal(served.questions.find((q) => q._id === trueFalse).options_en.join(), 'A,B,C');
+        assert.ok(shown.some((order) => order !== 'A,B,C'));
+
+        // Right answer ("A") everywhere except a wrong "B" on the True / False one.
+        const picks = served.questions.map((q) => ({
+            questionId: q._id, attemptedAnswer: q.options_en.indexOf(q._id === trueFalse ? 'B' : 'A'), duration: 5
+        }));
+        const { status, body } = await call('/api/quizzes/attempt', token, { quizId: config._id, answers: picks });
+        assert.equal(status, 201);
+        assert.equal(body.attempt.score, 9);
+        const saved = await models.Quiz.findOne({ quizId: config._id }).lean();
+        saved.answers.forEach((a) => assert.equal(a.attemptedAnswer, String(a.questionId) === trueFalse ? 1 : 0));
+    });
+
+    it('a quiz score stays out of Progress until the quiz has closed', async () => {
+        const { token } = await student();
+        const { config } = await quiz();
+        await call('/api/quizzes/attempt', token, { quizId: config._id, answers: await openAndAnswer(config, token) });
+        const listed = async () => (await call('/api/user/progress', token)).body.quizAttempts
+            .some((a) => String(a.quizId) === String(config._id));
+        assert.equal(await listed(), false);
+
+        // Closed, and past the grace period: the score shows.
+        await models.QuizConfig.updateOne({ _id: config._id }, { endDate: new Date(Date.now() - 10 * MINUTE) });
+        assert.equal(await listed(), true);
     });
 
     it('a submit is graded once; a repeat gets the saved result back', async () => {
         const { token } = await student();
-        const { config, items } = await quiz();
-        await call(`/api/user-quizzes/${config._id}/questions`, token);
-        const body = { quizId: config._id, answers: answers(items), totalDuration: 10 };
+        const { config } = await quiz();
+        const body = { quizId: config._id, answers: await openAndAnswer(config, token), totalDuration: 10 };
         const first = await call('/api/quizzes/attempt', token, body);
         const repeat = await call('/api/quizzes/attempt', token, body);
         assert.equal(first.status, 201);
@@ -169,9 +213,9 @@ describe('quiz routes', { skip }, () => {
 
     it('an answer that took longer than the question limit is not counted', async () => {
         const { token } = await student();
-        const { config, items } = await quiz({ timerMode: 'per-question', perQuestionTimeLimit: 30 });
-        await call(`/api/user-quizzes/${config._id}/questions`, token);
-        const late = [{ ...answers(items)[0] }, { ...answers(items)[1], duration: 45 }];
+        const { config } = await quiz({ timerMode: 'per-question', perQuestionTimeLimit: 30 });
+        const shown = await openAndAnswer(config, token);
+        const late = [shown[0], { ...shown[1], duration: 45 }];
         const { body } = await call('/api/quizzes/attempt', token, { quizId: config._id, answers: late });
         assert.equal(body.attempt.score, 1);
         const saved = await models.Quiz.findOne({ quizId: config._id }).lean();
@@ -225,9 +269,8 @@ describe('quiz routes', { skip }, () => {
 
     it('correct answers stay hidden until the exam has closed for everyone', async () => {
         const { token } = await student();
-        const { config, items } = await quiz();
-        await call(`/api/user-quizzes/${config._id}/questions`, token);
-        const { status, body } = await call('/api/quizzes/attempt', token, { quizId: config._id, answers: answers(items) });
+        const { config } = await quiz();
+        const { status, body } = await call('/api/quizzes/attempt', token, { quizId: config._id, answers: await openAndAnswer(config, token) });
         assert.equal(status, 201);
         assert.equal(body.attempt.score, 2);
         assert.equal(body.attempt.answersRevealed, false);
@@ -292,9 +335,8 @@ describe('quiz routes', { skip }, () => {
         const cls = `gb-${Date.now()}`;
         const { user, token } = await student({ class: cls });
         const other = await student({ class: cls });
-        const { config, items } = await quiz({ allowedClasses: [cls] });
-        await call(`/api/user-quizzes/${config._id}/questions`, token);
-        await call('/api/quizzes/attempt', token, { quizId: config._id, answers: answers(items) });
+        const { config } = await quiz({ allowedClasses: [cls] });
+        await call('/api/quizzes/attempt', token, { quizId: config._id, answers: await openAndAnswer(config, token) });
         const assignment = await models.Assignment.create({ title: 'Recitation', maxPoints: 10, class: cls, isPublished: true });
         created.assignments.push(assignment._id);
         const sent = await call(`/api/user/assignments/${assignment._id}/submissions`, token, { text: 'Recited twice.' });
@@ -386,9 +428,8 @@ describe('quiz routes', { skip }, () => {
         const cls = `job-${Date.now()}`;
         const waiting = await student({ class: cls });
         const done = await student({ class: cls });
-        const { config, items } = await quiz({ allowedClasses: [cls], endDate: new Date(Date.now() + 30 * MINUTE) });
-        await call(`/api/user-quizzes/${config._id}/questions`, done.token);
-        await call('/api/quizzes/attempt', done.token, { quizId: config._id, answers: answers(items) });
+        const { config } = await quiz({ allowedClasses: [cls], endDate: new Date(Date.now() + 30 * MINUTE) });
+        await call('/api/quizzes/attempt', done.token, { quizId: config._id, answers: await openAndAnswer(config, done.token) });
 
         await runNotificationJobs(new Date());
         await runNotificationJobs(new Date());
@@ -522,27 +563,32 @@ describe('quiz routes', { skip }, () => {
         assert.equal((await put('/api/faculty/me/dob', learner.token, { dob: '2010-01-01' })).status, 403);
     });
 
-    it('a student signs in with phone and class, never with a date of birth', async () => {
+    it('a student signs in with name and phone, never with a class or a date of birth', async () => {
         const mongoose = require('mongoose');
         const phone = `7${String(Math.floor(Math.random() * 1e9)).padStart(9, '0')}`;
-        await student({ phone, class: '9', dob: new Date('2010-05-03') });
+        await student({ phone, name: 'Ramu K', class: '9', dob: new Date('2010-05-03') });
         const login = (body) => call('/api/user/login', null, { phone, ...body });
 
-        const signedIn = await login({ class: '9' });
+        const signedIn = await login({ name: 'Ramu K' });
         assert.equal(signedIn.status, 200);
         assert.equal(jwt.decode(signedIn.body.token).role, 'student');
-        assert.equal(signedIn.body.user.class, '9');
-        assert.equal((await login({ class: 'Class 9' })).status, 200, 'written as on screen');
-        assert.equal((await login({ class: ' 9 ' })).status, 200);
+        assert.equal(signedIn.body.user.name, 'Ramu K');
+        for (const typed of ['RaMu K', 'ramuk', ' ramu  k ']) {
+            assert.equal((await login({ name: typed })).status, 200, typed);
+        }
 
-        assert.equal((await login({ class: '8' })).status, 404, 'wrong class');
+        assert.equal((await login({ name: 'Ramu' })).status, 404, 'wrong name');
+        assert.equal((await login({ name: 'Ramu K.' })).status, 404, 'only spaces and capitals are ignored');
+        const byClass = await login({ class: '9' });
+        assert.equal(byClass.status, 400, 'the class no longer signs a student in');
+        assert.match(byClass.body.message, /update the app/);
         assert.equal((await login({ dob: '2010-05-03' })).status, 404, 'the date no longer signs a student in');
         assert.equal((await login({})).status, 400);
-        assert.equal((await call('/api/user/login', null, { phone: `6${phone.slice(1)}`, class: '9' })).status, 404, 'unknown number');
+        assert.equal((await call('/api/user/login', null, { phone: `6${phone.slice(1)}`, name: 'Ramu K' })).status, 404, 'unknown number');
 
         const teacherPhone = `4${String(Math.floor(Math.random() * 1e9)).padStart(9, '0')}`;
-        await student({ phone: teacherPhone, class: 'Faculty', role: 'faculty', facultyProfile: new mongoose.Types.ObjectId(), dob: new Date('1985-04-12') });
-        assert.equal((await call('/api/user/login', null, { phone: teacherPhone, class: 'Faculty' })).status, 404, 'a class never signs a teacher in');
+        await student({ phone: teacherPhone, name: 'Teacher T', class: 'Faculty', role: 'faculty', facultyProfile: new mongoose.Types.ObjectId(), dob: new Date('1985-04-12') });
+        assert.equal((await call('/api/user/login', null, { phone: teacherPhone, name: 'Teacher T' })).status, 404, 'a name never signs a teacher in');
         assert.equal((await call('/api/user/login', null, { phone: teacherPhone, dob: '1985-04-12' })).status, 200);
     });
 
@@ -552,7 +598,21 @@ describe('quiz routes', { skip }, () => {
         assert.equal(registered.status, 201);
         created.users.push(registered.body.user.id);
         assert.equal(registered.body.user.dob, null);
-        assert.equal((await call('/api/user/login', null, { phone, class: '7' })).status, 200);
+        assert.equal((await call('/api/user/login', null, { phone, name: 'new learner' })).status, 200);
+    });
+
+    it('a number from another country registers and signs in with its country code', async () => {
+        const number = `7400${String(Math.floor(Math.random() * 1e6)).padStart(6, '0')}`;
+        const registered = await call('/api/user/register', null, { name: 'Global Learner', phone: `+44 0${number}`, class: '7' });
+        assert.equal(registered.status, 201);
+        created.users.push(registered.body.user.id);
+        assert.equal(registered.body.user.phone, `+44${number}`, 'saved with its country code, without the 0');
+        assert.equal((await call('/api/user/login', null, { phone: `+44${number}`, name: 'Global Learner' })).status, 200);
+        assert.equal((await call('/api/user/login', null, { phone: number, name: 'Global Learner' })).status, 404, 'without +44 it is an Indian number');
+
+        const tooShort = await call('/api/user/register', null, { name: 'Global Learner', phone: '+971 50 123', class: '7' });
+        assert.equal(tooShort.status, 400);
+        assert.equal(tooShort.body.message, 'Enter a valid 9-digit phone number', 'UAE numbers have 9 digits');
     });
 
     it('the admin adds a missing teacher date of birth and can correct it', async () => {
@@ -676,7 +736,7 @@ describe('quiz routes', { skip }, () => {
         const typed = `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
         assert.equal((await put(route, admin, { ...fields, phone: typed })).status, 200);
         assert.equal((await models.User.findById(user._id).lean()).phone, digits, 'saved as the 10 digits');
-        assert.equal((await call('/api/user/login', null, { phone: digits, class: '8' })).status, 200);
+        assert.equal((await call('/api/user/login', null, { phone: digits, name: 'Integration' })).status, 200);
 
         assert.equal((await put(route, admin, { ...fields, phone: '12345' })).status, 400, 'not a 10-digit number');
         const { user: other } = await student({ phone: `7${digits.slice(1)}` });

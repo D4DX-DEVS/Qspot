@@ -1,11 +1,14 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../services/course_service.dart';
+import '../model/phone_country.dart';
 
-/// Screen-local state for the registration form: typed phone/name and class
-/// (all needed for the completeness check), consent and course selection.
+/// Screen-local state for the registration form: typed phone (and its
+/// country), name and class (all needed for the completeness check), consent
+/// and course selection.
 class RegistrationFormProvider extends ChangeNotifier {
   String _phone = '';
+  PhoneCountry _country = PhoneCountry.india;
   String _name = '';
   String? _classNumber;
   bool _hasConsent = false;
@@ -16,6 +19,10 @@ class RegistrationFormProvider extends ChangeNotifier {
   bool _disposed = false;
 
   String? get classNumber => _classNumber;
+  PhoneCountry get country => _country;
+
+  /// The typed number the way the API expects it (see [PhoneCountry.forApi]).
+  String get phoneForApi => _country.forApi(_phone.trim());
   bool get hasConsent => _hasConsent;
   String get consentBy => _consentBy;
   List<CourseModel> get courses => _courses;
@@ -23,7 +30,7 @@ class RegistrationFormProvider extends ChangeNotifier {
   bool get coursesLoading => _coursesLoading;
 
   bool get isComplete =>
-      _phone.trim().length == 10 &&
+      _country.acceptsLength(_phone.trim().length) &&
       _name.trim().length >= 3 &&
       _classNumber != null;
 
@@ -43,6 +50,11 @@ class RegistrationFormProvider extends ChangeNotifier {
 
   void setPhone(String value) {
     _phone = value;
+    notifyListeners();
+  }
+
+  void setCountry(PhoneCountry value) {
+    _country = value;
     notifyListeners();
   }
 

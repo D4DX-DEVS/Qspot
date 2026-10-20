@@ -37,7 +37,7 @@ void main() {
   };
 
   test(
-    'sends phone and class to /api/user/login and saves the session',
+    'sends name and phone to /api/user/login and saves the session',
     () async {
       http.Request? seen;
       ApiClient.clientOverride = MockClient((request) async {
@@ -45,11 +45,11 @@ void main() {
         return http.Response(jsonEncode(okBody), 200);
       });
 
-      final result = await AuthService().login('9876543210', classNumber: '8');
+      final result = await AuthService().login('9876543210', name: 'Ayesha');
 
       expect(seen!.url.path, '/api/user/login');
       expect(seen!.method, 'POST');
-      expect(jsonDecode(seen!.body), {'phone': '9876543210', 'class': '8'});
+      expect(jsonDecode(seen!.body), {'phone': '9876543210', 'name': 'Ayesha'});
       expect(result['success'], isTrue);
       expect(await AuthService().isLoggedIn(), isTrue);
       expect(await AuthService().getSavedToken(), 'tok-abc');
@@ -84,7 +84,7 @@ void main() {
       ),
     );
 
-    final result = await AuthService().login('9876543210', classNumber: '9');
+    final result = await AuthService().login('9876543210', name: 'Ayesha');
 
     expect(result['success'], isFalse);
     expect(
@@ -129,7 +129,7 @@ void main() {
       ),
     );
 
-    final result = await AuthService().login('9876543210', classNumber: '9');
+    final result = await AuthService().login('9876543210', name: 'Ayesha');
 
     expect(result['success'], isFalse);
     expect(result['message'], contains('Too many failed attempts'));
@@ -140,7 +140,7 @@ void main() {
       (_) async => throw http.ClientException('offline'),
     );
 
-    final result = await AuthService().login('9876543210', classNumber: '8');
+    final result = await AuthService().login('9876543210', name: 'Ayesha');
 
     expect(result['success'], isFalse);
     expect(result['message'], 'Network error. Please try again.');
@@ -152,7 +152,7 @@ void main() {
     );
     final auth = AuthProvider();
 
-    final result = await auth.login('9876543210', classNumber: '8');
+    final result = await auth.login('9876543210', name: 'Ayesha');
 
     expect(result['success'], isTrue);
     expect(auth.isAuthenticated, isTrue);
@@ -167,7 +167,7 @@ void main() {
     );
     final auth = AuthProvider();
 
-    final result = await auth.login('9876543210', classNumber: '9');
+    final result = await auth.login('9876543210', name: 'Ayesha');
 
     expect(result['success'], isFalse);
     expect(auth.isAuthenticated, isFalse);

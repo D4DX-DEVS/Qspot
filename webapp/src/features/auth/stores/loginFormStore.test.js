@@ -1,37 +1,55 @@
 import { describe, expect, it } from 'vitest'
+import { phoneCountries } from '../models/phoneCountry'
 import { LoginFormStore } from './loginFormStore'
 
 describe('LoginFormStore', () => {
-  it('is incomplete without a class, even with a full phone number', () => {
+  it('is incomplete without a name, even with a full phone number', () => {
     const form = new LoginFormStore()
     form.setPhone('8888888888')
+    form.setName('   ')
     expect(form.isComplete).toBe(false)
     expect(form.validate()).toBe(false)
-    expect(form.classError).toBe('Please choose your class')
+    expect(form.nameError).toBe('Please enter your name')
   })
 
-  it('is incomplete without a full phone number, even with a class', () => {
+  it('is incomplete without a full phone number, even with a name', () => {
     const form = new LoginFormStore()
     form.setPhone('88888')
-    form.setClassNumber('9')
+    form.setName('Test Student 2')
     expect(form.isComplete).toBe(false)
     expect(form.validate()).toBe(false)
     expect(form.phoneError).toBe('Please enter a valid 10-digit phone number')
   })
 
-  it('is complete and valid with a 10-digit phone and a class', () => {
+  it('is complete and valid with a name and a 10-digit phone', () => {
     const form = new LoginFormStore()
     form.setPhone('8888888888')
-    form.setClassNumber('9')
+    form.setName('Test Student 2')
     expect(form.isComplete).toBe(true)
     expect(form.validate()).toBe(true)
-    expect(form.classError).toBeNull()
+    expect(form.nameError).toBeNull()
   })
 
-  it('treats an emptied class choice as no class', () => {
+  it('shows errors only after a submit attempt', () => {
     const form = new LoginFormStore()
-    form.setClassNumber('9')
-    form.setClassNumber('')
-    expect(form.classNumber).toBeNull()
+    expect(form.nameError).toBeNull()
+    expect(form.phoneError).toBeNull()
+    form.validate()
+    expect(form.nameError).toBe('Please enter your name')
+    expect(form.phoneError).toBe('Please enter your phone number')
+  })
+
+  it('the chosen country decides how many digits the phone needs', () => {
+    const form = new LoginFormStore()
+    form.setPhone('8888888888')
+    form.setName('Test Student 2')
+    form.setCountry(phoneCountries.find((c) => c.iso === 'AE'))
+    expect(form.phone).toBe('888888888')
+    expect(form.isComplete).toBe(true)
+    expect(form.phoneForApi).toBe('+971888888888')
+
+    form.setPhone('88888')
+    expect(form.validate()).toBe(false)
+    expect(form.phoneError).toBe('Please enter a valid 9-digit phone number')
   })
 })

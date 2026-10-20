@@ -10,12 +10,12 @@ import '../../../services/common/storage_service.dart';
 /// Endpoint contract:
 ///  - POST /api/user/register            {name, phone, class, email?, consent?}
 ///        -> 201 {message, user}  (no token: registration does not log in)
-///  - POST /api/user/login                {phone, class} (students) or
+///  - POST /api/user/login                {phone, name} (students) or
 ///        {phone, dob} (teachers) -> {message, token, user}
 ///  - POST /api/user/login/request-otp    {phone} -> {message, phone, cooldown}
 ///  - POST /api/user/login/verify         {phone, code} -> {message, token, user}
 ///
-/// Students sign in with phone + class, teachers with phone + date of birth.
+/// Students sign in with name + phone, teachers with phone + date of birth.
 /// The OTP calls are kept for the number-verification step, which is not
 /// built yet.
 class AuthService {
@@ -44,12 +44,12 @@ class AuthService {
     }
   }
 
-  /// Sign in with phone number and either the class (students) or the date
+  /// Sign in with phone number and either the name (students) or the date
   /// of birth as 'YYYY-MM-DD' (teachers) and, on success, persist the session
   /// (token + user + userId).
   Future<Map<String, dynamic>> login(
     String phone, {
-    String? classNumber,
+    String? name,
     String? dob,
   }) async {
     try {
@@ -57,7 +57,7 @@ class AuthService {
         '/api/user/login',
         body: {
           'phone': phone,
-          if (classNumber != null) 'class': classNumber,
+          if (name != null) 'name': name,
           if (dob != null) 'dob': dob,
         },
       );

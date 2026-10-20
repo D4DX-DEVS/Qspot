@@ -10,8 +10,9 @@ const statusOf = (quiz) =>
   quiz.isEnded ? ['Ended', 'slate'] : quiz.hasAttempted ? ['Attempted', 'rose'] : quiz.isLive ? ['Live', 'mint'] : quiz.isUpcoming ? ['Upcoming', 'amber'] : ['Ended', 'slate']
 
 // One quiz in the list: tinted icon, title, type, question count, a status
-// chip, then when it ends or opens, or the student's score with a bar. A
-// quiz started on this device ([record]) offers to continue.
+// chip, then when it ends or opens, or the student's score with a bar (once
+// the quiz has closed). A quiz started on this device ([record]) offers to
+// continue.
 export default function QuizListCard({ quiz, record, onOpen }) {
   const [status, tone] = statusOf(quiz)
   const practical = quiz.assessmentType === 'practical'
@@ -39,7 +40,8 @@ export default function QuizListCard({ quiz, record, onOpen }) {
               <TintedPillLink label={record ? 'Continue' : 'Start'} tone="mint" />
             </div>
           ) : null}
-          {attempt ? (
+          {attempt && !attempt.answersRevealed ? <p className="mt-2.5 text-[13.5px] font-semibold text-brand">Answers submitted</p> : null}
+          {attempt?.answersRevealed ? (
             <div className="mt-2.5">
               <p className="text-[13.5px] font-semibold text-brand">
                 Your Score: {attempt.score}/{attempt.totalQuestions} ({attempt.percentage}%)

@@ -1,22 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../widgets/common/country_code_prefix.dart';
+import '../model/phone_country.dart';
 import 'auth_text_field.dart';
+import 'country_picker_sheet.dart';
 
-/// 10-digit Indian mobile number field with the +91 prefix always visible.
+/// Mobile number field with the country's flag and calling code always
+/// visible. Tapping them picks another country; the number may have only as
+/// many digits as a mobile number there (India 10, UAE 9…).
 class AuthPhoneField extends StatelessWidget {
   const AuthPhoneField({
     super.key,
     required this.controller,
+    required this.country,
+    required this.onCountryChanged,
     this.hint = 'Enter Your Phone Number',
-    this.showPhoneIcon = false,
   });
 
   final TextEditingController controller;
+  final PhoneCountry country;
+  final ValueChanged<PhoneCountry> onCountryChanged;
   final String hint;
-  final bool showPhoneIcon;
+
+  Future<void> _pickCountry(BuildContext context) async {
+    final picked = await CountryPickerSheet.show(context, selected: country);
+    if (picked != null) onCountryChanged(picked);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,24 +36,20 @@ class AuthPhoneField extends StatelessWidget {
       keyboardType: TextInputType.phone,
       inputFormatters: [
         FilteringTextInputFormatter.digitsOnly,
-        LengthLimitingTextInputFormatter(10),
+        // A leading 0 is only dialled inside the country, not stored.
+        if (country.trunkZero) FilteringTextInputFormatter.deny(RegExp(r'^0+')),
+        LengthLimitingTextInputFormatter(country.maxLength),
       ],
-      prefix: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (showPhoneIcon)
-            const Padding(
-              padding: EdgeInsets.only(left: 16),
-              child: Icon(LucideIcons.phone, size: 22),
-            ),
-          CountryCodePrefix(leftPadding: showPhoneIcon ? 12 : 18),
-        ],
+      prefix: CountryCodePrefix(
+        code: '+${country.dialCode}',
+        flag: country.flag,
+        onTap: () => _pickCountry(context),
       ),
       validator: (value) {
         final phone = value?.trim() ?? '';
         if (phone.isEmpty) return 'Please enter your phone number';
-        if (phone.length != 10) {
-          return 'Please enter a valid 10-digit phone number';
+        if (!country.acceptsLength(phone.length)) {
+          return 'Please enter a valid ${country.lengthLabel}-digit phone number';
         }
         return null;
       },

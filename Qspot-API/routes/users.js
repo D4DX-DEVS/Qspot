@@ -22,11 +22,11 @@ const { learnerSubjects } = require('../services/learnerScope');
 const { parseUpcomingLimit } = require('../services/upcomingLimit');
 const { buildProgressSummary } = require('../services/progressSummary');
 const { parseDob, sameDob } = require('../services/dob');
-const { sameClass } = require('../services/classKey');
-const { examAnswersAt, revealFields } = require('../services/answerReveal');
+const { sameName } = require('../services/nameKey');
+const { examAnswersAt, answersRevealed, revealFields } = require('../services/answerReveal');
 const { publicUser } = require('../services/publicUser');
 const { shapeVideo } = require('../services/videoShape');
-const { normalizePhone } = require('../services/phone');
+const { normalizePhone, phoneError } = require('../services/phone');
 const { isAccessible } = require('../services/quizAccess');
 const {
   profileUpload,
@@ -183,8 +183,9 @@ router.post('/register', async (req, res) => {
     }
 
     const normalizedPhone = normalizePhone(phone);
-    if (normalizedPhone.length !== 10) {
-      return res.status(400).json({ message: 'Enter a valid 10-digit phone number' });
+    const phoneProblem = phoneError(normalizedPhone);
+    if (phoneProblem) {
+      return res.status(400).json({ message: phoneProblem });
     }
 
     const rawCourseIds = Array.isArray(courseIds) ? courseIds.map((id) => String(id)) : [];
@@ -251,30 +252,37 @@ router.post('/refresh-token', authenticateUser, (req, res) => {
 });
 
 // POST /api/user/login
-// Students sign in with phone number + class, teachers with phone number +
-// date of birth; a date never signs a student in, a class never a teacher.
+// Students sign in with name + phone number, teachers with phone number +
+// date of birth; a date never signs a student in, a name never a teacher.
+// The name is compared without spaces or capitals (see services/nameKey).
 // Failed attempts are limited per phone number and per IP in server.js. A
-// wrong class and an unknown number get the same answer, so the endpoint does
+// wrong name and an unknown number get the same answer, so the endpoint does
 // not reveal which numbers have accounts.
 router.post('/login', async (req, res) => {
   try {
-    const { phone, class: userClass, dob } = req.body || {};
-    const hasClass = String(userClass ?? '').trim() !== '';
-    if (!phone || (!hasClass && !String(dob || '').trim())) {
-      return res.status(400).json({ message: 'Phone and class are required' });
+    const { phone, name, class: userClass, dob } = req.body || {};
+    const hasName = String(name ?? '').trim() !== '';
+    const hasDob = String(dob || '').trim() !== '';
+    // An app from before the name sign-in sends the class instead.
+    if (!hasName && !hasDob && String(userClass ?? '').trim() !== '') {
+      return res.status(400).json({ message: 'Please update the app and sign in with your name and phone number.' });
+    }
+    if (!phone || (!hasName && !hasDob)) {
+      return res.status(400).json({ message: 'Name and phone are required' });
     }
 
     const normalizedPhone = normalizePhone(phone);
-    if (normalizedPhone.length !== 10) {
-      return res.status(400).json({ message: 'Enter a valid 10-digit phone number' });
+    const phoneProblem = phoneError(normalizedPhone);
+    if (phoneProblem) {
+      return res.status(400).json({ message: phoneProblem });
     }
 
     const user = await User.findOne({ phone: normalizedPhone });
     const isStudent = Boolean(user) && (user.role || 'student') === 'student';
 
-    if (hasClass) {
-      if (!isStudent || !sameClass(user.class, userClass)) {
-        return res.status(404).json({ message: 'No student account matches this phone number and class.' });
+    if (hasName) {
+      if (!isStudent || !sameName(user.name, name)) {
+        return res.status(404).json({ message: 'No student account matches this name and phone number.' });
       }
       return res.json({ message: 'Login successful', token: signUserToken(user), user: publicUser(user) });
     }
@@ -289,10 +297,10 @@ router.post('/login', async (req, res) => {
         message: 'No date of birth is saved for this number yet, so it cannot sign in this way. Please contact support to add it.'
       });
     }
-    // An app from before the class sign-in still sends a student's date.
+    // An app from before the name sign-in may still send a student's date.
     if (!user || isStudent || !sameDob(user.dob, dobValue)) {
       return res.status(404).json({
-        message: 'No teacher account matches this phone number and date of birth. Students: please update the app and sign in with your class.'
+        message: 'No teacher account matches this phone number and date of birth. Students: please update the app and sign in with your name.'
       });
     }
 
@@ -310,8 +318,9 @@ router.post('/login/request-otp', async (req, res) => {
     if (!phone) return res.status(400).json({ message: 'Phone is required' });
 
     const normalizedPhone = normalizePhone(phone);
-    if (normalizedPhone.length !== 10) {
-      return res.status(400).json({ message: 'Enter a valid 10-digit phone number' });
+    const phoneProblem = phoneError(normalizedPhone);
+    if (phoneProblem) {
+      return res.status(400).json({ message: phoneProblem });
     }
     const user = await User.findOne({ phone: normalizedPhone });
     if (!user) {
@@ -345,8 +354,9 @@ router.post('/login/verify', async (req, res) => {
     if (!phone || !code) return res.status(400).json({ message: 'Phone and code are required' });
 
     const normalizedPhone = normalizePhone(phone);
-    if (normalizedPhone.length !== 10) {
-      return res.status(400).json({ message: 'Enter a valid 10-digit phone number' });
+    const phoneProblem = phoneError(normalizedPhone);
+    if (phoneProblem) {
+      return res.status(400).json({ message: phoneProblem });
     }
     if (!/^\d{6}$/.test(String(code).trim())) {
       return res.status(400).json({ message: 'OTP must be a 6-digit number' });
@@ -859,9 +869,13 @@ router.get('/progress', authenticateUser, async (req, res) => {
         .select('_id subject releaseDate')
         .lean(),
       VideoProgress.find({ userId }).select('videoId completed watchedSeconds positionSeconds').lean(),
-      Quiz.find({ userId }).populate('quizId', 'title').sort({ createdAt: -1 }),
+      Quiz.find({ userId }).populate('quizId', 'title endDate').sort({ createdAt: -1 }),
       VideoQuizAttempt.find({ userId }).populate('videoId', 'title').sort({ createdAt: -1 })
     ]);
+    // A quiz score stays hidden from the learner until the quiz has closed for
+    // everyone, the same moment its answers show. A deleted quiz has closed.
+    const now = new Date();
+    const scoreShown = (attempt) => !attempt.quizId || answersRevealed(examAnswersAt(attempt.quizId), now);
 
     const courseIds = [...new Set(subjects.filter((subject) => subject.courseId).map((subject) => String(subject.courseId)))];
     const courses = courseIds.length > 0
@@ -878,7 +892,7 @@ router.get('/progress', authenticateUser, async (req, res) => {
       videos,
       subjects: subjectRows,
       courses: courseRows,
-      quizAttempts: quizAttempts.map((a) => ({
+      quizAttempts: quizAttempts.filter(scoreShown).map((a) => ({
         attemptId: a._id,
         quizId: a.quizId?._id || a.quizId,
         title: a.quizId?.title || 'Quiz',

@@ -1,10 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { FiCheck, FiChevronDown, FiX } from 'react-icons/fi';
 
-const CLASS_NUMBERS = Array.from({ length: 12 }, (_, index) => String(index + 1));
+const CLASS_NUMBERS = Array.from({ length: 5 }, (_, index) => String(index + 8));
 const isClassNumber = (value) => CLASS_NUMBERS.includes(value);
 
-// 1-12 in number order, then any other saved values alphabetically.
+// 8-12 in number order, then any other saved values alphabetically.
 const byClassOrder = (a, b) => {
   if (isClassNumber(a) && isClassNumber(b)) return Number(a) - Number(b);
   if (isClassNumber(a) !== isClassNumber(b)) return isClassNumber(a) ? -1 : 1;
@@ -13,12 +13,12 @@ const byClassOrder = (a, b) => {
 
 const chipLabel = (value) => (isClassNumber(value) ? `Class ${value}` : value);
 
-// Dropdown for picking any number of classes from 1 to 12. Values are the
+// Dropdown for picking any number of classes from 8 to 12. Values are the
 // bare numbers ("8") the app registers students with, so they match exactly
 // on the server. An empty selection means every class.
 //
-// A record may already hold a value outside 1-12 (typed by hand before this
-// dropdown existed). It stays selected and shows as a removable chip, so
+// A record may already hold a value outside 8-12 (typed by hand before this
+// dropdown existed, or a class below 8 from before the cut). It stays selected and shows as a removable chip, so
 // opening and saving a form never drops it silently.
 const ClassMultiSelect = ({
   value = [],
