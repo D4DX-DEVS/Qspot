@@ -1,58 +1,86 @@
-import { PencilLine, Wrench } from 'lucide-react'
+import { CalendarClock, ChevronRight, Play } from 'lucide-react'
+import FactItem from '../../../components/common/FactItem'
+import GlassCard from '../../../components/common/GlassCard'
+import PillButton from '../../../components/common/PillButton'
 import ScoreBar from '../../../components/common/ScoreBar'
-import SoftIconTile from '../../../components/common/SoftIconTile'
-import SurfaceCard from '../../../components/common/SurfaceCard'
-import TintedPillLink from '../../../components/common/TintedPillLink'
-import ToneChip from '../../../components/common/ToneChip'
-import { dayMonthYear, whenLabel } from '../../../utils/formatDate'
+import { questionsLabel, scheduleLabel } from '../models/quizFacts'
+import QuizFactsRow from './QuizFactsRow'
+import QuizThumb from './QuizThumb'
 
 const statusOf = (quiz) =>
-  quiz.isEnded ? ['Ended', 'slate'] : quiz.hasAttempted ? ['Attempted', 'rose'] : quiz.isLive ? ['Live', 'mint'] : quiz.isUpcoming ? ['Upcoming', 'amber'] : ['Ended', 'slate']
+  quiz.isEnded
+    ? { label: 'Ended', dot: 'ended' }
+    : quiz.hasAttempted
+      ? { label: 'Attempted', dot: 'done' }
+      : quiz.isLive
+        ? { label: 'Live', dot: 'live', pulse: true }
+        : quiz.isUpcoming
+          ? { label: 'Upcoming', dot: 'upcoming' }
+          : { label: 'Ended', dot: 'ended' }
 
-// One quiz in the list: tinted icon, title, type, question count, a status
-// chip, then when it ends or opens, or the student's score with a bar (once
-// the quiz has closed). A quiz started on this device ([record]) offers to
-// continue.
+// What the card's button says, or null when tapping only shows a notice.
+function actionOf(quiz, record) {
+  if (quiz.isLive && !quiz.myAttempt) return { label: record ? 'Continue' : 'Start Quiz', look: 'go', icon: Play }
+  if (quiz.myAttempt?.answersRevealed) return { label: 'View Result', look: 'outline' }
+  if (quiz.isUpcoming) return { label: 'See Details', look: 'outline' }
+  return null
+}
+
+// One quiz in the list: its picture with a status badge, title, type,
+// question count and time, when it ends or opens, then the student's score
+// (once the quiz has closed) and the button. A quiz started on this device
+// ([record]) offers to continue. The whole card is the tap target.
 export default function QuizListCard({ quiz, record, onOpen }) {
-  const [status, tone] = statusOf(quiz)
-  const practical = quiz.assessmentType === 'practical'
-  const count = `${quiz.questionCount} Question${quiz.questionCount === 1 ? '' : 's'}`
+  const status = statusOf(quiz)
+  const action = actionOf(quiz, record)
   const attempt = quiz.myAttempt
   const toTake = quiz.isLive && !attempt
+  const schedule = scheduleLabel(quiz)
   return (
-    <SurfaceCard onClick={() => onOpen(quiz)} padding="p-3.5" className="h-full" label={`${quiz.title}. ${status}. ${count}`}>
-      <div className="flex items-start gap-3">
-        <SoftIconTile icon={practical ? Wrench : PencilLine} tone={tone} size={46} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start gap-2">
-            <p className="min-w-0 flex-1 text-[15.5px] font-bold text-ink">{quiz.title}</p>
-            <ToneChip label={status} tone={tone} />
-          </div>
-          <p className="mt-1 text-[13px] text-muted">
-            {practical ? 'Practical Exam' : 'Knowledge Quiz'} · {count}
-          </p>
-          {quiz.isUpcoming && quiz.startDate ? <p className="mt-1 text-xs text-muted">Starts {dayMonthYear(quiz.startDate)}</p> : null}
-          {toTake ? (
-            <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs text-muted">
-                {record ? `${record.answeredCount} of ${record.questionIds.length} answered` : quiz.endDate ? `Ends ${whenLabel(quiz.endDate)}` : 'Open now'}
-              </p>
-              <TintedPillLink label={record ? 'Continue' : 'Start'} tone="mint" />
+    <GlassCard onClick={() => onOpen(quiz)} padding="p-3 sm:p-4" label={`${quiz.title}. ${status.label}. ${questionsLabel(quiz)}`}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+        {/* Picture and words side by side; on wider screens the button joins the row. */}
+        <div className="flex min-w-0 gap-3.5 sm:contents">
+          <QuizThumb badge={status.label} dot={status.dot} pulse={status.pulse} faded={quiz.isEnded} />
+          <div className="min-w-0 flex-1 py-0.5 sm:py-0">
+            <p className="line-clamp-2 text-[15.5px] font-bold leading-snug text-ink sm:line-clamp-none sm:text-lg lg:text-xl">{quiz.title}</p>
+            <p className="mt-0.5 text-[13px] text-muted sm:mt-1 sm:text-[15px]">{quiz.assessmentType === 'practical' ? 'Practical Exam' : 'Knowledge Quiz'}</p>
+            <div className="mt-2 flex flex-col gap-1.5 sm:mt-3 sm:gap-2">
+              <QuizFactsRow quiz={quiz} />
+              {schedule ? <FactItem icon={CalendarClock} label={schedule} /> : null}
             </div>
-          ) : null}
-          {attempt && !attempt.answersRevealed ? <p className="mt-2.5 text-[13.5px] font-semibold text-brand">Answers submitted</p> : null}
-          {attempt?.answersRevealed ? (
-            <div className="mt-2.5">
-              <p className="text-[13.5px] font-semibold text-brand">
-                Your Score: {attempt.score}/{attempt.totalQuestions} ({attempt.percentage}%)
+            {record && toTake ? (
+              <p className="mt-2 text-[13.5px] font-semibold text-brand">
+                {record.answeredCount} of {record.questionIds.length} answered
               </p>
-              <div className="mt-1.5">
-                <ScoreBar percentage={attempt.percentage} />
+            ) : null}
+            {attempt && !attempt.answersRevealed ? <p className="mt-2.5 text-[13.5px] font-semibold text-brand">Answers submitted</p> : null}
+            {attempt?.answersRevealed ? (
+              <div className="mt-2.5 max-w-sm">
+                <p className="text-[13.5px] font-semibold text-brand">
+                  Your Score: {attempt.score}/{attempt.totalQuestions} ({attempt.percentage}%)
+                </p>
+                <div className="mt-1.5">
+                  <ScoreBar percentage={attempt.percentage} />
+                </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
+        {action ? (
+          <div className="sm:pr-2">
+            <PillButton
+              as="span"
+              label={action.label}
+              look={action.look}
+              icon={action.icon}
+              fillIcon
+              trailing={ChevronRight}
+              className="w-full sm:min-h-[52px] sm:w-auto sm:gap-2.5 sm:px-6 sm:text-base"
+            />
+          </div>
+        ) : null}
       </div>
-    </SurfaceCard>
+    </GlassCard>
   )
 }

@@ -8,7 +8,7 @@ export default function LoginForm({ form }) {
   return (
     <div className="flex flex-col gap-3.5">
       <AuthTextField
-        label="Full Name"
+        label="Your Name"
         icon={UserRound}
         autoCapitalize="words"
         autoComplete="name"
