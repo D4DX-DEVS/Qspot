@@ -9,9 +9,11 @@ const QuizSession = require('../models/quizSession');
 const VideoProgress = require('../models/videoProgress');
 const VideoQuizAttempt = require('../models/videoQuizAttempt');
 const Video = require('../models/videos');
+const Speaker = require('../models/speakers');
 const { authenticateAdmin } = require('../middlewares/auth');
 const { parseDob } = require('../services/dob');
 const { normalizePhone, phoneError } = require('../services/phone');
+const { newUserFields } = require('../services/newUser');
 const { textMatch } = require('../services/search');
 const router = express.Router();
 
@@ -92,6 +94,42 @@ router.get('/users', authenticateAdmin, async (req, res) => {
         res.json({ items, total, page, limit });
     } catch (error) {
         console.error('Error fetching users:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// POST /api/admin/users - Create a student or teacher account (admin only).
+// Works while public registration is closed.
+router.post('/users', authenticateAdmin, async (req, res) => {
+    try {
+        const { error, fields } = newUserFields(req.body);
+        if (error) {
+            return res.status(400).json({ message: error });
+        }
+
+        if (fields.facultyProfile) {
+            const profile = await Speaker.findById(fields.facultyProfile).select('_id');
+            if (!profile) {
+                return res.status(400).json({ message: 'That teacher profile no longer exists' });
+            }
+            // Two accounts on one profile would share one teacher's questions and work.
+            const linked = await User.findOne({ facultyProfile: fields.facultyProfile }).select('name');
+            if (linked) {
+                return res.status(409).json({ message: `This teacher profile is already linked to ${linked.name}` });
+            }
+        }
+
+        if (await User.exists({ phone: fields.phone })) {
+            return res.status(409).json({ message: 'Phone number already exists' });
+        }
+
+        const user = await User.create(fields);
+        res.status(201).json({ message: 'User created successfully', user });
+    } catch (error) {
+        if (error && error.code === 11000) {
+            return res.status(409).json({ message: 'Phone number already exists' });
+        }
+        console.error('Error creating user:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 });
