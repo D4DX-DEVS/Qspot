@@ -627,13 +627,13 @@ describe('quiz routes', { skip }, () => {
         const sameName = await call('/api/admin/users', admin, { role: 'student', name: 'Nafisa  Shafees', phone, class: '9' });
         assert.equal(sameName.status, 409, 'the same name twice on one number');
         assert.match(sameName.body.message, /already has an account named Nafisa shafees/);
-        const third = await call('/api/admin/users', admin, { role: 'student', name: 'Hiba shafees', phone, class: '6' });
+        const third = await call('/api/admin/users', admin, { role: 'student', name: 'Hiba shafees', phone, class: '8' });
         assert.equal(third.status, 201, 'a third child with another name');
         created.users.push(third.body.user._id);
 
-        const renamed = await put(`/api/admin/users/${third.body.user._id}`, admin, { name: 'Mariyam Shafees', phone, class: '6' });
+        const renamed = await put(`/api/admin/users/${third.body.user._id}`, admin, { name: 'Mariyam Shafees', phone, class: '8' });
         assert.equal(renamed.status, 409, 'the admin cannot give a sibling\'s name');
-        assert.equal((await put(`/api/admin/users/${third.body.user._id}`, admin, { name: 'Hiba Shafees K', phone, class: '6' })).status, 200);
+        assert.equal((await put(`/api/admin/users/${third.body.user._id}`, admin, { name: 'Hiba Shafees K', phone, class: '8' })).status, 200);
         assert.equal((await put('/api/user/me', mariyam.token, { name: 'NAFISA shafees' })).status, 409, 'nor can a student');
         assert.equal((await put('/api/user/me', mariyam.token, { name: 'mariyam  shafees' })).status, 200, 'their own name in other capitals is fine');
 

@@ -18,6 +18,15 @@ test('a student without a class is refused', () => {
     assert.equal(newUserFields({ name: 'Ramu', phone: '9876543210', class: '  ' }).error, 'Class is required');
 });
 
+test('a student class is 8 to 12 only', () => {
+    for (const ok of ['8', '9', '10', '11', ' 12 ']) {
+        assert.equal(newUserFields({ name: 'Ramu', phone: '9876543210', class: ok }).fields.class, ok.trim(), ok);
+    }
+    for (const bad of ['1', '2', '7', '13', '0', 'Class 9', 'degree', '8.5']) {
+        assert.equal(newUserFields({ name: 'Ramu', phone: '9876543210', class: bad }).error, 'Class should be between 8 and 12.', bad);
+    }
+});
+
 test('a short name or a bad phone is refused', () => {
     assert.equal(newUserFields({ name: 'Ra', phone: '9876543210', class: '9' }).error, 'Name must be at least 3 characters');
     assert.match(newUserFields({ name: 'Ramu', phone: '12345', class: '9' }).error, /valid/);
