@@ -42,7 +42,7 @@ export default function LoginPage() {
                 }}
               >
                 <div className="mb-4">
-                  <InfoNoteCard icon={Info} tone="slate" message="Enter the same name and phone number that you gave in the registration form." />
+                  <InfoNoteCard icon={Info} tone="slate" message="Please enter the name and phone number used during registration." />
                 </div>
                 <LoginForm form={form} />
                 <div className="mt-6">
