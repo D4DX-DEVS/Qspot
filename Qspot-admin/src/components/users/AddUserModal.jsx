@@ -9,7 +9,7 @@ import { dobInputLimits } from '../../utils/dob';
 // Users page dialog for creating a student or teacher account. The fields
 // change with the kind of account because each signs in differently.
 const AddUserModal = ({ onClose, onCreated }) => {
-  const { form, setField, saving, error, submit, isTeacher } = useAddUserForm(onCreated);
+  const { form, setField, saving, error, submit, isTeacher, classError, checkClass } = useAddUserForm(onCreated);
   const dobLimits = dobInputLimits();
 
   const handleSubmit = (e) => {
@@ -86,13 +86,24 @@ const AddUserModal = ({ onClose, onCreated }) => {
             </FormField>
           </>
         ) : (
-          <FormField label="Class" htmlFor="add-user-class">
+          <FormField
+            label="Class"
+            htmlFor="add-user-class"
+            hint="Class 8 to 12 only."
+            error={classError}
+            errorId="add-user-class-error"
+          >
             <TextInput
               id="add-user-class"
+              inputMode="numeric"
+              autoComplete="off"
               value={form.class}
               onChange={(value) => setField('class', value)}
-              placeholder="Enter class"
-              required
+              onBlur={checkClass}
+              placeholder="Enter class (8 to 12)"
+              aria-invalid={Boolean(classError)}
+              aria-describedby={classError ? 'add-user-class-error' : undefined}
+              className={classError ? 'border-red-400/60! focus:border-red-400/80!' : ''}
             />
           </FormField>
         )}
