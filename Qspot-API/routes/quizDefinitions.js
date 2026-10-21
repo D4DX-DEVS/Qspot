@@ -7,6 +7,7 @@ const Quiz = require('../models/quiz');
 const Certificate = require('../models/certificate');
 const { authenticateAdmin } = require('../middlewares/auth');
 const { textMatch } = require('../services/search');
+const { RANK_SORT, withRanks } = require('../services/quizRanking');
 
 const router = express.Router();
 
@@ -336,37 +337,32 @@ router.get('/:id/results', authenticateAdmin, async (req, res) => {
         }
 
         const { minScore, maxScore, from, to, search } = req.query;
-        const filter = { quizId: id };
-
-        if (minScore !== undefined || maxScore !== undefined) {
-            filter.score = {};
-            if (minScore !== undefined) filter.score.$gte = Number(minScore);
-            if (maxScore !== undefined) filter.score.$lte = Number(maxScore);
-        }
-
-        if (from !== undefined || to !== undefined) {
-            filter.createdAt = {};
-            if (from !== undefined) filter.createdAt.$gte = new Date(from);
-            if (to !== undefined) filter.createdAt.$lte = new Date(to);
-        }
-
         const page = Math.max(1, parseInt(req.query.page, 10) || 1);
         const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
 
-        let attempts = await Quiz.find(filter)
+        // Ranked across every attempt at the quiz; the filters only pick which
+        // rows show, so a student keeps their real rank in a filtered list.
+        const attempts = await Quiz.find({ quizId: id })
             .populate({ path: 'userId', select: 'name class' })
-            .sort({ score: -1, totalDuration: 1 });
+            .sort(RANK_SORT);
 
-        if (search) {
-            const re = textMatch(search);
-            attempts = attempts.filter((a) => re.test(a.userId?.name || '') || re.test(a.userId?.class || ''));
-        }
+        const re = search ? textMatch(search) : null;
+        const fromDate = from !== undefined ? new Date(from) : null;
+        const toDate = to !== undefined ? new Date(to) : null;
+        const shown = withRanks(attempts).filter(({ attempt }) => {
+            const score = Number(attempt.score) || 0;
+            if (minScore !== undefined && !(score >= Number(minScore))) return false;
+            if (maxScore !== undefined && !(score <= Number(maxScore))) return false;
+            if (fromDate && !(attempt.createdAt >= fromDate)) return false;
+            if (toDate && !(attempt.createdAt <= toDate)) return false;
+            return !re || re.test(attempt.userId?.name || '') || re.test(attempt.userId?.class || '');
+        });
 
-        const total = attempts.length;
-        const page_ = attempts.slice((page - 1) * limit, page * limit);
+        const total = shown.length;
+        const page_ = shown.slice((page - 1) * limit, page * limit);
 
-        const results = page_.map((attempt, index) => ({
-            rank: (page - 1) * limit + index + 1,
+        const results = page_.map(({ attempt, rank }) => ({
+            rank,
             attemptId: attempt._id,
             userId: attempt.userId?._id || attempt.userId,
             name: attempt.userId?.name || 'Unknown',
