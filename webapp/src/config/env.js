@@ -9,3 +9,8 @@ export const API_BASE_URL = configured || (import.meta.env.DEV ? '' : PRODUCTION
 
 // The registration screen is built but hidden until this is switched on.
 export const REGISTRATION_ENABLED = import.meta.env.VITE_ENABLE_REGISTRATION === 'true'
+
+// Answer review (each question with the student's answer and the correct
+// one) is hidden for now; true brings back "Review Answers" after a quiz
+// closes. Keep it the same as answerReviewEnabled in the mobile app.
+export const ANSWER_REVIEW_ENABLED = false
