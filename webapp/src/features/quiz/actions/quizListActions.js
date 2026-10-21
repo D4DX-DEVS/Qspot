@@ -4,7 +4,7 @@ import NoticeDialog from '../../../components/common/NoticeDialog'
 import { ApiException } from '../../../services/apiClient'
 import { dialogStore } from '../../../stores/dialogStore'
 import { toastStore } from '../../../stores/toastStore'
-import { dayMonthYear } from '../../../utils/formatDate'
+import { clockTime, dayMonthYear } from '../../../utils/formatDate'
 import { SUBMITTED_WAITING_MESSAGE, quizStore } from '../stores/quizStore'
 import { showSubmittedNotice } from './submittedNotice'
 
@@ -52,7 +52,7 @@ export async function openQuizFromList(quiz, navigate) {
       tone: 'amber',
       title: "This Quiz Hasn't Started Yet",
       message: quiz.startDate
-        ? `It opens on ${dayMonthYear(quiz.startDate)}. Come back then to take it.`
+        ? `It opens on ${dayMonthYear(quiz.startDate)} at ${clockTime(quiz.startDate)}. Come back then to take it.`
         : 'Come back once it goes live to take it.',
     })
   }
