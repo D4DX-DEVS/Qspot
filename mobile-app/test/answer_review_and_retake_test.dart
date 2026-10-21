@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:qspot/screens/quiz/model/answer_review_switch.dart';
 import 'package:qspot/screens/quiz/model/answers_availability.dart';
 import 'package:qspot/screens/quiz/model/quiz_model.dart';
 import 'package:qspot/screens/quiz/provider/quiz_review_filter_provider.dart';
@@ -185,6 +186,9 @@ void main() {
       await tester.pump(const Duration(seconds: 2));
     }
 
+    // With answer review switched off, results show no answers row at all.
+    final whenReviewOn = answerReviewEnabled ? findsOneWidget : findsNothing;
+
     testWidgets('an exam result before close says when answers show', (
       tester,
     ) async {
@@ -202,7 +206,7 @@ void main() {
           attemptId: 'a1',
         ),
       );
-      expect(find.textContaining('Correct answers show after'), findsOneWidget);
+      expect(find.textContaining('Correct answers show after'), whenReviewOn);
       expect(find.text('Review Answers'), findsNothing);
     });
 
@@ -222,7 +226,7 @@ void main() {
           attemptId: 'a1',
         ),
       );
-      expect(find.text('Review Answers'), findsOneWidget);
+      expect(find.text('Review Answers'), whenReviewOn);
       expect(find.textContaining('Correct answers show'), findsNothing);
     });
 

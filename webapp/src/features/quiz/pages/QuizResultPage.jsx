@@ -8,6 +8,7 @@ import IconButton from '../../../components/common/IconButton'
 import PageShell from '../../../components/common/PageShell'
 import Spinner from '../../../components/common/Spinner'
 import StateMessageView from '../../../components/common/StateMessageView'
+import { ANSWER_REVIEW_ENABLED } from '../../../config/env'
 import { useLocalNotifier } from '../../../lib/useNotifier'
 import { toastStore } from '../../../stores/toastStore'
 import { dateAtTime } from '../../../utils/formatDate'
@@ -56,7 +57,9 @@ export default function QuizResultPage() {
             <ResultStatRow total={result.totalQuestions} correct={store.correctCount} wrong={store.wrongCount} />
           </div>
           <div className="mt-6 flex flex-col gap-4">
-            <ResultAnswersRow result={result} loading={store.loadingReview} onReview={() => review(result)} onLoadReview={loadReview} />
+            {ANSWER_REVIEW_ENABLED ? (
+              <ResultAnswersRow result={result} loading={store.loadingReview} onReview={() => review(result)} onLoadReview={loadReview} />
+            ) : null}
             {result.quizId ? <ViewCertificateButton quizId={result.quizId} /> : null}
           </div>
           {result.completedAt ? (

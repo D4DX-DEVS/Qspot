@@ -15,6 +15,7 @@ import '../../../widgets/common/gradient_card.dart';
 import '../../../widgets/common/surface_card.dart';
 import '../../certificate/widgets/view_certificate_button.dart';
 import '../../common/widgets/home_theme_scope.dart';
+import '../model/answer_review_switch.dart';
 import '../model/answers_availability.dart';
 import '../model/quiz_model.dart';
 import '../widgets/answers_hidden_note.dart';
@@ -91,9 +92,11 @@ class QuizResultsScreen extends StatelessWidget {
   }
 
   /// Whether anything about the answers shows under the scores: the review,
-  /// a button that loads it, or when the answers will show.
+  /// a button that loads it, or when the answers will show. Nothing while
+  /// answer review is switched off ([answerReviewEnabled]).
   bool get _showsAnswersRow =>
-      results.isNotEmpty || !answersRevealed || attemptId != null;
+      answerReviewEnabled &&
+      (results.isNotEmpty || !answersRevealed || attemptId != null);
 
   int get _correctCount =>
       results.isNotEmpty ? results.where((r) => r.isCorrect).length : score;
@@ -133,23 +136,24 @@ class QuizResultsScreen extends StatelessWidget {
                 const SizedBox(height: AppTheme.sectionGap),
                 _statRow(context, p),
                 const SizedBox(height: AppTheme.sectionGap),
-                if (results.isNotEmpty)
-                  _reviewButton(context, p)
-                else if (!answersRevealed)
-                  StaggeredEntrance(
-                    index: 4,
-                    child: AnswersHiddenNote(
-                      availability: AnswersAvailability(
-                        revealed: false,
-                        availableAt: answersAvailableAt,
+                if (_showsAnswersRow)
+                  if (results.isNotEmpty)
+                    _reviewButton(context, p)
+                  else if (!answersRevealed)
+                    StaggeredEntrance(
+                      index: 4,
+                      child: AnswersHiddenNote(
+                        availability: AnswersAvailability(
+                          revealed: false,
+                          availableAt: answersAvailableAt,
+                        ),
                       ),
+                    )
+                  else
+                    StaggeredEntrance(
+                      index: 4,
+                      child: QuizReviewLoaderButton(attemptId: attemptId!),
                     ),
-                  )
-                else if (attemptId != null)
-                  StaggeredEntrance(
-                    index: 4,
-                    child: QuizReviewLoaderButton(attemptId: attemptId!),
-                  ),
                 if (quizId != null)
                   ViewCertificateButton(
                     quizId: quizId!,
