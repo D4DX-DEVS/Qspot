@@ -8,6 +8,8 @@ const { normalizePhone, phoneError } = require('./phone');
 const { parseDob } = require('./dob');
 
 const ROLES = ['student', 'faculty'];
+// Qspot is for classes 8 to 12; the admin form offers the same list.
+const STUDENT_CLASSES = ['8', '9', '10', '11', '12'];
 // Every account needs a class; teachers aren't in one.
 const TEACHER_CLASS = 'Teacher';
 
@@ -28,6 +30,7 @@ const newUserFields = (body = {}) => {
   if (role === 'student') {
     const userClass = String(body.class ?? '').trim();
     if (!userClass) return { error: 'Class is required' };
+    if (!STUDENT_CLASSES.includes(userClass)) return { error: 'Class should be between 8 and 12.' };
     return { fields: { role, name, phone, email, class: userClass } };
   }
 
@@ -41,4 +44,4 @@ const newUserFields = (body = {}) => {
   return { fields: { role, name, phone, email, class: TEACHER_CLASS, dob, facultyProfile } };
 };
 
-module.exports = { newUserFields, TEACHER_CLASS };
+module.exports = { newUserFields, STUDENT_CLASSES, TEACHER_CLASS };
