@@ -1032,4 +1032,32 @@ describe('quiz routes', { skip }, () => {
         assert.equal(seen.length, 25);
         assert.equal(new Set(seen).size, 25, 'no submission repeats on another page, none is left out');
     });
+
+    it('quiz results keep each student\'s real rank when filtered, and exact ties share a rank', async () => {
+        const tag = `rank${Date.now()}`;
+        const { config } = await quiz();
+        // Listed in rank order; C and D have the same score and time.
+        const rows = [['A', 2, 60], ['B', 2, 90], ['C', 1, 30], ['D', 1, 30], ['E', 0, 10]];
+        for (const [i, [letter, score, totalDuration]] of rows.entries()) {
+            const { user } = await student({ name: `${tag}${letter}` });
+            const attempt = await models.Quiz.create({ userId: user._id, quizId: config._id, score, totalDuration, totalQuestions: 2 });
+            await models.Quiz.collection.updateOne({ _id: attempt._id }, { $set: { createdAt: new Date(SAME_MOMENT.getTime() + i * 1000) } });
+        }
+        const admin = jwt.sign({ username: 'it-admin', role: 'admin' }, SECRET);
+        const results = async (query = '') => {
+            const res = await call(`/api/quiz-definitions/${config._id}/results${query}`, admin);
+            assert.equal(res.status, 200);
+            return res.body;
+        };
+        const shown = (body) => body.items.map((item) => `${item.name.slice(tag.length)}${item.rank}`);
+
+        assert.deepEqual(shown(await results()), ['A1', 'B2', 'C3', 'D3', 'E5']);
+        assert.deepEqual(shown(await results(`?search=${tag}D`)), ['D3'], 'a searched student keeps their rank');
+        assert.deepEqual(shown(await results('?maxScore=1')), ['C3', 'D3', 'E5']);
+        assert.deepEqual(shown(await results('?minScore=1&maxScore=1')), ['C3', 'D3']);
+        assert.deepEqual(shown(await results(`?from=${new Date(SAME_MOMENT.getTime() + 1500).toISOString()}`)), ['C3', 'D3', 'E5']);
+        const second = await results('?page=2&limit=2');
+        assert.deepEqual(shown(second), ['C3', 'D3']);
+        assert.equal(second.total, 5);
+    });
 });
