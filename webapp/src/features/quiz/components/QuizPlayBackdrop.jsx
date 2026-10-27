@@ -1,6 +1,5 @@
 import { paintArchWindow } from '../../../art/archWindow'
 import { paintBook } from '../../../art/nightLayers'
-import BrandLockup from '../../../components/brand/BrandLockup'
 import LatticeBackdrop from '../../../components/scene/LatticeBackdrop'
 import SceneArt from '../../../components/scene/SceneArt'
 import SwayingLantern from '../../../components/scene/SwayingLantern'
@@ -24,8 +23,7 @@ const paintRight = (ctx, w, h, p) =>
   })
 
 // Behind the question page: the patterned wall and, on wide screens, night
-// pictures in the margins beside the question, and the QSPOT logo once the
-// margin is wide enough for it.
+// pictures in the margins beside the question.
 export default function QuizPlayBackdrop() {
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 overflow-hidden">
@@ -38,9 +36,6 @@ export default function QuizPlayBackdrop() {
         <div className="absolute right-0 top-[6%] h-[80%] w-[calc((100vw-1040px)/2)]">
           <SceneArt paint={paintRight} />
           <TwinkleStars count={8} area={{ left: 0.22, right: 0.78, top: 0.14, bottom: 0.48 }} seed={21} />
-        </div>
-        <div className="absolute left-8 top-6 hidden min-[1500px]:block">
-          <BrandLockup mark={50} />
         </div>
       </div>
     </div>
