@@ -1,9 +1,18 @@
-import { formatDateTime } from './format';
-
 // A4 landscape (297mm x 210mm) in CSS pixels, the size the certificate page
 // renders at before it is scaled to fit the viewer.
 export const CERTIFICATE_PAGE_WIDTH = 1123;
 export const CERTIFICATE_PAGE_HEIGHT = 794;
+
+// The certificate design (EXAM CERTIFICATE_QSPOT.pdf) as one A4 landscape
+// picture, and where the filled-in parts sit on it, in points on the
+// 842 x 595 page. Keep these the same as the web app's
+// (webapp/src/features/certificate/models/certificateLayout.js) and the
+// app's (mobile-app/lib/screens/certificate/widgets/certificate_sheet.dart).
+const TEMPLATE = '/certificate/participation.jpg';
+// The name stands centred on the blank line, its last line 6pt above it.
+const NAME_BOX = { left: 336.8, width: 452.6, bottom: 301 };
+// The small certificate number and date line, bottom left of the text side.
+const DETAILS_BOX = { left: 336.8, bottom: 20 };
 
 const escapeHtml = (value) => String(value ?? '')
   .replaceAll('&', '&amp;')
@@ -12,13 +21,33 @@ const escapeHtml = (value) => String(value ?? '')
   .replaceAll('"', '&quot;')
   .replaceAll("'", '&#039;');
 
-// Full printable page for one issued certificate. Text comes from the
-// certificate's snapshot, so later edits to the exam never change it.
-// `print-color-adjust: exact` keeps the paper tint when printed, even with
-// the browser's "Background graphics" option off.
+// Point size of the name: 26, smaller for long names so they stay on the
+// line (a very long one may still wrap to a second line above it).
+const nameFontSize = (name) => {
+  const length = [...String(name ?? '')].length;
+  if (length <= 22) return 26;
+  return Math.max(17, Math.round(((26 * 22) / length) * 10) / 10);
+};
+
+// "21 October 2026", or empty when the date is missing.
+const issuedLabel = (value) => {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+};
+
+const STYLE = `@font-face{font-family:Manrope;font-weight:700;src:url('/fonts/Manrope-Bold.ttf') format('truetype')}@font-face{font-family:Manrope;font-weight:400;src:url('/fonts/Manrope-Regular.ttf') format('truetype')}@page{size:A4 landscape;margin:0}*{box-sizing:border-box;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}@media screen{html,body{overflow:hidden}}body{background:#fff;font-family:Manrope,Arial,sans-serif}.sheet{position:relative;width:297mm;height:210mm;overflow:hidden}.sheet img{position:absolute;inset:0;width:100%;height:100%}.name{position:absolute;left:${NAME_BOX.left}pt;width:${NAME_BOX.width}pt;bottom:${NAME_BOX.bottom}pt;text-align:center;font-weight:700;line-height:1.15;color:#000}.details{position:absolute;left:${DETAILS_BOX.left}pt;bottom:${DETAILS_BOX.bottom}pt;font-size:7.5pt;white-space:nowrap;color:#6b6270}`;
+
+// Full printable page for one issued certificate: the design as a picture
+// with the student's name on its line and the certificate number and issue
+// date small at the foot. `print-color-adjust: exact` keeps the picture's
+// colours when printed, even with the browser's "Background graphics"
+// option off.
 export const certificateHtml = (certificate) => {
-  const snapshot = certificate.snapshot || {};
-  const student = certificate.student || {};
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(certificate.certificateNumber)}</title><style>
-    @page{size:A4 landscape;margin:0}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}@media screen{html,body{overflow:hidden}}body{margin:0;background:#f7f1eb;color:#1c1220;font-family:Georgia,serif}.sheet{width:297mm;height:210mm;padding:18mm;display:grid;place-items:center}.certificate{width:100%;height:100%;border:3px solid #701845;padding:12mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;background:linear-gradient(135deg,#fffaf6,#f8e9ee)}.certificate:before{content:'';position:absolute;inset:7mm;border:1px solid #e0ae73;pointer-events:none}.eyebrow{letter-spacing:.35em;text-transform:uppercase;color:#701845;font-size:12px}.title{font-size:38px;color:#701845;margin:14px 0 8px}.student{font-size:42px;font-weight:bold;color:#111827;margin:12px 0}.description{max-width:620px;font-size:18px;line-height:1.5;color:#4b4350}.meta{margin-top:28px;display:flex;gap:70px;color:#5c5360;font-size:14px}.signature{margin-top:28px;min-width:180px;border-top:1px solid #701845;padding-top:8px;font-size:14px}.number{position:absolute;bottom:12mm;font:12px Arial;color:#6b6270}</style></head><body><main class="sheet"><section class="certificate"><div class="eyebrow">${escapeHtml(snapshot.issuerName || 'QSPOT LEARNING')}</div><h1 class="title">${escapeHtml(snapshot.title || 'Certificate of Achievement')}</h1><div>This certificate is proudly presented to</div><div class="student">${escapeHtml(student.name || 'Student')}</div><div class="description">${escapeHtml(snapshot.description || 'For successfully completing the examination.')}<br><strong>${escapeHtml(snapshot.examTitle || 'Examination')}</strong></div><div class="meta"><span>Score<br><strong>${escapeHtml(certificate.percentage)}%</strong></span><span>Issued<br><strong>${escapeHtml(formatDateTime(certificate.issuedAt))}</strong></span></div><div class="signature">${escapeHtml(snapshot.signatoryName || 'Authorized Signatory')}</div><div class="number">Certificate No. ${escapeHtml(certificate.certificateNumber)}</div></section></main></body></html>`;
+  const name = certificate.student?.name || 'Student';
+  const issued = issuedLabel(certificate.issuedAt);
+  const details = [`Certificate No. ${certificate.certificateNumber}`, issued ? `Issued ${issued}` : '']
+    .filter(Boolean)
+    .join(' · ');
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(certificate.certificateNumber)}</title><style>${STYLE}</style></head><body><main class="sheet"><img src="${TEMPLATE}" alt=""><p class="name" style="font-size:${nameFontSize(name)}pt">${escapeHtml(name)}</p><p class="details">${escapeHtml(details)}</p></main></body></html>`;
 };

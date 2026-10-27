@@ -82,6 +82,16 @@ class CertificateModel {
       ? '${percentage.toInt()}%'
       : '${percentage.toStringAsFixed(1)}%';
 
+  /// Point size of the name on the certificate: 26, smaller for long names
+  /// so they stay on the line (a very long one may still wrap to a second
+  /// line). Same rule as the web app and admin panel.
+  double get nameFontSize {
+    final length = studentName.runes.length;
+    if (length <= 22) return 26;
+    final size = (26 * 22 / length * 10).roundToDouble() / 10;
+    return size < 17 ? 17 : size;
+  }
+
   /// "7 October 2026", or empty when the date is missing.
   String get issuedLabel =>
       issuedAt == null ? '' : DateFormat('d MMMM yyyy').format(issuedAt!);
