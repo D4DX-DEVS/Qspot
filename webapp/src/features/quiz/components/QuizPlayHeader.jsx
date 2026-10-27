@@ -1,15 +1,20 @@
 import { ArrowLeft } from 'lucide-react'
+import BrandLockup from '../../../components/brand/BrandLockup'
 import AnimatedProgressBar from '../../../components/common/AnimatedProgressBar'
 import QuizTimerCards from './QuizTimerCards'
 
-// Top of the question page: back, "Question 1 of 10", the progress bar with
-// "1/10", and the countdowns on the right. Progress and timers show only
-// once the questions are in ([total] > 0).
+// Top of the question page, full width: QSPOT at the far left on wide
+// screens, then back, "Question 1 of 10" and the progress bar with "1/10",
+// and the countdowns at the far right. Progress and timers show only once
+// the questions are in ([total] > 0).
 export default function QuizPlayHeader({ title, current, total, timer, onBack }) {
   const showing = total > 0
   return (
-    <div className="mx-auto grid w-full max-w-[1040px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 px-4 pb-3 pt-[calc(12px+env(safe-area-inset-top))] sm:gap-x-8 sm:pt-[calc(20px+env(safe-area-inset-top))]">
-      <div className="min-w-0">
+    <div className="flex w-full items-center gap-4 px-4 pb-3 pt-[calc(12px+env(safe-area-inset-top))] sm:gap-8 sm:px-6 sm:pt-[calc(20px+env(safe-area-inset-top))] lg:px-10">
+      <div className="hidden shrink-0 lg:block">
+        <BrandLockup mark={50} />
+      </div>
+      <div className="min-w-0 flex-1">
         <div className="flex items-center gap-3 sm:gap-4">
           <button
             type="button"
