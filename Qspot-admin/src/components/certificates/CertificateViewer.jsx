@@ -29,9 +29,11 @@ const CertificateViewer = ({ certificate, onClose }) => {
     return () => observer.disconnect();
   }, []);
 
-  const print = () => {
+  // Waits for the name's font, so it never prints in a fallback font.
+  const print = async () => {
     const frameWindow = frameRef.current?.contentWindow;
     if (!frameWindow) return;
+    await frameWindow.document.fonts?.ready;
     frameWindow.focus();
     frameWindow.print();
   };

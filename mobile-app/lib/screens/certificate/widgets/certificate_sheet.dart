@@ -3,8 +3,12 @@ import 'package:flutter/material.dart';
 import '../model/certificate_model.dart';
 
 /// The printable certificate, laid out at a fixed A4 landscape size in
-/// points so the shared PDF matches the admin panel's printed copy
-/// (Qspot-admin/src/utils/certificateHtml.js, scaled by 0.75).
+/// points: the design (EXAM CERTIFICATE_QSPOT.pdf) as one picture, the
+/// student's name on its line and the certificate number and issue date
+/// small at the foot. It matches the admin panel's printed copy
+/// (Qspot-admin/src/utils/certificateHtml.js) and the web app's
+/// (webapp/src/features/certificate/models/certificateLayout.js); keep the
+/// positions below the same as theirs.
 ///
 /// The colours are the paper's, not the app theme's: the certificate is a
 /// document and must look the same in light and dark mode and in print.
@@ -18,163 +22,87 @@ class CertificateSheet extends StatelessWidget {
   static const double width = 842;
   static const double height = 595;
 
-  static const Color _paper = Color(0xFFF7F1EB);
-  static const Color _brand = Color(0xFF701845);
-  static const Color _gold = Color(0xFFE0AE73);
-  static const Color _ink = Color(0xFF111827);
-  static const Color _body = Color(0xFF4B4350);
-  static const Color _meta = Color(0xFF5C5360);
-  static const Color _muted = Color(0xFF6B6270);
+  static const String _template = 'assets/images/certificate_participation.jpg';
 
-  static TextStyle _serif(double size, Color color, {FontWeight? weight}) =>
-      TextStyle(
-        fontFamily: 'Georgia',
-        fontFamilyFallback: const ['serif'],
-        fontSize: size,
-        color: color,
-        fontWeight: weight,
-        height: 1.3,
-      );
+  // The blank line runs x 336.8..789.4 at y 300.5; the name stands centred
+  // on it, its last line 6pt above it (bottom measured from the page foot).
+  static const double _nameLeft = 336.8;
+  static const double _nameWidth = 452.6;
+  static const double _nameBottom = 301;
+  // Room for two lines of a long (smaller) name before it shrinks further,
+  // clear of "This is to certify that" above.
+  static const double _nameMaxHeight = 44;
+
+  static const double _detailsLeft = 336.8;
+  static const double _detailsBottom = 20;
+
+  static const Color _muted = Color(0xFF6B6270);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final details = TextStyle(
+      fontFamily: 'Manrope',
+      fontSize: 7.5,
+      color: _muted,
+    );
+    return SizedBox(
       width: width,
       height: height,
-      color: _paper,
-      padding: const EdgeInsets.all(51),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border.all(color: _brand, width: 2.25),
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFFFFAF6), Color(0xFFF8E9EE)],
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              _template,
+              fit: BoxFit.fill,
+              filterQuality: FilterQuality.high,
+              gaplessPlayback: true,
+            ),
           ),
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: _gold, width: 0.75),
+          Positioned(
+            left: _nameLeft,
+            width: _nameWidth,
+            bottom: _nameBottom,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: _nameMaxHeight),
+              // Long names are set smaller; a very long one wraps to a
+              // second line, then shrinks to fit.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.bottomCenter,
+                child: SizedBox(
+                  width: _nameWidth,
+                  child: Text(
+                    certificate.studentName,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: certificate.nameFontSize,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black,
+                      height: 1.15,
+                    ),
                   ),
                 ),
               ),
             ),
-            Positioned.fill(child: _content()),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 34,
-              child: Text(
-                'Certificate No. ${certificate.certificateNumber}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 9, color: _muted),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _content() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(34, 34, 34, 50),
-      // Admin text fields allow up to 500 characters; shrink the whole block
-      // rather than overflow the page when they are long.
-      child: LayoutBuilder(
-        builder: (context, constraints) => FittedBox(
-          fit: BoxFit.scaleDown,
-          child: SizedBox(width: constraints.maxWidth, child: _lines()),
-        ),
-      ),
-    );
-  }
-
-  Widget _lines() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          certificate.issuerName.toUpperCase(),
-          textAlign: TextAlign.center,
-          style: _serif(9, _brand).copyWith(letterSpacing: 3.15),
-        ),
-        const SizedBox(height: 10.5),
-        Text(
-          certificate.title,
-          textAlign: TextAlign.center,
-          style: _serif(28.5, _brand, weight: FontWeight.bold),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'This certificate is proudly presented to',
-          textAlign: TextAlign.center,
-          style: _serif(12, _ink),
-        ),
-        const SizedBox(height: 9),
-        Text(
-          certificate.studentName,
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: _serif(31.5, _ink, weight: FontWeight.bold),
-        ),
-        const SizedBox(height: 9),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 465),
-          child: Text.rich(
-            TextSpan(
-              text: '${certificate.description}\n',
+          ),
+          Positioned(
+            left: _detailsLeft,
+            bottom: _detailsBottom,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                TextSpan(
-                  text: certificate.examTitle,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                Text(
+                  'Certificate No. ${certificate.certificateNumber}',
+                  style: details,
                 ),
+                if (certificate.issuedLabel.isNotEmpty)
+                  Text(' · Issued ${certificate.issuedLabel}', style: details),
               ],
             ),
-            textAlign: TextAlign.center,
-            style: _serif(13.5, _body).copyWith(height: 1.5),
           ),
-        ),
-        const SizedBox(height: 21),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _metaItem('Score', certificate.percentageLabel),
-            if (certificate.issuedLabel.isNotEmpty) ...[
-              const SizedBox(width: 52),
-              _metaItem('Issued', certificate.issuedLabel),
-            ],
-          ],
-        ),
-        const SizedBox(height: 21),
-        Container(
-          constraints: const BoxConstraints(minWidth: 135),
-          padding: const EdgeInsets.only(top: 6),
-          decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: _brand, width: 0.75)),
-          ),
-          child: Text(
-            certificate.signatoryName,
-            textAlign: TextAlign.center,
-            style: _serif(10.5, _ink),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _metaItem(String label, String value) {
-    return Column(
-      children: [
-        Text(label, style: _serif(10.5, _meta)),
-        Text(value, style: _serif(10.5, _meta, weight: FontWeight.bold)),
-      ],
+        ],
+      ),
     );
   }
 }
