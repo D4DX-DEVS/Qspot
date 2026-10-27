@@ -66,12 +66,12 @@ export class CertificatesStore extends ChangeNotifier {
   }
 
   // Null on success, or a message to show.
-  async download(certificate, node) {
-    if (this.isDownloading || !node) return null
+  async download(certificate) {
+    if (this.isDownloading) return null
     this.isDownloading = true
     this.notifyListeners()
     try {
-      await downloadCertificatePdf(certificate, node)
+      await downloadCertificatePdf(certificate)
       return null
     } catch (e) {
       console.warn('Certificate PDF failed:', e)

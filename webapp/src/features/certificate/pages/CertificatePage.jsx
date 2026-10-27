@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { Award, Download, Printer } from 'lucide-react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import AppBar from '../../../components/common/AppBar'
@@ -20,12 +20,11 @@ export default function CertificatePage() {
   const navigate = useNavigate()
   const location = useLocation()
   const store = useLocalNotifier(() => new CertificatesStore({ initial: location.state?.certificate ?? null }))
-  const sheet = useRef(null)
   useEffect(() => store.loadOnce(), [store])
 
   const certificate = store.forQuiz(quizId)
   const download = async () => {
-    const failure = await store.download(certificate, sheet.current)
+    const failure = await store.download(certificate)
     if (failure) toastStore.show(failure, 'danger')
   }
 
@@ -36,7 +35,7 @@ export default function CertificatePage() {
         {/* On a short laptop screen the full-width sheet pushes the buttons
             out of view, so it is narrowed to leave room for them. */}
         <div className="w-full" style={{ maxWidth: `max(280px, calc((100dvh - 250px) * ${SHEET_WIDTH / SHEET_HEIGHT}))` }}>
-          <CertificatePreview certificate={certificate} sheetRef={sheet} zoomed={store.zoomed} onToggleZoom={() => store.toggleZoom()} />
+          <CertificatePreview certificate={certificate} zoomed={store.zoomed} onToggleZoom={() => store.toggleZoom()} />
         </div>
         <div className="flex w-full max-w-[480px] flex-col gap-3">
           <FilledButton icon={Download} label={store.isDownloading ? 'Preparing PDF…' : 'Download PDF'} loading={store.isDownloading} onClick={download} />

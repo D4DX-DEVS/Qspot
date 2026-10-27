@@ -8,10 +8,9 @@ export const SHEET_HEIGHT = 595
 // certificate number and date small at the foot (certificate_sheet.dart in
 // the app). Paper colours, not theme colours: it looks the same in light
 // and dark mode and on paper.
-export default function CertificateSheet({ certificate: c, ref }) {
+export default function CertificateSheet({ certificate: c }) {
   return (
     <div
-      ref={ref}
       role="img"
       aria-label={`Certificate of participation for ${c.studentName}. ${c.detailsLabel}`}
       className="relative overflow-hidden bg-white font-sans"

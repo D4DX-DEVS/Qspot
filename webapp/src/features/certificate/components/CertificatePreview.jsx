@@ -4,9 +4,8 @@ import CertificateSheet, { SHEET_HEIGHT, SHEET_WIDTH } from './CertificateSheet'
 
 // The sheet scaled to fit the width it is given, with a soft brand shadow.
 // On a phone the fitted text is tiny, so a button shows it full size to
-// scroll around ([zoomed]), the way the app allows pinch-zoom. [sheetRef]
-// points at the full-size sheet, for the PDF.
-export default function CertificatePreview({ certificate, sheetRef, zoomed, onToggleZoom }) {
+// scroll around ([zoomed]), the way the app allows pinch-zoom.
+export default function CertificatePreview({ certificate, zoomed, onToggleZoom }) {
   const frame = useRef(null)
   const full = useRef(null)
   // Opened full size: start in the middle, where the name is.
@@ -29,7 +28,7 @@ export default function CertificatePreview({ certificate, sheetRef, zoomed, onTo
     <div className="relative w-full">
       {zoomed ? (
         <div ref={full} className="max-h-[70dvh] w-full overflow-auto border border-line" tabIndex={0} aria-label="Certificate at full size">
-          <CertificateSheet ref={sheetRef} certificate={certificate} />
+          <CertificateSheet certificate={certificate} />
         </div>
       ) : (
         <div
@@ -38,7 +37,7 @@ export default function CertificatePreview({ certificate, sheetRef, zoomed, onTo
           style={{ aspectRatio: `${SHEET_WIDTH} / ${SHEET_HEIGHT}` }}
         >
           <div className="absolute left-0 top-0 origin-top-left" style={{ transform: 'scale(var(--qs-scale, 0.4))' }}>
-            <CertificateSheet ref={sheetRef} certificate={certificate} />
+            <CertificateSheet certificate={certificate} />
           </div>
         </div>
       )}
