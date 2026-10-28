@@ -1,0 +1,235 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "admin-local",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "VITE_API_BASE_URL=http://127.0.0.1:5051/api",
+        "npm",
+        "--prefix",
+        "Qspot-admin",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5174",
+        "--strictPort"
+      ],
+      "port": 5174
+    },
+    {
+      "name": "api-local",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "PORT=5051",
+        "NOTIFICATION_JOBS_SECONDS=0",
+        "npm",
+        "--prefix",
+        "Qspot-API",
+        "start"
+      ],
+      "port": 5051
+    },
+    {
+      "name": "api-local-preview-db",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "PORT=5051",
+        "NOTIFICATION_JOBS_SECONDS=0",
+        "MONGODB_URI=mongodb://127.0.0.1:27017/qspot_preview_test",
+        "JWT_SECRET=preview-secret",
+        "npm",
+        "--prefix",
+        "Qspot-API",
+        "start"
+      ],
+      "port": 5051
+    },
+    {
+      "name": "api-webapp-test",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "PORT=5099",
+        "NOTIFICATION_JOBS_SECONDS=0",
+        "MONGODB_URI=mongodb://127.0.0.1:27017/qspot_webapp_test",
+        "JWT_SECRET=webapp-test-secret",
+        "npm",
+        "--prefix",
+        "Qspot-API",
+        "start"
+      ],
+      "port": 5099
+    },
+    {
+      "name": "webapp",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "VITE_API_PROXY_TARGET=http://127.0.0.1:5099",
+        "npm",
+        "--prefix",
+        "webapp",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5180",
+        "--strictPort"
+      ],
+      "port": 5180
+    },
+    {
+      "name": "webapp-register",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "VITE_API_PROXY_TARGET=http://127.0.0.1:5099",
+        "VITE_ENABLE_REGISTRATION=true",
+        "npm",
+        "--prefix",
+        "webapp",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5181",
+        "--strictPort"
+      ],
+      "port": 5181
+    },
+    {
+      "name": "webapp-live",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "webapp",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5182",
+        "--strictPort"
+      ],
+      "port": 5182
+    },
+    {
+      "name": "api-class-login-test",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "PORT=5097",
+        "NOTIFICATION_JOBS_SECONDS=0",
+        "MONGODB_URI=mongodb://127.0.0.1:27017/qspot_webapp_test",
+        "JWT_SECRET=webapp-test-secret",
+        "npm",
+        "--prefix",
+        "Qspot-API",
+        "start"
+      ],
+      "port": 5097
+    },
+    {
+      "name": "webapp-class-login",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "VITE_API_PROXY_TARGET=http://127.0.0.1:5097",
+        "VITE_ENABLE_REGISTRATION=true",
+        "npm",
+        "--prefix",
+        "webapp",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5183",
+        "--strictPort"
+      ],
+      "port": 5183
+    },
+    {
+      "name": "api-admin-test",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "PORT=5098",
+        "NOTIFICATION_JOBS_SECONDS=0",
+        "MONGODB_URI=mongodb://127.0.0.1:27017/qspot_webapp_test",
+        "JWT_SECRET=webapp-test-secret",
+        "CORS_ORIGIN=*",
+        "ADMIN_USERNAME=localadmin",
+        "ADMIN_PASSWORD=c461584a3cd3695d",
+        "npm",
+        "--prefix",
+        "Qspot-API",
+        "start"
+      ],
+      "port": 5098
+    },
+    {
+      "name": "admin-test",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "VITE_API_BASE_URL=http://127.0.0.1:5098/api",
+        "npm",
+        "--prefix",
+        "Qspot-admin",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5175",
+        "--strictPort"
+      ],
+      "port": 5175
+    },
+    {
+      "name": "webapp-redesign",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "VITE_API_PROXY_TARGET=http://127.0.0.1:5097",
+        "npm",
+        "--prefix",
+        "webapp",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5186",
+        "--strictPort"
+      ],
+      "port": 5186
+    },
+    {
+      "name": "api-add-user-test",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "PORT=5096",
+        "NOTIFICATION_JOBS_SECONDS=0",
+        "MONGODB_URI=mongodb://127.0.0.1:27999/qspot_add_user_test",
+        "JWT_SECRET=add-user-test-secret",
+        "CORS_ORIGIN=*",
+        "ADMIN_USERNAME=localadmin",
+        "ADMIN_PASSWORD=add-user-test-pw-7c2e",
+        "npm",
+        "--prefix",
+        "Qspot-API",
+        "start"
+      ],
+      "port": 5096
+    },
+    {
+      "name": "admin-add-user-test",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "VITE_API_BASE_URL=http://127.0.0.1:5096/api",
+        "npm",
+        "--prefix",
+        "Qspot-admin",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5176",
+        "--strictPort"
+      ],
+      "port": 5176
+    }
+  ]
+}
