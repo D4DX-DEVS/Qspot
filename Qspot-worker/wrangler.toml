@@ -30,7 +30,7 @@ bucket_name = "qspot-files"
 crons = ["*/5 * * * *"]
 
 [vars]
-CORS_ORIGIN = "https://qspot-admin.netlify.app,https://qspot.in,https://www.qspot.in,https://qspot-admin.d4dx-fatwa.workers.dev,https://qspot-web.d4dx-fatwa.workers.dev"
+CORS_ORIGIN = "https://admin.qspot.in,https://qspot.in,https://www.qspot.in,https://qspot-admin.netlify.app,https://qspot-admin.d4dx-fatwa.workers.dev,https://qspot-web.d4dx-fatwa.workers.dev"
 R2_FOLDER = "Qspot"   # key prefix of the files copied from Spaces
 # R2_PUBLIC_URL = "https://files.example.com"   # custom domain on the bucket; unset = served at /files/<key>
 # Secrets (wrangler secret put): JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD, DXING_API_KEY, DXING_INSTANCE_ID
