@@ -1,0 +1,36 @@
+name = "qspot-api"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# The existing Express/Mongoose code runs against these local shims.
+[alias]
+express = "./src/shims/express.js"
+mongoose = "./src/shims/mongoose.js"
+jsonwebtoken = "./src/shims/jsonwebtoken.js"
+multer = "./src/shims/multer.js"
+express-rate-limit = "./src/shims/express-rate-limit.js"
+axios = "./src/shims/axios.js"
+helmet = "./src/shims/noop.js"
+dotenv = "./src/shims/noop.js"
+cors = "./src/shims/noop.js"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "qspot"
+database_id = "f58ee830-e3ba-49ad-8161-60a1339b81e2"   # printed by: wrangler d1 create qspot
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "qspot-files"
+
+# Replaces the setInterval in notificationJobs.js.
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+CORS_ORIGIN = "https://qspot-admin.netlify.app,https://qspot.in,https://www.qspot.in,https://qspot-admin.d4dx-fatwa.workers.dev,https://qspot-web.d4dx-fatwa.workers.dev"
+R2_FOLDER = "Qspot"   # key prefix of the files copied from Spaces
+# R2_PUBLIC_URL = "https://files.example.com"   # custom domain on the bucket; unset = served at /files/<key>
+# Secrets (wrangler secret put): JWT_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD, DXING_API_KEY, DXING_INSTANCE_ID

@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 // Same API the mobile app talks to by default (mobile-app/lib/utils/api_urls.dart).
-const PRODUCTION_API = 'https://qspot-app-vcbgp.ondigitalocean.app'
+const PRODUCTION_API = 'https://qspot-api.d4dx-fatwa.workers.dev'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')

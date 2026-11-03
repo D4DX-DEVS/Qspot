@@ -13,6 +13,7 @@ const AdminLogin = () => {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
 
     // Already logged in? Skip the form entirely.
     if (isLoggedIn()) {
@@ -84,17 +85,26 @@ const AdminLogin = () => {
                         </div>
 
                         <div>
-                            <div className="mt-1">
+                            <div className="mt-1 relative">
                                 <input
                                     id="password"
                                     name="password"
-                                    type="password"
+                                    type={showPassword ? 'text' : 'password'}
                                     required
                                     value={formData.password}
                                     onChange={handleChange}
-                                    className="appearance-none block w-full px-4 py-3 border border-gray-600 bg-black text-white rounded-full placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#701845] focus:border-transparent sm:text-sm transition-all duration-200"
+                                    className="appearance-none block w-full pl-4 pr-16 py-3 border border-gray-600 bg-black text-white rounded-full placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#701845] focus:border-transparent sm:text-sm transition-all duration-200"
                                     placeholder="Enter your password"
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword((v) => !v)}
+                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                    aria-pressed={showPassword}
+                                    className="absolute inset-y-0 right-4 text-xs text-gray-400 hover:text-white focus:outline-none focus-visible:text-white"
+                                >
+                                    {showPassword ? 'Hide' : 'Show'}
+                                </button>
                             </div>
                         </div>
 

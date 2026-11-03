@@ -1,0 +1,19 @@
+{
+  "name": "qspot-worker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev --local --persist-to .wrangler/state",
+    "deploy": "wrangler deploy",
+    "migrate:local": "wrangler d1 migrations apply qspot --local --persist-to .wrangler/state",
+    "migrate:remote": "wrangler d1 migrations apply qspot --remote",
+    "gen:migration": "node scripts/gen-migration.mjs",
+    "test": "node --require ./scripts/test-preload.cjs --test \"src/app/tests/*.test.js\""
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
