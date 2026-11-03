@@ -1,8 +1,23 @@
 const axios = require('axios');
 const bcrypt = require('bcryptjs');
 
-// In-memory store for demo purposes. Replace with Redis/DB for production.
-const store = new Map();
+const mongoose = require('mongoose');
+
+// OTP records live in D1 (table kv): Worker isolates are short-lived and many
+// run at once, so an in-memory Map would lose codes between requests.
+const store = {
+  async get(key) {
+    const row = await mongoose.__db().prepare('SELECT value FROM kv WHERE key=? AND expires_at > ?').bind(key, Date.now()).first();
+    return row ? JSON.parse(row.value) : undefined;
+  },
+  async set(key, value) {
+    await mongoose.__db().prepare('INSERT OR REPLACE INTO kv (key,value,expires_at) VALUES (?,?,?)')
+      .bind(key, JSON.stringify(value), value.expAt + 60 * 1000).run();
+  },
+  async delete(key) {
+    await mongoose.__db().prepare('DELETE FROM kv WHERE key=?').bind(key).run();
+  }
+};
 
 const env = {
   INSTANCE_ID: process.env.DXING_INSTANCE_ID,
@@ -63,7 +78,7 @@ async function requestWhatsappOtp(rawPhone) {
   const key = `otp:${phone}`;
   const now = Date.now();
 
-  const existing = store.get(key);
+  const existing = await store.get(key);
   if (existing && now - existing.lastSentAt < env.COOLDOWN_MS) {
     const wait = Math.ceil((env.COOLDOWN_MS - (now - existing.lastSentAt)) / 1000);
     return { ok: true, phone: maskPhone(phone), cooldown: wait };
@@ -78,7 +93,7 @@ async function requestWhatsappOtp(rawPhone) {
     attempts: 0, 
     lastSentAt: now 
   };
-  store.set(key, record);
+  await store.set(key, record);
 
   await sendOtpViaDixing(phone, code);
 
@@ -90,7 +105,7 @@ async function verifyWhatsappOtp(rawPhone, code) {
   const key = `otp:${phone}`;
   
   // Get the stored record
-  const record = store.get(key);
+  const record = await store.get(key);
   
   // Check if record exists
   if (!record) {
@@ -100,18 +115,19 @@ async function verifyWhatsappOtp(rawPhone, code) {
   // Check if expired
   const now = Date.now();
   if (now > record.expAt) {
-    store.delete(key);
+    await store.delete(key);
     return { ok: false, error: 'OTP expired. Please request a new OTP.' };
   }
   
   // Check attempts
   if (record.attempts >= env.MAX_ATTEMPTS) {
-    store.delete(key);
+    await store.delete(key);
     return { ok: false, error: 'Too many attempts. Please request a new OTP.' };
   }
   
   // Increment attempts
   record.attempts += 1;
+  await store.set(key, record);
   
   // Compare the code directly
   const storedCode = record.originalCode;
@@ -121,7 +137,7 @@ async function verifyWhatsappOtp(rawPhone, code) {
   }
   
   // Success - delete the record
-  store.delete(key);
+  await store.delete(key);
   return { ok: true };
 }
 

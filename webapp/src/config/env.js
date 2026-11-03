@@ -1,5 +1,5 @@
 // Same API the mobile app talks to by default (mobile-app/lib/utils/api_urls.dart).
-const PRODUCTION_API = 'https://qspot-app-vcbgp.ondigitalocean.app'
+const PRODUCTION_API = 'https://qspot-api.d4dx-fatwa.workers.dev'
 
 const configured = (import.meta.env.VITE_API_BASE_URL || '').trim()
 
