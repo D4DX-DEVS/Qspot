@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../themes/home_field_decoration.dart';
 import '../model/rubric_spec.dart';
 
 /// One part's name and its score: a chip per point for parts out of 10 or
@@ -43,7 +44,10 @@ class RubricPartScorer extends StatelessWidget {
           TextFormField(
             initialValue: score?.toString() ?? '',
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(hintText: '0 to ${part.maxPoints}'),
+            decoration: HomeFieldDecoration.of(
+              context,
+              hint: '0 to ${part.maxPoints}',
+            ),
             onChanged: (value) => onScore(int.tryParse(value.trim())),
           ),
       ],
