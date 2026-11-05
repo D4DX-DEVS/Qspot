@@ -19,6 +19,22 @@ class FacultyHomeScreenProvider extends ChangeNotifier {
   bool get loading => _loading;
   String? get error => _error;
 
+  /// Questions still waiting for the teacher's answer.
+  int get pendingQuestions => _questions.where((raw) {
+    final answer = raw is Map ? raw['answer'] : null;
+    return answer == null || answer.toString().trim().isEmpty;
+  }).length;
+
+  /// Submissions across all assignments still waiting for a mark.
+  int get pendingSubmissions => _assignments.fold(
+    0,
+    (sum, raw) =>
+        sum +
+        (raw is Map && raw['pendingSubmissions'] is num
+            ? (raw['pendingSubmissions'] as num).toInt()
+            : 0),
+  );
+
   Future<void> load() async {
     if (_disposed) {
       return;
