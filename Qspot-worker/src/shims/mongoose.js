@@ -323,6 +323,8 @@ class Query {
     limit(n) { this._limit = n; return this; }
     select(s) { this._select = s; return this; }
     lean() { this._lean = true; return this; }
+    // Model.find(filter).distinct(field), same as Model.distinct(field, filter).
+    distinct(field) { this.op = 'distinct'; this.extra = { ...this.extra, field }; return this; }
     maxTimeMS() { return this; }
     populate(p, sel) {
         if (typeof p === 'string' && !sel) p.split(/\s+/).filter(Boolean).forEach((x) => this._populate.push({ path: x }));
