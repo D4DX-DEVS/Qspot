@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../themes/home_field_decoration.dart';
 import '../../assignment/model/rubric_score.dart';
+import '../../common/widgets/home_theme_scope.dart';
 import '../model/rubric_grade_result.dart';
 import '../model/rubric_spec.dart';
 import '../provider/rubric_grade_provider.dart';
@@ -19,13 +21,15 @@ class RubricGradeDialog extends StatelessWidget {
     String feedback = '',
   }) => showDialog<RubricGradeResult>(
     context: context,
-    builder: (_) => ChangeNotifierProvider(
-      create: (_) => RubricGradeProvider(
-        rubric: rubric,
-        initialScores: initialScores,
-        feedback: feedback,
+    builder: (_) => HomeThemeScope(
+      child: ChangeNotifierProvider(
+        create: (_) => RubricGradeProvider(
+          rubric: rubric,
+          initialScores: initialScores,
+          feedback: feedback,
+        ),
+        child: const RubricGradeDialog(),
       ),
-      child: const RubricGradeDialog(),
     ),
   );
 
@@ -56,7 +60,7 @@ class RubricGradeDialog extends StatelessWidget {
               initialValue: grade.feedback,
               maxLines: 3,
               maxLength: 10000,
-              decoration: const InputDecoration(labelText: 'Feedback'),
+              decoration: HomeFieldDecoration.of(context, label: 'Feedback'),
               onChanged: grade.setFeedback,
             ),
           ],
